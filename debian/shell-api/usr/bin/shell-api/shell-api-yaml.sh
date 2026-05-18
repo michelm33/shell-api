@@ -507,14 +507,8 @@ YAML__normalize()
 }
 
 :<<'EOF'
-TODO:
-[x] a single-line string written on several line
-    e.g. 
-    field: 
-       this is one 
-       sentence line written on multiple lines
-[x] special chars not accepted as keys e.g. starting hyphen? or punctuation? to check!
-NOTE: keys with spaces are accepted
+@param [1] file yo read
+@param [2] a map declared with "declare -A" to store the (key,value) pairs
 EOF
 
 YAML__readAll() 

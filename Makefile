@@ -47,6 +47,27 @@ release: required_tools release_no_man_internal
 release_no_man_internal: create_package 
 	@echo SUCCESS
 
+.PHONY: pub
+pub: export tag
+
+.PHONY: tag
+tag:
+	@echo 
+	@echo 
+	@echo "REQUESTING TO TAG RELEASE WITH ARCV. CTRL-C TO ABORT."
+	@echo " IF ABORTED, TYPE 'make release_tag' or 'av pub' TO RESTART"
+	@echo 
+	@av pub
+
+.PHONY: export
+export:
+	@echo 
+	@echo 
+	@echo "REQUESTING TO EXPORT RELEASE TO GITHUB WITH ARCV. CTRL-C TO ABORT"
+	@echo " IF ABORTED, TYPE 'make release_export' or 'av export' TO RESTART"
+	@echo 
+	@av export $(VERSION_DEB)
+
 .PHONY: build_release
 build_release:  required_tools
 	@echo 

@@ -2,9 +2,10 @@ be0ad470ccb63ae340a0ac2ca5a19e7b  usr/bin/shell-api/CHANGELOG.txt
 f985aadc85ee06893ed3c73e78a3122b  usr/bin/shell-api/COPYRIGHT.txt
 ace3e7522cf59055d0b51d6bd892293f  usr/bin/shell-api/EXAMPLES.txt
 08abbf6a2449f4fed0ee381424fd8485  usr/bin/shell-api/GENAPP_EXAMPLES.txt
+2776ea1b4c9b053120ccb8822f527f05  usr/bin/shell-api/GITHUB.txt
 62860726ac9e7290b6c02e037f6b4a66  usr/bin/shell-api/LICENSE.txt
-7872a28d78fdc22b812a7e6bbfde7d88  usr/bin/shell-api/Makefile
-47cd76e43f74bbc2e1baaf194d07e1fa  usr/bin/shell-api/VERSION.txt
+3d7955099915fb4e12425ed9bae563e1  usr/bin/shell-api/Makefile
+c9e47dbb0e1927076ed7b2e1ec157be7  usr/bin/shell-api/VERSION.txt
 41c060512e9de558697b8fe89ff83389  usr/bin/shell-api/doc/HEARDER_SECTION_3.txt
 e84d7fbeaf031c39c3adddee61e4c235  usr/bin/shell-api/genapp
 8cc2b165649380cc1f1f1b52bce75cb1  usr/bin/shell-api/genapp__help.sh
@@ -19,7 +20,7 @@ f704f80493c0eae2d0d6403fdc297c2f  usr/bin/shell-api/shell-api-packing.sh
 da0ce47d705664d590456984ba9c4dbe  usr/bin/shell-api/shell-api-selftest.sh
 e18bc857e74894c9355a5a1d43427bb0  usr/bin/shell-api/shell-api-sys.sh
 a2030a5a1f054ade55297adabc86f073  usr/bin/shell-api/shell-api-xslt.sh
-62edd9ad7a4d1e44fe1cc0aaa018780b  usr/bin/shell-api/shell-api-yaml.sh
+4f566d63f43bdca6bbfceb7f76a6f4b8  usr/bin/shell-api/shell-api-yaml.sh
 0b69110691e1f0ba7dcdbe59e36b18a1  usr/bin/shell-api/template__EXAMPLES.txt
 cb1053b741dd7dc902831e4b6826f1e9  usr/bin/shell-api/template__Makefile
 4c702af6142598145b6bff7ddcd431da  usr/bin/shell-api/template__app.sh
@@ -27,5 +28,5 @@ cb1053b741dd7dc902831e4b6826f1e9  usr/bin/shell-api/template__Makefile
 31a193df4f2ff1e96b6a79f0531eed8f  usr/bin/shell-api/template__options.sh
 10cc975006dadf5f34dbb0019d01cc98  usr/bin/shell-api/template__vars.sh
 293ca9d3523c072a440d36f43f24f9aa  usr/bin/shell-api/template_pack/debian/control
-4409981b2a904b107e48cfa1a83ba425  usr/share/doc/shell-api/changelog.Debian.gz
+7e78803941248363b34d0cd27052bb43  usr/share/doc/shell-api/changelog.Debian.gz
 f985aadc85ee06893ed3c73e78a3122b  usr/share/doc/shell-api/copyright
