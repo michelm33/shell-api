@@ -12,7 +12,7 @@ e84d7fbeaf031c39c3adddee61e4c235  usr/bin/shell-api/genapp
 cea3e968ab94375979aee2b07fcb7451  usr/bin/shell-api/genapp__options.sh
 5ad3a491a82a3a5305e5c0de5a04bde3  usr/bin/shell-api/genapp__vars.sh
 759dc6854aeef7285cf2e69b6d3dc5f8  usr/bin/shell-api/pack/debian/control
-851f508516b38ba5171aa76b1be858fb  usr/bin/shell-api/shell-api-core.sh
+e94d814509b146e0f4a9c664a6a70d2f  usr/bin/shell-api/shell-api-core.sh
 66ccf702081b8b4d45079f8580e4c267  usr/bin/shell-api/shell-api-dev.sh
 896aab6e853c04f99c80793156c911d6  usr/bin/shell-api/shell-api-multimedia.sh
 eb7c9d51c1d61e17e095812e69b7dab8  usr/bin/shell-api/shell-api-net.sh
@@ -28,5 +28,5 @@ cb1053b741dd7dc902831e4b6826f1e9  usr/bin/shell-api/template__Makefile
 31a193df4f2ff1e96b6a79f0531eed8f  usr/bin/shell-api/template__options.sh
 10cc975006dadf5f34dbb0019d01cc98  usr/bin/shell-api/template__vars.sh
 293ca9d3523c072a440d36f43f24f9aa  usr/bin/shell-api/template_pack/debian/control
-7e78803941248363b34d0cd27052bb43  usr/share/doc/shell-api/changelog.Debian.gz
+47f7ad5c40b93e8894cbf7d5c5bc06b9  usr/share/doc/shell-api/changelog.Debian.gz
 f985aadc85ee06893ed3c73e78a3122b  usr/share/doc/shell-api/copyright

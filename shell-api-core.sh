@@ -1409,7 +1409,11 @@ _appendConfig() {
     #_log_dbg "configPath: $configPath in $configDirPath"
     if [ -e "$configPath" ] ; then
         Str__toLower paramname
-        echo "${paramname}: ${paramvalue}" >> "$configPath"
+        local tmpf=$(mktemp)
+        grep -v ^"${paramname}:" "$configPath" > "$tmpf"
+        echo "${paramname}: ${paramvalue}" >> "$tmpf"
+        mv -f "$tmpf" "$configPath"
+        [ $? -eq 0 ] || return 1
     fi
 }
 
