@@ -1,0 +1,9 @@
+Mounting using a system label
+
+  # An USB stick labeled 'photos' is mounted on the folder 'photosDir' and its content listed.
+   $ sumo -y -L photos ./photosDir
+
+Mounting a data source read-only
+
+  # A USB stick labeled 'photos' is mounted read-only on the folder 'photosDir'.
+   $ sumo -o ro -y -L photos ./photosDir
