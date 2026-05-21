@@ -7,7 +7,6 @@
 ./Makefile
 ./VERSION.txt
 ./doc
-./download
 ./genapp
 ./genapp__help.sh
 ./genapp__options.sh
@@ -22,11 +21,5 @@
 ./shell-api-sys.sh
 ./shell-api-xslt.sh
 ./shell-api-yaml.sh
-./template__COPYRIGHT.txt
-./template__EXAMPLES.txt
-./template__Makefile
-./template__app.sh
-./template__help.sh
-./template__options.sh
-./template__vars.sh
 ./template_pack
+./templates

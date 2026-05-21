@@ -195,16 +195,16 @@ Genapp__generate()
     _log_high "generated $lowerAppname/CHANGELOG.txt"
 
     # Create examples from templates
-    Genapp__createFromTemplate template__EXAMPLES.txt EXAMPLES.txt
+    Genapp__createFromTemplate templates/template__EXAMPLES.txt EXAMPLES.txt
 
     # License file from shell-api own file as template
     Genapp__createFromTemplate LICENSE.txt LICENSE.txt
 
     # shell-api copyright file as template
-    Genapp__createFromTemplate template__COPYRIGHT.txt COPYRIGHT.txt
+    Genapp__createFromTemplate templates/template__COPYRIGHT.txt COPYRIGHT.txt
 
     # Makefile to create dpkg package
-    Genapp__createFromTemplate template__Makefile Makefile
+    Genapp__createFromTemplate templates/template__Makefile Makefile
     local filelist=(Makefile)
     Genapp__replaceTemplateKeywords filelist
 
@@ -221,10 +221,10 @@ Genapp__generate()
     _log_high "generated ${GENAPP__VARS["appdirname"]}/${lowerAppname}.yml"
 
     # Generate the app itself
-    Genapp__createFromTemplate template__app.sh "${lowerAppname}" 
-    Genapp__createFromTemplate template__vars.sh "${lowerAppname}__vars.sh" 
-    Genapp__createFromTemplate template__options.sh "${lowerAppname}__options.sh" 
-    Genapp__createFromTemplate template__help.sh "${lowerAppname}__help.sh" 
+    Genapp__createFromTemplate templates/template__app.sh "${lowerAppname}" 
+    Genapp__createFromTemplate templates/template__vars.sh "${lowerAppname}__vars.sh" 
+    Genapp__createFromTemplate templates/template__options.sh "${lowerAppname}__options.sh" 
+    Genapp__createFromTemplate templates/template__help.sh "${lowerAppname}__help.sh" 
 
     filelist=("${lowerAppname}" "${lowerAppname}__vars.sh" "${lowerAppname}__options.sh" "${lowerAppname}__help.sh")
     Genapp__replaceGenAppRefsIntoTemplate filelist
