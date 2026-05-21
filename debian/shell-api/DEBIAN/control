@@ -2,7 +2,7 @@ Package: shell-api
 Version: 1.0-0
 Architecture: amd64
 Maintainer: Michel Mehl <michel.mehl@slashetc.fr>
-Installed-Size: 411
+Installed-Size: 413
 Section: misc
 Priority: optional
 Homepage: https://github.com/michelm33/shell-api

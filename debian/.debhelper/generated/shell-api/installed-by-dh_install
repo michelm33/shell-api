@@ -1,12 +1,10 @@
 ./CHANGELOG.txt
 ./COPYRIGHT.txt
 ./EXAMPLES.txt
-./GENAPP_EXAMPLES.txt
 ./GITHUB.txt
 ./LICENSE.txt
 ./Makefile
 ./VERSION.txt
-./doc
 ./genapp
 ./genapp__help.sh
 ./genapp__options.sh
@@ -21,5 +19,6 @@
 ./shell-api-sys.sh
 ./shell-api-xslt.sh
 ./shell-api-yaml.sh
+./shellapi.8
 ./template_pack
 ./templates

@@ -70,7 +70,7 @@ EOF
 }
 
 Genapp__examples() {
-  local exampleFile="${GENAPP__VARS["MYDIR"]}/GENAPP_EXAMPLES.txt"
+  local exampleFile="${GENAPP__VARS["MYDIR"]}/EXAMPLES.txt"
   if [ -f "${exampleFile}" ] ; then
     cat "${exampleFile}"
   fi
@@ -93,13 +93,21 @@ Genapp tool generates shell script app skeletons based the shell-api library. Th
 adapted to the specific app to be implemented. It will generate the following files:
 
 - COPYRIGHT.txt 
+
 - LICENSE.txt: MIT by default, to be replaced if necessary
+
 - CHANGELOG.txt: to be filled out as versions are released
+
 - EXAMPLES: a template 
+
 - <yourapp>__options.sh: skeleton file for managing options, by default includes -h|--help, --man, -v|--version, --verbose, -y
+
 - <yourapp>__help.h: skeleton file providing help functions to enable packaging with dpkg
+
 - <yourapp>__vars.h: skeleton file (empty) to be used for providing app-specific global variable definitions
+
 - <yourapp>: application skeleton, including all the above ones
+
 - pack/debian/control : for packaging with dpkg
 
 

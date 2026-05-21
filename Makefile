@@ -33,6 +33,26 @@ VERS_REL_DIR=$(PROD_REL_DIR)/$(PKG)
 .PHONY: all
 all:
 
+.PHONY: man
+man: shellapi.8 man_install
+
+.PHONY: man_install
+man_install: shellapi.8
+	@echo 
+	@echo 
+	@echo "Installing man pages and building gzip for $(TARGET)/$<"
+	@echo 
+	sudo install -g 0 -o 0 -m 0644 $< $(TARGET)
+	sudo gzip -f $(TARGET)/$<
+
+shellapi.8: required_help2man FORCE
+	help2man -L en_EN@euro --no-info --section 8 --name "shell-api" --help-option="--man" --output=$@ ./genapp
+# --manual="System Administration Utilities"
+
+.PHONY: required_help2man
+required_help2man:
+	@[  `dpkg-query -W -f='$${db:Status-Abbrev}' help2man` = "ii"  ] && echo "help2man is installed" || sudo apt install help2man
+
 
 .PHONY: required_tools
 required_tools:
