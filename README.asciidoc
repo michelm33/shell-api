@@ -1,0 +1,880 @@
+ifndef::image_fmt[]
+:image_fmt: svg
+endif::[]
+:toc: yes
+:toclevels: 4
+:stem:
+:sectnums:
+:sectnumlevels: 0
+:icons: font
+:homedir: .
+//:imagesdir: images
+:docinfo: shared
+:press: article
+:linkcss:
+ifdef::html[]
+:staticimgdir: ../images/bank/original/static
+:svgimgdir: ../images/vector
+endif::[]
+ifndef::html[]
+:staticimgdir: ../_images/bank/original/static
+:svgimgdir: ../_images/vector
+endif::[]
+:doubleslash: //
+:enterkey: enter key &#x21B5;
+:enterkeyshort: &#x21B5;
+:arrowupkey: &#x2191;
+:arrowdownkey: &#x2193;
+:homekey: &#x21F1;
+:endkey: &#x21F2;
+:pageupkey: &#x21DE;
+:pagedownkey: &#x21DF;
+:exampleimagewidth_smallscreen: 70%
+:paypal: https://www.paypal.com/donate/?hosted_button_id=G2QSV9ZD4EB4A
+:patreon: https://www.patreon.com/14930736/join
+
+[role="wish-form-title"]
+shell-api
+////
+[role="css-page-main-title"]
+Human-readable Bash Shell API
+////
+
+== In a nutshell
+
+`shell-api` provides the following:
+
+- a human-readable set of bash shell function library organized as independent modules
+- a framework for building efficient, scalable, distributable bash apps (Debian package)
+- *Genapp*, a tool for generating ready-to-go bash app skeletons 
+- weak system dependencies
+
+=== Documentation
+
+The API documentation is mainly available inline, inside the function headers. The modules are described in section <<Bash modules>> and the lists of functions per module given at the end of this page. Please consider also the disclaimer below.
+
+=== Disclaimer
+
+Except inline function headers and comments, there's no formal online documentation available yet. All functions may also not feature a header.
+
+Please consider that this is not an official, lead project at the moment, but rather a subproduct that emerged along with other projects that built progressively upon it. 
+
+Yet, it has been proven in use in those projects, among which MountPilot, SyncFull, Arcv. There are many contextualized use cases of this API to be found in the source script files, which are often more meaningful that a bunch of abstract specification.
+
+Moreover, despite the significant effort behind this, it did not benefit of any sponsorship and is made freely available to the public. 
+
+== Installation
+
+[source,bash,title="As Debian system package (requires root rights)"]
+----
+wget https://slashetc.fr/download/shell-api_1.0-0_amd64.deb 
+sudo dpkg -i shell-api_1.0-0_amd64.deb
+----
+
+[source,bash,title="As free installation"]
+----
+# Sample, select the target installation folder and desired version
+wget https://slashetc.fr/download/shell-api_1.0-0.zip 
+unzip shell-api_1.0-0.zip 
+----
+
+Instead of using `wget`, you can also use the following download links:
+
+[%autowidth]
+|===
+| Platform | Debian Package | Zip | Creation time
+
+//@insert_new_balise
+| Linux | link:/download/shell-api_1.0-0_amd64.deb[shell-api_1.0-0_amd64.deb ] | link:/download/shell-api_1.0-0.zip[shell-api_1.0-0.zip] | 2026-05-20
+
+|===
+
+== Bash modules
+
+The co-related functionalities are grouped into __modules__ , i.e separate, independent bash source files. The list of functions are gathered at the end of the document.
+
+[%autowidth]
+|===
+| module file | Macro function
+| shell-api-core.sh a| 
+- Base framework API
+- Basic type manipulation : String, Integer, Arrays, Date
+- User input
+- File path manipulation and file 
+- Terminal display control 
+- Color and palette manipulation
+- Environment manipulation
+- Math and conversion functions
+
+| shell-api-dev.sh a| 
+- System devices manipulation
+- VERA-related helpers
+- ADB-related helpers
+| shell-api-multimedia.sh a| 
+- Image manipulation
+| shell-api-net.sh a| 
+- Network address manipulation and network access
+| shell-api-packing.sh a| 
+- System packages management
+| shell-api-sys.sh a| 
+- System process management
+- Screen and desktop manipulation
+- File system helpers
+| shell-api-yaml.sh a| 
+- YAML file manipulation
+| shell-api-xslt.sh a| 
+- XSLT transformation helpers
+| shell-api-selftest.sh a| 
+- Framework self-tests
+|===
+
+=== Including a module
+
+a module is loaded using the following syntax, e.g. here loading module `shell-api-dev.sh`:
+
+`eval $_loadm<<<'shell-api-dev.sh'` 
+
+Basically it "sources" the script into the current one, additionally:
+
+- it ensures the file is not sourced multiple times 
+- sets internal variable `__SHELL_SRC_NAME__` to the loaded file for all the timespan the module is being sourced.
+
+=== Dependencies
+
+If the app building upon `shell-api` was generated with <<Genapp app skeketon generator>>, the app will depend on the installed `shell-api` used by Genapp to execute.
+
+When the generated app is installed on another host, the installation location of the local `shell-api` must be the same as in the initial setup. For that reason, it is recommended to use installation via Debian packages, since the location will then remain consistent over different machines.  
+
+Otherwise, e.g. if zip is used and local `shell-api` is in a different location, the path has to be changed in the first lines of the generated main script.
+
+Additional, specific `shell-api` functions like process and packaging can be included by moving the related `eval $_loadm<<<` lines out of the commented code block in the main generated app.
+
+*`yq`*
+
+The module `shell-api-yaml.sh` contains a mix of 2 APIs:
+
+- a set of functions used to manipulate YAML file with `yq`. Basically each function call, requires to launch `yq`. This is suited for rare and sporadic use, unavoidable for the cases where the other inhouse API is not capable of performing the operation
+- a set of functions to support very fast read-in of YAML data, whereby all data are read into a bash map all at once. 
+
+WARNING: The fast inhouse API does not support all YAML syntax and is not capable of writing YAML content.
+
+The inhouse YAML API is mainly achieved by calling `YAML&#x005F;&#x005F;setFile "yourfilepath" true` and then invoking `YAML&#x005F;&#x005F;get "youryamlkey" yourvariable`
+
+[WARNING]
+--
+The reason of the inhouse API is not only about speed. There are actually 2 versions `yq` providing slightly different usage, behaviors and installation methods (APT and snap).
+Because its use and installation can be cumbersome, e.g. snap is not possible inside a docker container, the inhouse function should be preferred whenever possible, if necessary, extended.
+--
+
+== App features provided by `shell-api`
+
+`shell-api` enables to enhance applications building on top with commonly useful features, as described below.
+
+=== Instant step-in
+
+An app generated with <<Genapp app skeketon generator>> enables an instant step-in as follows:
+
+- Implement the app-specific behavior in the `[...]__main()` function
+- Add options in the `[...]__options.sh` files. 
+
+Single dash '-' are for any one-letter option, with an optional value
+
+Double dashes `--` are for multi-letter option names, optionally followed by '=' and a value
+
+Dashless value can also be used, typically for commands
+
+- For multiple dashless arguments which positions are relevant, adapt `[...]__parseArgsHandleOptionLessArg()` rather than using the options file.
+- Implement the checks related to the parsed options and arguments inside `[...]__parseArgs()`
+- Implement `[...]__cleanup()` for system signals handling, if necessary
+- Customize `[...]__loadDep()` to manage custom dependencies, if necessary
+
+=== Configuration
+
+By default, a configuration file is at the app's disposal, located in the `.config` folder of the user's home directory (letter case is relevant): 
+
+`$HOME/.config/<Appname>/<appname>.yml`
+
+If this file does not exist, a default one is created from the default configuration file generated along with the app (`.yml` extension) upon first launch.
+
+At startup, the library automatically loads the configuration data and stores it in the bash map named `<APPNAME>__VARS[]`, declared at the start of the main app file. 
+
+The bash map key is the uppercased YAML key where spaces are replaced with underscores. The following examples shows how the read data are mapped:
+
+The configuration line will result in the execution of the following during app initialization:
+[%autowidth]
+|===
+| Configuration file line in <appname>.yml | Code executed at loading
+
+| `a sample parameter: parameter value`  | `<APPNAME>__VARS["A_SAMPLE_PARAMETER"]="parameter value"` 
+|===
+
+IMPORTANT: The accepted format is a very restricted subset version of YAML. Only basic pairs `key: value` are accepted. If a more complex configuration is required and may have to be put under configuration management, a rule of thumb is to define a configuration parameter in `$HOME/.config/<Appname>/<appname>.yml` giving the path to the actual app configuration, which may then be YAML or any other format required by the specific app. 
+
+=== Logging
+
+A basic logging API is available. The generated logs are plain text and the log file is located in the `.local` folder of the user's home directory (letter case is relevant): 
+
+`$HOME/.local/<appname>/log.txt`
+
+At the moment, it will be endless growing and survive over successive runs. 
+
+*Logging levels*
+
+There are 4 types of messages which are highlighted with different colors when also displayed on the terminal:
+
+[%autowidth]
+|===
+| Message type | Console output | color
+
+| Informational messages | standard output (stdout) | none
+| Important Informational messages | standard output (stdout) | blue
+| Warning messages |standard error output (stderr) | yellow
+| Error messages | standard error output (stderr)| red
+| Debug messages | standard error output (stderr) | green
+|===
+
+NOTE: For apps generated by <<Genapp app skeketon generator>>, the debug messages can be activated with the `--debug` option. This should be reserved for development and debugging purposes.
+
+
+
+=== On-the-fly installation of system packages
+
+If the app which is developped from the generated skeleton requires additional system packages, those can be programmed to be installed automatically on-the-fly, anywhere where required in the source code, by using the built-in `_loadDep` function.
+
+[source,bash,title="Sample on-the-fly installation using _loadDep()"]
+----
+    _loadDep "lsb-release"
+    _loadDep "gawk@gawk"                    # awk
+    _loadDep "parted@parted"                # parted
+    _loadDep "gdisk@gdisk"                  # gdisk
+----
+
+The prerequisite is that the app implements the callback `[...]__loadDep()`. An app generated with <<Genapp app skeketon generator>> contains by default the following callback, which attempts to load the package via APT:
+
+[source,bash,title="loadDep() callback"]
+----
+<Appname>__loadDep() 
+{
+    if ! Args__checkCount ${FUNCNAME[0]} 1 "$#" "Usage: <dependency name>"; then return 1; fi
+
+    # By default, attempts to install an APT package of the passed name
+    Pkg__install "$1" "" apt 
+}
+----
+
+Other package types can be installed, see the following sample code:
+
+[source,bash,title="Example of system package installation using the `Pkg__install` function"]
+----
+    # Downloads the package from the passed URL and installs directly via dpkg -i
+    Pkg__install "veracrypt-console" "1.23.0" dpkg "$URL" 
+    # Installs via snap
+    Pkg__install "yq" "" snap
+    # Installs via gem
+    Pkg__install "yq" "" gem
+----
+
+
+NOTE: The `@` writing is optional, it gives an hint of which tool part of the package is actually used.
+
+[NOTE]
+--
+
+For optimisation purposes, automatically installed packages are tracked in the cache file `dependencies.yml` , located in the `.local` folder of the user's home directory (letter case is relevant): 
+
+`$HOME/.local/<appname>/dependencies.yml`
+
+--
+
+
+=== System signals handling
+
+By default, the libray catches the system signals and invokes the user-defined `[...]__cleanup()` callback, if any, passing on the caught exit code as argument.
+
+== Genapp app skeketon generator
+
+The *Genapp* tool generates ready-to-go bash app skeletons.
+
+It also generates a `Makefile` to perform the following operation:
+
+
+[%autowidth, title="Available Makefile actions"]
+|===
+| `make man` | Make and install man page for the tool
+| `make release` | Generate both a Debian and a zip package according to VERSION.txt
+|===
+
+
+=== Configuration
+
+By default, a configuration file is at the app's disposal as described in the `shell-api` documentation. Here, for the sample 'TestApp' app generated in <<Example>>, the configuration file is:
+
+`.config/TestApp/testapp.yml`
+
+IMPORTANT: The accepted format is a very restricted subset version of YAML. Only basic pairs `key: value` are accepted. Please check the `shell-api` documentation. 
+
+=== Example
+
+[source,bash,title="Generate an app"]
+----
+$ ./shell-api/genapp TestApp -y --author="Michel Mehl" --email="michel.mehl@slashetc.fr" --desc="A test application" --github-id="michelm33" --root-release-dir="../release"
+
+info generated testapp/VERSION.txt
+info generated testapp/CHANGELOG.txt
+info generated testapp/EXAMPLES.txt
+info generated testapp/LICENSE.txt
+info generated testapp/COPYRIGHT.txt
+info generated testapp/Makefile
+info generated testapp/pack/
+info generated testapp/testapp.yml
+info generated testapp/testapp
+info generated testapp/testapp__vars.sh
+info generated testapp/testapp__options.sh
+info generated testapp/testapp__help.sh
+
+Genapp has finished.
+
+----
+
+[source,bash,title="Execute the app (outputs Hello by default)"]
+----
+
+$ testapp/testapp 
+info Creating user's configuration file '/home/michel/.config/TestApp/testapp.yml' from '/home/michel/Data/Data/admin/linux/testapp/testapp.yml'
+Hello!
+----
+
+[source,bash,title="Show default available usage help"]
+----
+
+$ testapp/testapp -h
+
+Usage: testapp OPTIONS [<sample usage arg>]
+or: testapp OPTIONS [<sample usage arg 2>]
+
+OPTIONS:
+
+ --silent      Silent mode
+ --verbose     Verbose mode
+ --debug       Activate debug logs
+ --help, -h    Displays app usage
+ -y            Assume 'Yes' when prompted for confirmation
+ -n            Assume 'No' when prompted for confirmation
+ -v, --version Displays the app version
+ --man         Displays the manual page
+ --files       Lists all the files used by the app (config, log etc)
+
+Arguments:
+
+ <sample arg>       put your argument short description here. Copy/paste in new line and change for additional ones.
+
+----
+
+[source,bash,title="List the configuration files managed by the app"]
+----
+
+$ ./testapp/testapp --files
+/home/michel/.config/TestApp/testapp.yml
+/home/michel/.local/testapp/log.txt
+/home/michel/.local/testapp/dependencies.yml
+----
+
+
+[source,bash,title="Make the release packages"]
+----
+
+$ cd testapp
+$ make release
+
+# ..
+# MAKE OUTPUT INTENTIONALY REMOVED FOR THE SAKE OF READABILITY
+# ..
+
+
+$ ls ../release/testapp/
+testapp-1.0-0              testapp_1.0-0.zip          testapp_1.0-0_amd64.buildinfo  testapp_1.0-0_amd64.deb
+testapp-1.0_0.orig.tar.xz  testapp_1.0-0_amd64.build  testapp_1.0-0_amd64.changes
+
+----
+
+[source,bash,title="Make the man page and show man"]
+----
+
+$ cd testapp
+$ make man
+
+help2man is installed
+help2man -L en_EN@euro --no-info --section 8 --name "Test suit for sumo" --help-option="--man" --output=testapp.8 ./testapp
+
+
+Installing man pages and building gzip for /usr/share/man/man8//testapp.8
+
+sudo install -g 0 -o 0 -m 0644 testapp.8 /usr/share/man/man8/
+sudo gzip -f /usr/share/man/man8//testapp.8
+
+$ man testapp
+
+TESTAPP(8)                                 System Administration Utilities                                 TESTAPP(8)
+
+NAME
+       TestApp - A test application
+
+SYNOPSIS
+       testapp OPTIONS [<sample usage arg>]
+       testapp OPTIONS [<sample usage arg 2>]
+
+       Arguments:
+
+# REMAINING STANDARD OUTPUT TRACES INTENTIONALLY REMOVED FOR THE SAKE OF READABILITY
+# ...
+----
+
+
+[source,bash,title="Inspect the copyright file"]
+----
+
+$ cat testapp/COPYRIGHT.txt
+TestApp
+Copyright (c) 2026 Test User. All rights reserved. 
+License terms written down in file LICENSE.txt
+
+
+----
+
+== Module function lists
+
+////
+cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^(.*)$/\| \1/g'
+////
+
+
+=== shell-api-core.sh
+
+[cols="2*",frame=none, grid=none]
+|===
+| Term__setTextMode()
+| Term__resetColorData()   
+| Term__resetColor()   
+| Term__setColorOn()
+| Term__setBgColorOn()
+| Term__setColor()
+| Term__buildPalette()
+| Term__showPalette()
+| Term__testColors()
+| _colorprint() 
+| _colorText() 
+| _load() 
+| _loadDep() 
+| _loaded() 
+| _usage() 
+| _susage() 
+| _invokeCallback() 
+| _help()     
+| _options() 
+| _soptions() 
+| _parseArgs() 
+| _parseFromArgToVars() 
+| _parseArgsProcessDashLessArg()
+| _quit() 
+| __quit() 
+| _exit() 
+| _main() 
+| _cleanup()     
+| _initShellApi() 
+| _setJobId()
+| _initLogVars() 
+| _initLogs() 
+| _getConfigDir()
+| _getRecentListFilePath() 
+| _readRecentList() 
+| __getRecentListFilePath()
+| _saveRecentList() 
+| _lockedFileGetAbsPath() 
+| _lockedFileRead() 
+| _lockedFileWrite() 
+| _getLogDir() 
+| _getLogPath() 
+| _getLogWarnPath() 
+| _getLogErrPath() 
+| _getConfigFilePath() 
+| _readConfig() 
+| _appendConfig() 
+| _getDependenciesCacheFile()
+| _readDependenciesCache()
+| _writeDependenciesCache()
+| _log_dbg() 
+| _log_err() 
+| _log_warn() 
+| _log_high() 
+| _log() 
+| _logf() 
+| _log_array() 
+| _log_n() 
+| _log_status() 
+| _log_status_end() 
+| _log_vars_exit()
+| _log_vars()
+| _log_title() 
+| makeDir()
+| trapDirExits()
+| trapFileExits()
+| Env__fn_exists() 
+| Env__distro() 
+| Env__distroname() 
+| Env__distrover() 
+| Env__arch() 
+| Str__randomWord()
+| Str__diff()
+| Str__isEmpty() 
+| Str__spaces()
+| Str__indent()
+| Str__prefix()
+| Str__seq()
+| Str__len() 
+| Str__upcaseFirst() 
+| Str__lower() 
+| Str__toLower() 
+| Str__upper() 
+| Str__toUpper() 
+| Str__startsWith() 
+| Str__endsWith() 
+| Str__contains() 
+| Str__nbCommonEndString() 
+| Str__squeeze() 
+| Str__escape() 
+| Str__escapeChar() 
+| Str__trim() 
+| Str__trimOld() 
+| Str__trimOnce() 
+| Str__trimStart() 
+| Str__skip() 
+| Str__skipWs() 
+| Str__trimEnd() 
+| Str__last() 
+| Str__head() 
+| Str__toHead() 
+| Str__tail() 
+| Str__toTail() 
+| Str__split() 
+| Str__replace() 
+| Str__substringCount() 
+| Str__shrinkToRight() 
+| Str__shrinkToMid() 
+| Str__toAsciiDocId()
+| Int__isInt() 
+| Int__Int() 
+| Int__Int_r() 
+| Int__percentage()
+| Int__calc() 
+| Int__calc_r() 
+| Int__withinRange() 
+| Int__series() 
+| Int__max()
+| Int__readVersion()
+| Float__compare() 
+| Float__calc() 
+| Math__byteSize2ReadableSize() 
+| Math__kbyteSize2ReadableSize() 
+| Math__size2ReadableSize() 
+| Math__convertSizeToMiB() 
+| Args__checkCount() 
+| Args__checkMinCount() 
+| Array__contains() 
+| Array__contains_by_string() 
+| Input__getForcedInput()
+| Input__pushForcedInput()
+| Input__popForcedInput()
+| Input__clearForcedInput()
+| Input__timeoutKeystroke() 
+| Input__password() 
+| Input__confirm() 
+| Input__memsize() 
+| Input__dirpath() 
+| Input__sentence() 
+| Input__Word() 
+| Input__cursorSelect() 
+| Input__cursorSelect_manageIgnoreIndex() 
+| Input__cursorSelect_findFirstIgnoreIndexOnCurrentPage() 
+| File__basename() 
+| File__dirname() 
+| File__corename() 
+| File__ext() 
+| File__noext() 
+| File__createSubdirs() 
+| File__copyDirs() 
+| File__mirrorCopy() 
+| File__readYAMLLikeFile() 
+| File__readYAMLLikeLine()
+| File__writeJobProgressFile() 
+| File__setProgressFileTotalSteps() 
+| File___writeJobProgressFile() 
+| File__createFromZTemplate()
+| Date__readYMD()
+| Date__readYMD2()
+| Date__isLessOrEqualThan()
+| Date__timestamp()
+| Date__startTimer()
+| Date__elapsedSecondsTimer()
+| Date__elapsedMinutesTimer()
+| Term__countdown() 
+| Term__resize()
+| Term__rows()
+| Term__cols()
+| Term__resizeMinimum()
+| Term__updateLine() 
+| Term__updateProgressBar() 
+| Term__clear()
+| Term__maskCursor()
+| Term__restoreCursor()
+| Term__eatReturns()
+| Term__enterPrivateBufferMode()
+| Term__exitPrivateBufferMode()
+| Term__reset()
+| Term__cursorMoveLeft() 
+| Term__moveCursorUp() 
+| Term__eraseLinesUp() 
+| Term__eraseLines() 
+| Term__eraseCurrentLine() 
+| Term__eraseCurrentAndJumpCursorToNextLine() 
+| Term__printBanner() 
+| Term__resolveMaxColumnsWidth() 
+| Term___printTableRow() 
+| Term__printTableRow()
+| _test() 
+| _testCase()
+| _testAll()
+| test__perf()
+
+|===
+
+=== shell-api-dev.sh
+
+[cols="2*",frame=none, grid=none]
+|===
+| Dev_getPartUUID()
+| Dev_getPartNames()
+| Dev_getPartNamesReduced()
+| Dev__initPartTypes()
+| Dev__initfstype2PartUUIDTable()
+| Dev__isBlockDevice() 
+| Dev__isRegularFile() 
+| Dev__getFileType() 
+| Dev__getBlockDeviceParent() 
+| Dev__blockDeviceSize() 
+| Dev__getBlockDeviceLabel() 
+| Dev__findMount() 
+| Dev__findMountSource() 
+| Dev__findMountPoint() 
+| Dev__findMountPointOptions()
+| Dev__getDeviceInfo() 
+| Dev__isBootable()
+| Sytem__getBootType()
+| Dev__wipeDisk()
+| Dev__resetDiskDevice()
+| Dev__getDeviceFSType()
+| Dev__createRawDiskImage()
+| Dev__createSinglePartition()
+| Dev__createSinglePartitionDirect()
+| Dev__getDeviceMapper()
+| Dev__getLVMPartitionDevices()
+| Dev__getPartitionDevices()
+| Dev__deactivateAllVolumeGroupsForDisk()
+| Dev__loop_open()
+| Vera__findMountPointFromVolume() 
+| Vera__findMountPointFromSlot() 
+| Vera__findLabelFromMountPoint() 
+| Vera_getEscapedList()
+| Adb__getVersion()
+| Adb__getSDKVersion()
+| Adb__getDeviceName()
+| Adb__listDevices()
+
+|===
+
+=== shell-api-multimedia.sh
+
+[cols="2*",frame=none, grid=none]
+|===
+| Image__getDimension()
+| Image__isPortrait() 
+| Image__chopFromRatio() 
+| Image__autoOrient()
+| Image__normalizeOrientation() 
+| SVG_text() 
+| Image__ico()
+| Image__generateFromPDF()
+| Image__generatePDFFromImageFiles()
+| Image__watermark()
+michel@riffian:~/Dat
+|===
+
+=== shell-api-net.sh
+
+[cols="2*",frame=none, grid=none]
+|===
+| Net__checkOpenPort()
+| Net__isHTTP()
+| Net__decodeHTTP()
+| Net__isURL()
+| Net__isIP()
+| Net__isUNC()
+| Net__decodeUNC()
+| Net__isLogin()
+| Net__decodeLogin()
+| Net__isFTPURL()
+| Net__decodeFTPURL() 
+| Net__isNFSURL()
+| Net__isNFS()
+| Net__decodeNFSURL() 
+| Net__isSSHURL()
+| Net__decodeSSHURL() 
+| Net__isSMBURL()
+| Net__decodeSMBURL()
+| Net__getHostIP()
+| Net__getLocalHostIP()
+| Net__getLocalHostname()
+| Net__getHostname()
+| Net__IP2Name()
+| Net__resolve()
+| Net__download()
+| Net__isCloudDevice()
+| Net__getCloudURLFromDevice()
+| Net__isNetworkURL()
+
+|===
+
+=== shell-api-packing.sh
+
+[cols="2*",frame=none, grid=none]
+|===
+| Pkg__install()
+| DPKG__isInstalled()  
+| DPKG__exists()  
+| APT__isInstalled()  
+| APT__install() 
+| APT__distant_install() 
+| OPAM__isInstalled() 
+| OPAM__install()
+| SNAP__isInstalled() 
+| SNAP__install()
+| GEM__isInstalled() 
+| GEM__install()
+
+|===
+
+=== shell-api-sys.sh
+
+[cols="2*",frame=none, grid=none]
+|===
+| File__getSize()
+| Sys__getPID()
+| Sys__wait()
+| Sys__spawn()
+| Sys__gspawn_init()
+| Sys__gspawn()
+| Sys__gwait()
+| Sys__addGlobalPid()
+| Sys__pool_init()
+| Sys__pool_reset()
+| Sys__pool_pid_list()
+| Sys__pool_pid_print()
+| Sys__pool_spawn()
+| Sys__pool_waitall()
+| Sys__isAlive()
+| Sys__sweep()
+| gnome__setScreenKeyboardVisibile()
+| Screen__getResolution()
+| Desktop__getResolution()
+| CPU__model()
+
+|===
+
+=== shell-api-yaml.sh
+
+[cols="2*",frame=none, grid=none]
+|===
+| YAML__setFile() 
+| YAML__closeFile() 
+| YAML__getKeys()
+| YAML__checkExists()
+| YAML__get()
+| YAML__isntVoid()
+| YAML__unescape()
+| YAML__escape()
+| YAML__get_bool()
+| YAML__get_int()
+| YAML__getFilename() 
+| YAML__eval() 
+| YAML__read() 
+| YAML__read_from_stdin() 
+| YAML__read_optional() 
+| YAML__read_bool() 
+| YAML__assignBool()
+| YAML__read_int() 
+| YAML__write() 
+| YAML__writeArray() 
+| YAML__exists() 
+| YAML__keys() 
+| YAML__nbKeys_from_stdin()
+| YAML__nbKeys()
+| YAML__keys_from_stdin() 
+| YAML__writeAll() 
+| YAML__normalize() 
+| YAML__readAll() 
+| YAML__readAll_getStoreValue()
+| YAML__trimQuotes()
+| YAML__readAll_storeRawValue()
+| YAML__readAll_storeValue()
+| YAML__readAll_decodeQuote()
+| YAML__readAll_decodeArrayValue()
+| YAML__dumpAll()
+| YAML__getKeysFromStore()
+
+|===
+
+=== shell-api-xslt.sh
+
+[cols="2*",frame=none, grid=none]
+|===
+| XSLT__modifyXML() 
+| XSLT__transformToText() 
+
+|===
+
+
+== Lifecycle
+
+=== Configuration management
+
+The configuration management of the original software is managed on a non-disclosed server with arcv. 
+
+The clean release packages and the release source code files are available on GitHub at https://github.com/michelm33/shell-api
+
+=== Bug tracking
+
+Reported bugs are tracked via the GitHub page https://github.com/michelm33/shell-api
+
+== External platforms
+
+[%autowidth]
+|===
+| GitHub | https://github.com/michelm33/shell-api
+| StackOverflow | https://stackoverflow.com/users/32241714/michel-mehl
+| Patreon | https://www.patreon.com/14930736/join
+| PayPal | https://www.paypal.com/donate/?hosted_button_id=G2QSV9ZD4EB4A
+|===
+
+== Donating and gifts
+
+How you can support this work and how to claim your gifts is reported on this page: link:https://slashetc.fr/en/products/mountpilot/mountpilot_donate&Gifts.html[Donate & Gifts online page].
+
+== Thanks
+
+* The Linux community
+* The link:https://stackoverflow.com[stack overflow community] which is a precious source of support and information that may save your day sometimes!
+* link:https://www.gnu.org/software/help2man/[help2man] an utility to generate man pages
+* 'meld' tool
+* link:https://asciidoctor.org[The AsciiDoctor project]
+
+Probably this list may be completed over time, sorry if I missed anyone!
+
