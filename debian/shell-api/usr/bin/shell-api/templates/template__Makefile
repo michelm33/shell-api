@@ -46,7 +46,7 @@ man_install: %appname%.8
 	sudo gzip -f $(TARGET)/$<
 
 %appname%.8: required_help2man FORCE
-	help2man -L en_EN@euro --no-info --section 8 --name "Test suit for sumo" --help-option="--man" --output=$@ ./%appname%
+	help2man -L en_EN@euro --no-info --section 8 --name "%appdesc%" --help-option="--man" --output=$@ ./%appname%
 # --manual="System Administration Utilities"
 
 .PHONY: required_help2man

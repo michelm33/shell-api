@@ -20,5 +20,4 @@
 ./shell-api-xslt.sh
 ./shell-api-yaml.sh
 ./shellapi.8
-./template_pack
 ./templates

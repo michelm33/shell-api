@@ -210,7 +210,7 @@ Genapp__generate()
 
     # Create the files for the packaging
     mkdir "${GENAPP__VARS["appdirname"]}/pack" &>/dev/null
-    cp -r  "${GENAPP__VARS["MYDIR"]}/template_pack"/* "${GENAPP__VARS["appdirname"]}/pack/"
+    cp -r  "${GENAPP__VARS["MYDIR"]}/templates/template_pack"/* "${GENAPP__VARS["appdirname"]}/pack/"
     _log_high "generated ${GENAPP__VARS["appdirname"]}/pack/"
     Genapp__replaceCopyrightNotice "${GENAPP__VARS["appdirname"]}/pack/debian/control"
     filelist=(pack/debian/control)

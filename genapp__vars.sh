@@ -23,7 +23,7 @@ GENAPP__VARS["email"]=""
 GENAPP__VARS["rootreleasedir"]=""
 GENAPP__VARS["http"]=""
 GENAPP__VARS["githubid"]=""
-
+GENAPP__VARS["appdesc"]=""
 
 
 :<<'EOF'

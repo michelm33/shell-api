@@ -20,5 +20,4 @@ shell-api-sys.sh /usr/bin/shell-api
 shell-api-xslt.sh /usr/bin/shell-api
 shell-api-yaml.sh /usr/bin/shell-api
 shellapi.8 /usr/bin/shell-api
-template_pack /usr/bin/shell-api
 templates /usr/bin/shell-api
