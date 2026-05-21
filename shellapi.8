@@ -48,47 +48,33 @@ Displays the manual page
 Genapp tool generates shell script app skeletons based the shell\-api library. The generated skeletons are immediately operational and just need to be
 adapted to the specific app to be implemented. It will generate the following files:
 .PP
-\- COPYRIGHT.txt
+\- COPYRIGHT.txt : copyright notice
 .PP
 \- LICENSE.txt: MIT by default, to be replaced if necessary
 .PP
 \- CHANGELOG.txt: to be filled out as versions are released
 .PP
-\- EXAMPLES: a template
+\- EXAMPLES.txt: List of examples. Indentation matters for manpage.
 .PP
-\- <yourapp>__options.sh: skeleton file for managing options, by default includes \fB\-h\fR|\-\-help, \fB\-\-man\fR, \fB\-v\fR|\-\-version, \fB\-\-verbose\fR, \fB\-y\fR
+\- <yourapp>__options.sh: file for managing options. For default ones, see doc.
 .PP
-\- <yourapp>__help.h: skeleton file providing help functions to enable packaging with dpkg
+\- <yourapp>__help.h: file providing help functions.
 .PP
-\- <yourapp>__vars.h: skeleton file (empty) to be used for providing app\-specific global variable definitions
+\- <yourapp>__vars.h: file containing the app\-specific global variables
 .PP
-\- <yourapp>: application skeleton, including all the above ones
+\- <yourapp>: application skeleton
 .PP
 \- pack/debian/control : for packaging with dpkg
 .SH EXAMPLES
 Generating a test app
 .IP
-# An app named 'TestApp' is generated, inside folder 'testapp', main script will be 'testapp'. The root output folder for any app release is '..', relatively to the app source dir. The home page URL for the app will be https://github/michelm33/testapp
+# An app named 'TestApp' is generated, inside folder 'testapp', main script will be 'testapp'. The home page URL for the app will be https://github/michelm33/testapp
 .IP
 genapp TestApp \-y \-\-author="George Washington" \-\-email="george.washington@whitehouse.org" \-\-desc="A test application" \-\-github\-id="michelm33" \-\-root\-release\-dir="../release"
 .IP
 # Same as previous example, but the home page URL for the app is explicitely defind as 'https://slashetc/testapp'
 .IP
 genapp TestApp \-y \-\-author="George Washington" \-\-email="george.washington@whitehouse.org" \-\-desc="A test application" \-\-http="https://slashetc/testapp" \-\-root\-release\-dir="../release"
-.PP
-Generating a debian package
-.IP
-# 'TestApp' is the generated app. This generates a release file tree and a debian package
-.IP
-make release
-.PP
-Generating the man pages
-.IP
-# 'TestApp' is the generated app. This generates the manpage which can be open using 'man testapp'
-.IP
-make man
-.IP
-man testapp
 .PP
 Executing the generated app
 .IP
@@ -102,11 +88,31 @@ Showing the app help
 .IP
 \&./testapp \-h
 .PP
+Showing the last 30 log lines
+.IP
+# 'TestApp' is the generated app
+.IP
+\&./testapp \-\-log=30
+.PP
 Showing the files managed by the app
 .IP
 # 'TestApp' is the generated app
 .IP
 \&./testapp \-\-files
+.PP
+Generating a debian package
+.IP
+# This generates a release file tree and a debian package
+.IP
+make release
+.PP
+Generating the man pages
+.IP
+# This generates the manpage which can be open using 'man testapp'
+.IP
+make man
+.IP
+man testapp
 .SH AUTHOR
 Written by Michel Mehl
 .SH "REPORTING BUGS"

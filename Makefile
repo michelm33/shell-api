@@ -35,6 +35,13 @@ all:
 
 .PHONY: man
 man: shellapi.8 man_install
+	@echo 
+	@echo 
+	@echo "Creating MANPAGE.txt from man pages"
+	@echo 
+	man shellapi > MANPAGE.txt
+
+
 
 .PHONY: man_install
 man_install: shellapi.8

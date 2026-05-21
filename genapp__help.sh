@@ -92,21 +92,21 @@ $(_soptions GENAPP__OPTION_LIST_DESC GENAPP__OPTION_LIST_SDESC GENAPP__OPTION_LI
 Genapp tool generates shell script app skeletons based the shell-api library. The generated skeletons are immediately operational and just need to be 
 adapted to the specific app to be implemented. It will generate the following files:
 
-- COPYRIGHT.txt 
+- COPYRIGHT.txt : copyright notice
 
 - LICENSE.txt: MIT by default, to be replaced if necessary
 
 - CHANGELOG.txt: to be filled out as versions are released
 
-- EXAMPLES: a template 
+- EXAMPLES.txt: List of examples. Indentation matters for manpage.
 
-- <yourapp>__options.sh: skeleton file for managing options, by default includes -h|--help, --man, -v|--version, --verbose, -y
+- <yourapp>__options.sh: file for managing options. For default ones, see doc.
 
-- <yourapp>__help.h: skeleton file providing help functions to enable packaging with dpkg
+- <yourapp>__help.h: file providing help functions.
 
-- <yourapp>__vars.h: skeleton file (empty) to be used for providing app-specific global variable definitions
+- <yourapp>__vars.h: file containing the app-specific global variables
 
-- <yourapp>: application skeleton, including all the above ones
+- <yourapp>: application skeleton
 
 - pack/debian/control : for packaging with dpkg
 

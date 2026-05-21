@@ -3,6 +3,7 @@
 ./EXAMPLES.txt
 ./GITHUB.txt
 ./LICENSE.txt
+./MANPAGE.txt
 ./Makefile
 ./VERSION.txt
 ./genapp

@@ -3,6 +3,7 @@ COPYRIGHT.txt /usr/bin/shell-api
 EXAMPLES.txt /usr/bin/shell-api
 GITHUB.txt /usr/bin/shell-api
 LICENSE.txt /usr/bin/shell-api
+MANPAGE.txt /usr/bin/shell-api
 Makefile /usr/bin/shell-api
 VERSION.txt /usr/bin/shell-api
 genapp /usr/bin/shell-api

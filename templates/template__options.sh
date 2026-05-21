@@ -95,7 +95,6 @@ GENAPP__OPTION_LIST_ARGS["--debug"]="1"
 GENAPP__OPTION_LIST_ACTI["--debug"]='__LOG_DEBUG__=0'
 
 
-
 GENAPP__OPTION_LIST_SDESC["--files"]="Lists all the files used by the app (config, log etc)"
 GENAPP__OPTION_LIST_DESC["--files"]="
 Lists the files used by the app, i.e. the configuration file, the log file, the dependency system package installation cache file
@@ -118,3 +117,21 @@ fi
 _quit ""
 '
 
+
+GENAPP__OPTION_LIST_SDESC["--log"]="Show the log tail"
+GENAPP__OPTION_LIST_DESC["--log"]="
+Show the log tail. By default, shows the last 40 lines and the number of lines specified as option value.
+"
+GENAPP__OPTION_LIST_ARGS["--log"]="2"
+GENAPP__OPTION_LIST_ACTI["--log"]='
+local __log
+_getLogPath __log
+tail -F "${__log}" -n 40
+_quit ""
+'
+GENAPP__OPTION_LIST_VALS["--log"]='
+local __log
+_getLogPath __log
+tail -F "${__log}" -n "${__myarg}"
+_quit ""
+'
