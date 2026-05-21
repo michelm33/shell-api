@@ -52,7 +52,7 @@ GENAPP__OPTION_LIST_ACTI["-v|--version"]=''
 
 
 :<<'EOF'
--y, -v are additional options defined for convenience
+-y, -n, -v are additional options defined for convenience
 EOF
 
 GENAPP__OPTION_LIST_SDESC["-y"]="Assume 'Yes' when prompted for confirmation"
@@ -63,12 +63,28 @@ GENAPP__OPTION_LIST_ARGS["-y"]="1"
 GENAPP__OPTION_LIST_ACTI["-y"]='Input__pushForcedInput "y"'
 
 
+GENAPP__OPTION_LIST_SDESC["-n"]="Assume 'No' when prompted for confirmation"
+GENAPP__OPTION_LIST_DESC["-n"]="
+Assume 'No' answer for any confirmation request
+"
+GENAPP__OPTION_LIST_ARGS["-n"]="1"
+GENAPP__OPTION_LIST_ACTI["-n"]='Input__pushForcedInput "y"'
+
+
 GENAPP__OPTION_LIST_SDESC["--verbose"]="Verbose mode"
 GENAPP__OPTION_LIST_DESC["--verbose"]="
-Verbose mode
+Verbose mode. Shows messages additionally to those usually displayed.
 "
 GENAPP__OPTION_LIST_ARGS["--verbose"]="1"
 GENAPP__OPTION_LIST_ACTI["--verbose"]='GENAPP__VARS["verbose"]=true'
+
+
+GENAPP__OPTION_LIST_SDESC["--silent"]="Silent mode"
+GENAPP__OPTION_LIST_DESC["--silent"]="
+Silent mode. Hides messages which are usually displayed even when verbose mode is not active.
+"
+GENAPP__OPTION_LIST_ARGS["--silent"]="1"
+GENAPP__OPTION_LIST_ACTI["--silent"]='GENAPP__VARS["silent"]=true'
 
 
 GENAPP__OPTION_LIST_SDESC["--debug"]="Activate debug logs"
@@ -79,4 +95,26 @@ GENAPP__OPTION_LIST_ARGS["--debug"]="1"
 GENAPP__OPTION_LIST_ACTI["--debug"]='__LOG_DEBUG__=0'
 
 
+
+GENAPP__OPTION_LIST_SDESC["--files"]="Lists all the files used by the app (config, log etc)"
+GENAPP__OPTION_LIST_DESC["--files"]="
+Lists the files used by the app, i.e. the configuration file, the log file, the dependency system package installation cache file
+"
+GENAPP__OPTION_LIST_ARGS["--files"]="1"
+GENAPP__OPTION_LIST_ACTI["--files"]='
+local file
+if _getConfigFilePath file ; then
+        echo "${file}"
+fi
+
+if _getLogPath file ; then
+        echo "${file}"
+fi
+
+if _getDependenciesCacheFile file ; then
+        echo "${file}"
+fi
+
+_quit ""
+'
 

@@ -134,3 +134,16 @@ create_package: build_release
 .PHONY: package
 package : create_package
 
+
+.PHONY: update_website_ftp
+update_website_ftp:
+	@echo 
+	@echo 
+	@echo "UPLOADING TO FTP"
+	@echo 
+	@sf -y ftp_release && echo && echo '>>>>>>>>>>>>>>> SUCCESS <<<<<<<<<<<<<<<<<<<<' ||  echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
+	@echo 
+
+# an alias for update_website_ftp
+.PHONY: upload
+upload : update_website_ftp

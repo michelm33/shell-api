@@ -54,7 +54,7 @@ Genapp__parseArgsHandleOptionLessArg() {
         # on command line
         case ${rank} in
                 0) 
-                    Str__upcaseFirst 
+                    Str__upcaseFirst value
                     GENAPP__VARS["appname"]="${value}" ;
                     return 0 
                     ;; 
@@ -104,6 +104,7 @@ Genapp__createFromTemplate()
     local src="$1"
     local dst="$2"
     cp "${GENAPP__VARS["MYDIR"]}/$src" "${GENAPP__VARS["appdirname"]}/$dst"
+    _log_high "generated ${GENAPP__VARS["appdirname"]}/$dst"
     Genapp__replaceCopyrightNotice "${GENAPP__VARS["appdirname"]}/$dst"
 }
 
@@ -141,7 +142,7 @@ Genapp__replaceTemplateKeywords()
         sed -i -E "s/%author%/${GENAPP__VARS["author"]}/g" "${GENAPP__VARS["appdirname"]}/$file"
         sed -i -E "s/%githubid%/${GENAPP__VARS["githubid"]}/g" "${GENAPP__VARS["appdirname"]}/$file"
         sed -i -E "s/%email%/${GENAPP__VARS["email"]}/g" "${GENAPP__VARS["appdirname"]}/$file"
-        sed -i -E "s/%rootreleasedir%/${GENAPP__VARS["rootreleasedir"]}/g" "${GENAPP__VARS["appdirname"]}/$file"
+        sed -i -E "s#%rootreleasedir%#${GENAPP__VARS["rootreleasedir"]}#g" "${GENAPP__VARS["appdirname"]}/$file"
     done
 
 }
@@ -187,9 +188,11 @@ Genapp__generate()
     #
     # Create version file from scratch
     echo "1.0.0" > "$lowerAppname/VERSION.txt"
+    _log_high "generated $lowerAppname/VERSION.txt"
 
     # Create CHANGELOG file from scratch
     echo "* First release" > "$lowerAppname/CHANGELOG.txt" 
+    _log_high "generated $lowerAppname/CHANGELOG.txt"
 
     # Create examples from templates
     Genapp__createFromTemplate template__EXAMPLES.txt EXAMPLES.txt
@@ -198,7 +201,7 @@ Genapp__generate()
     Genapp__createFromTemplate LICENSE.txt LICENSE.txt
 
     # shell-api copyright file as template
-    Genapp__createFromTemplate COPYRIGHT.txt COPYRIGHT.txt
+    Genapp__createFromTemplate template__COPYRIGHT.txt COPYRIGHT.txt
 
     # Makefile to create dpkg package
     Genapp__createFromTemplate template__Makefile Makefile
@@ -208,12 +211,14 @@ Genapp__generate()
     # Create the files for the packaging
     mkdir "${GENAPP__VARS["appdirname"]}/pack" &>/dev/null
     cp -r  "${GENAPP__VARS["MYDIR"]}/template_pack"/* "${GENAPP__VARS["appdirname"]}/pack/"
+    _log_high "generated ${GENAPP__VARS["appdirname"]}/pack/"
     Genapp__replaceCopyrightNotice "${GENAPP__VARS["appdirname"]}/pack/debian/control"
     filelist=(pack/debian/control)
     Genapp__replaceTemplateKeywords filelist
 
     # Generate the config file (empty)
     echo "" > "${GENAPP__VARS["appdirname"]}/${lowerAppname}.yml"
+    _log_high "generated ${GENAPP__VARS["appdirname"]}/${lowerAppname}.yml"
 
     # Generate the app itself
     Genapp__createFromTemplate template__app.sh "${lowerAppname}" 

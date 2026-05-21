@@ -56,7 +56,7 @@ YAML__closeFile() {
 }
 
 :<<EOF
-Retrieves  whether the field path exists in the global YAML_DATA map holding all data
+Retrieves the keys defined below a given data path.
 @param [1] in field path of form '.this.is.my.data.path'
 @param [2] out the array of keys 
 @returns true or false
@@ -66,19 +66,26 @@ YAML__getKeys()
 {
     local -n 
     local k
+    local g
     local val
     local -n allKeys=$2
 
     allKeys=()
-    for k in "${!YAML_DATA[@]}" ; do
-        if Str__startsWith "$k" "${1}." ; then
-            local key="${k##*.}"
-            #echo "key: '$key'"
-            #if Str__contains "$key" "-" ; then
-            #    key="'${key}'"
-            #fi
-            #echo "key: '$key'"
-            allKeys+=("$key")
+    for k in "${!YAML_DATA[@]}" ; do    
+        g="${k:1}" # key without starting dot
+        #echo
+        #echo "$k checking VS $1"
+        if Str__startsWith ".${g}" "${1}." ; then
+            local keyLastItem="${g##*.}"
+            #local keyBigTail="${g#*.}"
+            local lenK=$(( ${#1} + 1 ))
+            local keyItemAfterFromScope="${k:$lenK}"
+
+            #echo "key: '$keyLastItem' '$keyItemAfterFromScope'"
+            if [ "${keyLastItem}" = "${keyItemAfterFromScope}" ] ; then
+                allKeys+=("$keyLastItem")
+                #echo "====> OK for $keyLastItem"
+            fi
         fi
     done
 }

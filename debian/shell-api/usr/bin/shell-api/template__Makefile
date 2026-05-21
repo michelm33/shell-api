@@ -25,7 +25,7 @@ PRODUCT=%appname%
 PKG=$(PRODUCT)-$(VERSION_DEB)
 DATE=$(shell LC_ALL=en_US.UTF-8 date --rfc-email)
 
-PROD_REL_DIR=%rootreleasedir%/release/$(PRODUCT)/
+PROD_REL_DIR=%rootreleasedir%/$(PRODUCT)/
 VERS_REL_DIR=$(PROD_REL_DIR)/$(PKG)
 
 .PHONY: FORCE

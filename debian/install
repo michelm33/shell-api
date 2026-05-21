@@ -7,6 +7,7 @@ LICENSE.txt /usr/bin/shell-api
 Makefile /usr/bin/shell-api
 VERSION.txt /usr/bin/shell-api
 doc /usr/bin/shell-api
+download /usr/bin/shell-api
 genapp /usr/bin/shell-api
 genapp__help.sh /usr/bin/shell-api
 genapp__options.sh /usr/bin/shell-api
@@ -21,6 +22,7 @@ shell-api-selftest.sh /usr/bin/shell-api
 shell-api-sys.sh /usr/bin/shell-api
 shell-api-xslt.sh /usr/bin/shell-api
 shell-api-yaml.sh /usr/bin/shell-api
+template__COPYRIGHT.txt /usr/bin/shell-api
 template__EXAMPLES.txt /usr/bin/shell-api
 template__Makefile /usr/bin/shell-api
 template__app.sh /usr/bin/shell-api

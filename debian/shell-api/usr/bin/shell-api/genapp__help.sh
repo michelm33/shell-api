@@ -27,7 +27,7 @@ EOF
 Genapp__susage_without_options() {
   local __cmdbasename="$(basename $0)"
 cat << EOF
-Usage: ${__cmdbasename} OPTIONS <application name>]
+Usage: ${__cmdbasename} OPTIONS <application name>
 EOF
 #or: ${__cmdbasename} OPTIONS [<sample arg 2>]  
 }

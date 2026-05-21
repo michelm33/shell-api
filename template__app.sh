@@ -26,6 +26,7 @@ declare -A GENAPP__VARS
 Genapp__sourcedirname="${BASH_SOURCE[0]%/*}" # "$(dirname ${BASH_SOURCE[0]})"
 GENAPP__VARS["MYDIR"]="$(readlink -f "${Genapp__sourcedirname}")"
 GENAPP__VARS["SHELLAPI_DIR"]="%SHELL_API_DIR%"
+#GENPAGE__VARS["configFile"]=""     # Could be used if app requires a yaml configuration file as argument
 
 if [[ ! -v __SHELL_API_CORE_LOADED__ ]]; then
     source "${GENAPP__VARS["MYDIR"]}/${GENAPP__VARS["SHELLAPI_DIR"]}/shell-api-core.sh" "Genapp"
@@ -35,15 +36,18 @@ fi
 # If necessary include of these modules
 eval $_loadm<<<'shell-api-sys'          # process control functions
 eval $_loadm<<<'shell-api-dev'          # device access functions
-eval $_loadm<<<'shell-api-packing'      # package management functions (loading)
 eval $_loadm<<<'shell-api-net'          # network related functions
 EOF
 
+eval $_loadm<<<'shell-api-packing'      # package management functions (loading)
 eval $_loadm<<<'shell-api-yaml'         # YAML read/write functions, mandatory core has a dependency on it
 
 source "${GENAPP__VARS["MYDIR"]}/genapp__vars.sh" 
 source "${GENAPP__VARS["MYDIR"]}/genapp__options.sh" 
 source "${GENAPP__VARS["MYDIR"]}/genapp__help.sh" 
+
+
+Genapp__isSilent() { if ${GENAPP__VARS["silent"]}; then return 0; else return 1; fi }
 
 :<<'EOF'
 Framework callback for getting the default configuration file path if none is defined
@@ -58,6 +62,13 @@ Genapp__getDefaultConfigFile()
         return 0
 }
 
+Genapp__loadDep() 
+{
+    if ! Args__checkCount ${FUNCNAME[0]} 1 "$#" "Usage: <dependency name>"; then return 1; fi
+
+    # By default, attempts to install an APT package of the passed name
+    Pkg__install "$1" "" apt 
+}
 
 Genapp__parseArgsHandleOptionLessArg() {
         local rank=$1
@@ -67,15 +78,13 @@ Genapp__parseArgsHandleOptionLessArg() {
         # Handle here optionless arguments which are not provided with - or -- 
         # 'rank' givens the rank of the arguments as it is read from left to right 
         # on command line
+        #
+        # Here below a valid sample if app requires a yaml configuration file as argument
         case ${rank} in
                 0) 
-                    GENAPP__VARS["dummy_option1_value"]="${value}" ;                 
+                    GENAPP__VARS["configFile"]="${value}" ;                 
                     return 0 
                     ;; 
-                1) 
-                    GENAPP__VARS["dummy_option2_value"]="${value}" ; 
-                    return 0  
-                    ;;
                 *) return 1 
                 ;;
         esac        
@@ -123,6 +132,22 @@ Genapp__main() {
     if ! _parseArgs "${allargs[@]}" ; then
             _exit -1 "Failed to parse arguments"
     fi
+
+	_initLogs
+
+    # The following sample code is valid when app requires a yaml configuration file as argument
+#    local cfgFile="${GENPAGE__VARS["configFile"]}"
+#    if [ -z "$cfgFile" ] ; then
+#        _susage "missing page configuration file"
+#    fi
+#
+#    trapFileExits "${cfgFile}"
+#
+#    YAML__setFile "${cfgFile}" true
+#    YAML__dumpAll  # FOR CHECK AND DEBUG
+
+    # From here on, implement the specific app functions
+    _log "Hello!"
 
 }
 

@@ -4195,6 +4195,23 @@ File__noext() {
 }
 
 :<<'EOF'
+Creates in the current working directory subdirectories which names are given as array to this function
+@param [1] array of dirs to create
+EOF
+
+File__createSubdirs() 
+{
+    local -n __inSubdirs=$1
+    local fld
+    for fld in "${__inSubdirs[@]}" ; do
+        #_log "  $fld"
+        if [ ! -d "$fld" ] ; then
+            mkdir "$fld"
+        fi
+    done
+}
+
+:<<'EOF'
 Performs a mirror copy of folders contained within the passed source folder path 
 to the specified target folder.
 The operation uses the function File__mirrorCopy.
@@ -4316,6 +4333,9 @@ File__mirrorCopy() {
 }
 
 :<<EOF
+IMPORTANT: THIS FUNCTION IS DOOMED TO BE DEPRECATED.
+SEE shell-api-yaml.sh, YAML__setFile <file> true
+
 Reads a YAML-like file consisting of a list of pairs 'property name : propery value'
 on each like. This is not a YAML parser, it is just a basic reader 
 for simple configuration without having to depend on other tools.
@@ -4488,6 +4508,35 @@ cat<<EOF > "$filename"
 EOF
     ) 10>/var/lock/${appName}_${jobid}
 
+}
+
+:<<'EOF'
+Creates a new file from a "Z" template, i.e. a template text file which contains
+keywords of the form '%<keyword id>%' which are replaced by associated values pass
+as parameters to this function
+@param [1] source template file
+@param [2] output file
+@param [3] a map declare with 'declare -A' given the value to use for each keyword id (without % chars)
+EOF
+
+File__createFromZTemplate()
+{
+    local __inSrc="$1"
+    local __inDst="$2"
+    local -n __inKWMap=$3
+    if [ ! -f "${__inSrc}" ] ; then
+        _log_err "Template '${__inSrc}' does not exist"
+        return 1
+    fi
+    local content="$(cat "${__inSrc}")"
+    local kw=""
+    local val=""
+    for kw in "${!__inKWMap[@]}" ; do
+        val="${__inKWMap["$kw"]}"
+        #_log "$kw -> $val" #DEBUG
+        content="${content/\%$kw\%/$val}"
+    done
+    echo "$content" > "${__inDst}"
 }
 
 # --------------------------------------------------------------------------------------
