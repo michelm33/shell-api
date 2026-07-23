@@ -1,14 +1,38 @@
 #!/bin/bash
 ###############################################################################
+# HUMAN-READABLE "BSA BASH SHELL API" and genapp bash app generator
+# 
+# Copyright (c) 2024-2026 Michel Mehl.
+# All rights reserved. 
+# Tous droits réservés (France).
+# 
+# License terms written down in file LICENSE.txt
+# Les termes de la licence sont détaillés dans le fichier LICENSE.txt
+# 
+# Release file path: shell-api-selftest.sh
+# Release file date: 2026-07-23 13:37
+# App version: 1.1.0
+# App source revision: 97
+# App source signature: e20eb96b3d4e6835befb66ce8f066b37209f14602974b26a9ca3fd01599ac513
+# Source file last modification: 2026-07-10 00:45:32.050170901 +0200
 #
-# Copyright (c) 2024-2025 Michel Mehl. All rights reserved.
+# This header was generated. Do not modify.
 #
 # -----------------------------------------------------------------------------
 #
 # Report bugs to michel.mehl@slashetc.fr
 #
 # -----------------------------------------------------------------------------
-#
+# 
+# Report bugs and suggestions: 
+#     assistance@slashetc.fr
+# 
+# Specific or corporate requirements or extensions: 
+#     info@slashetc.fr
+# 
+# The author is overall not required to provide maintenance or support 
+# outside specific commercial terms agreed.
+# 
 ###############################################################################
 trap _cleanup EXIT SIGHUP SIGINT SIGTERM SIGQUIT SIGABRT
 
@@ -409,6 +433,56 @@ _log_status_end fail
 
 exit 0
 
+
+:<<'EOF'
+
+clear -x
+Str__fitToLineWidth str 30
+echo -n "$str"
+
+Str__justify str 30
+echo -n "$str"
+
+str="short string"
+Str__justify str 30
+echo -n "$str"
+
+str="nospaceThisisobsolete.Onlycommandsaregivenwithdashoptions"
+Str__justify str 30
+echo -n "$str"
+
+str="This is obsolete. Only commands are given with dash options"
+Str__justify str 30
+echo -n "$str"
+
+str="                               Checkout all head revision or checkout resp. the revision, release tag, file from head revision as specified by argument"
+Str__fitToLineWidth str 30
+echo -n "$str"
+
+str="short string"
+Str__fitToLineWidth str 30
+echo -n "$str"
+
+
+str="
+
+Rearranges a multipline text so that each line is forced to have the specified width by duplicating as much spaces as necessary.
+@param [1] inout reference to the input string to be rearranged
+@param [2] target line width"
+str="ke
+
+"
+
+cnt=0
+while [ $cnt -lt 5000 ] ; do
+    lcount=0
+    Str__lineCount "$str" lcount
+    cnt=$(( $cnt + 1))
+done
+echo $lcount
+
+EOF
+
 # END UNFORMAL QUICKTESTS
 ###############################################################################
 
@@ -589,6 +663,27 @@ Test__Str_trim_testOneString()
     nbTrimmed=$?
     [ $nbTrimmed -eq $4 ] && [ "$res" == "$3" ]
     Test__printResult $? "$res" "$nbTrimmed"
+}
+
+// MUST BE FORMALIZED
+// MANUALL TESTED ONCE: OK
+Test__Str_eraseCommonTail()
+{
+    s1="/home/michel/riffian/Data/Data/admin/linux/testapp"
+    s2="/home/michel/Data/Data/admin/linux/testapp"
+    Str__eraseCommonTail s1 s2 &&  _log_vars s1 s2
+
+    s1="home/michel/riffian"
+    s2="admin/linux/testapp"
+    Str__eraseCommonTail s1 s2 &&  _log_vars s1 s2
+
+    s1="/home/michel/riffian"
+    s2="/home/michel/riffian"
+    Str__eraseCommonTail s1 s2 &&  _log_vars s1 s2
+
+    s1="/michel/riffian"
+    s2="/home/michel/riffian"
+    Str__eraseCommonTail s1 s2 &&  _log_vars s1 s2
 }
 
 Test__Str()

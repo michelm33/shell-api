@@ -1,14 +1,38 @@
 #!/bin/bash
 ###############################################################################
+# HUMAN-READABLE "BSA BASH SHELL API" and genapp bash app generator
+# 
+# Copyright (c) 2024-2026 Michel Mehl.
+# All rights reserved. 
+# Tous droits réservés (France).
+# 
+# License terms written down in file LICENSE.txt
+# Les termes de la licence sont détaillés dans le fichier LICENSE.txt
+# 
+# Release file path: shell-api-xslt.sh
+# Release file date: 2026-07-23 13:37
+# App version: 1.1.0
+# App source revision: 97
+# App source signature: e20eb96b3d4e6835befb66ce8f066b37209f14602974b26a9ca3fd01599ac513
+# Source file last modification: 2026-07-05 18:58:56.711248556 +0200
 #
-# Copyright (c) 2024 Michel Mehl. All rights reserved.
+# This header was generated. Do not modify.
 #
 # -----------------------------------------------------------------------------
 #
 # Report bugs to michel.mehl@slashetc.fr
 #
 # -----------------------------------------------------------------------------
-#
+# 
+# Report bugs and suggestions: 
+#     assistance@slashetc.fr
+# 
+# Specific or corporate requirements or extensions: 
+#     info@slashetc.fr
+# 
+# The author is overall not required to provide maintenance or support 
+# outside specific commercial terms agreed.
+# 
 ###############################################################################
 
 __SHELL_API_XSLT_DIR__=$(readlink -f $(dirname ${BASH_SOURCE[0]}))
@@ -48,8 +72,11 @@ XSLT__modifyXML() {
         xsltCodeParams+=(" <xsl:param name=\"${paramName}\" select=\"''\"/>")
     done
 
-    local xsltFile="$(mktemp).xslt"
-    local newXML="$(mktemp)"
+    local xsltFile=""
+    local newXML=""
+    File__createTempFile xsltFile xslt
+    File__createTempFile newXML
+
     #local escapedTransformCode="$(echo "$transformCode"|sed -E 's/"/\\"/g')"
     cat<<EOF > "${xsltFile}"
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -110,7 +137,9 @@ XSLT__transformToText() {
         xsltCodeParams+=(" <xsl:param name=\"${paramName}\" select=\"''\"/>")
     done
 
-    local xsltFile="$(mktemp).xslt"
+    local xsltFile=""
+    File__createTempFile xsltFile xslt
+
     #local escapedTransformCode="$(echo "$transformCode"|sed -E 's/"/\\"/g')"
     cat<<EOF > "${xsltFile}"
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">

@@ -23,14 +23,31 @@
 # to avoid conflicts with other vars should this file be included elsewhere
 declare -A GENAPP__VARS
 
-Genapp__sourcedirname="${BASH_SOURCE[0]%/*}" # "$(dirname ${BASH_SOURCE[0]})"
-GENAPP__VARS["MYDIR"]="$(readlink -f "${Genapp__sourcedirname}")"
+GENAPP__VARS["SRC_DIRNAME"]="${BASH_SOURCE[0]%/*}" # "$(dirname ${BASH_SOURCE[0]})"
+GENAPP__VARS["MYDIR"]="$(readlink -f "${GENAPP__VARS["SRC_DIRNAME"]}")"
 GENAPP__VARS["SHELLAPI_DIR"]="%SHELL_API_DIR%"
 #GENPAGE__VARS["configFile"]=""     # Could be used if app requires a yaml configuration file as argument
 
 if [[ ! -v __SHELL_API_CORE_LOADED__ ]]; then
-    source "${GENAPP__VARS["MYDIR"]}/${GENAPP__VARS["SHELLAPI_DIR"]}/shell-api-core.sh" "Genapp"
+    if [ -v ENV_SHELL_API ] ; then
+            if [ -f "${ENV_SHELL_API}/shell-api-core.sh" ] ; then
+                    source "${ENV_SHELL_API}/shell-api-core.sh" "Genapp"
+            else
+                    echo "Invalid path specified by variable ENV_SHELL_API : ${ENV_SHELL_API}/shell-api-core.sh not found ">&2
+                    exit -1
+            fi
+    else
+            if [ -f "${GENAPP__VARS["MYDIR"]}/shell-api/shell-api-core.sh" ] ; then
+                    source "${GENAPP__VARS["MYDIR"]}/shell-api/shell-api-core.sh" "Genapp"
+            elif [ -f "${GENAPP__VARS["MYDIR"]}/../shell-api/shell-api-core.sh" ] ; then
+                    source "${GENAPP__VARS["MYDIR"]}/../shell-api/shell-api-core.sh" "Genapp"
+            else
+                    echo "Could not find shell-api. Please set ENV_SHELL_API to the root folder of shell api or ensure shell-api is readable from ${GENAPP__VARS["MYDIR"]} or ${GENAPP__VARS["MYDIR"]}/.. ">&2
+                    exit -1
+            fi
+    fi
 fi
+
 
 :<<'EOF'
 # If necessary include of these modules

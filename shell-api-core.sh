@@ -1,7 +1,22 @@
 #!/bin/bash
 ###############################################################################
+# HUMAN-READABLE "BSA BASH SHELL API" and genapp bash app generator
+# 
+# Copyright (c) 2024-2026 Michel Mehl.
+# All rights reserved. 
+# Tous droits réservés (France).
+# 
+# License terms written down in file LICENSE.txt
+# Les termes de la licence sont détaillés dans le fichier LICENSE.txt
+# 
+# Release file path: shell-api-core.sh
+# Release file date: 2026-07-23 13:37
+# App version: 1.1.0
+# App source revision: 97
+# App source signature: e20eb96b3d4e6835befb66ce8f066b37209f14602974b26a9ca3fd01599ac513
+# Source file last modification: 2026-07-23 13:35:41.130518694 +0200
 #
-# Copyright (c) 2024 Michel Mehl. All rights reserved.
+# This header was generated. Do not modify.
 #
 # -----------------------------------------------------------------------------
 #
@@ -10,20 +25,39 @@
 # shell applications (BASH).
 #
 # -----------------------------------------------------------------------------
-#
-# Report bugs to michel.mehl@slashetc.fr
-#
+# 
+# Report bugs and suggestions: 
+#     assistance@slashetc.fr
+# 
+# Specific or corporate requirements or extensions: 
+#     info@slashetc.fr
+# 
+# The author is overall not required to provide maintenance or support 
+# outside specific commercial terms agreed.
+# 
 ###############################################################################
-trap _cleanup EXIT SIGHUP SIGINT SIGTERM SIGQUIT SIGABRT
 
 __SHELL_API_CORE_DIR__=$(readlink -f $(dirname ${BASH_SOURCE[0]}))
 
 if [[ -v "__SHELL_API_CORE__" ]]; then
     return 0
-else
-    __SHELL_API_CORE__=0
 fi
 
+# 0     EXIT
+# 1     SIGHUP
+# 2     SIGINT
+# 3     SIGQUIT
+# 6     SIGABRT
+# 9     SIGKILL
+# 14    SIGALRM
+# 15    SIGTERM
+#__ALL_SIGNALS__=(EXIT SIGHUP SIGINT SIGTERM SIGQUIT SIGABRT)
+for __SIGNAL__ in 1 2 3 6 9 14 15 ; do
+    trap "_cleanup ${__SIGNAL__}" ${__SIGNAL__}
+done
+#trap _cleanup EXIT SIGHUP SIGINT SIGTERM SIGQUIT SIGABRT
+
+__SHELL_API_CORE__=0
 __CALLER_APP__="$1"
 export __SUDO__=""
 __SHELL_API_CORE_LOADED__=0
@@ -280,7 +314,7 @@ _load() {
         return 0
     else
 	    _log_err "${FUNCNAME[0]}: invalid use. 1 or 2 arg(s) expected, $# passed ($*)"
-        echo -n ""
+        echo -n "" >&2
         return 1
     fi
 }
@@ -297,10 +331,30 @@ _loadm='read _load_mod &&
 _loada='read _load_app &&
     appName="${__SHELL_CURRENT_APPNAME__}" &&
     Str__toUpper appName &&
-    appDirVar="\${${appName}__VARS[\"MY_DIR\"]}" &&
+    appDirVar="\${${appName}__VARS[\"MYDIR\"]}" &&
     eval source "${appDirVar}/${_load_app}" 
 '
 
+:<<'EOF'
+Tells whether the cache indicates that the dependency was already loaded
+EOF
+_isLoadDepCached() {
+    [ ! -z "${SHELL_API_DEP_LOADED["$1"]}" ] 
+}
+
+
+:<<'EOF'
+Loads a possible dependency bound with a given distro version
+EOF
+_loadVDep() {
+    if ! _isLoadDepCached "$1" ; then
+        if DPKG__exists "$1" ; then
+            _loadDep "$1"
+        else
+            SHELL_API_DEP_LOADED["$1"]=0
+        fi
+    fi
+}
 
 :<<'EOF'
 Standard/generic end-user wrapper for dealing with package dependencies.
@@ -488,6 +542,117 @@ _help() {
     exit 0
 }
 
+
+
+:<<'EOF'
+This does the same as _options() except that it accepts the additional parameters
+OPTION_LIST_ARGS_TYPE so that the argument description
+can reflect the argument types defined. _options() is kept for compatibility.
+EOF
+
+_optionsN() {
+    local -n OPTION_LIST_DESC=$1
+    local -n OPTION_LIST_ARGS=$2    
+    local -n OPTION_LIST_ARGS_TYPE=$3     
+    local -n OPTION_LIST_INTERN=$4
+    local filter=$5
+
+if [ "$filter" = "0" ]   ; then
+cat << EOF
+*COMMAND DETAILS*
+
+EOF
+
+else
+cat << EOF
+*OPTIONS DETAILS*
+
+EOF
+fi
+    local k=0
+    local found=1
+    declare -A displayOptionList
+    local maxOptionListLength=0
+    local maxAllowedOptionListLength=50
+
+    # First constructs the list of actual relevant keys
+    local sortedKeys=()
+    local keys=() 
+    for k in ${!OPTION_LIST_DESC[@]}
+    do
+            local opt1=${k%%|*}
+            local opt2=${k##*|}
+
+            if [ ! -z "$filter" ] ; then
+                if [ "$filter" = "0" ] && Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+                if [ "$filter" = "1" ] && ! Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+            fi
+
+            if [ ! -v OPTION_LIST_INTERN["$k"] ] ; then
+                keys+=("$k")
+            fi
+    done
+    Array__getSortedArray keys sortedKeys
+
+    for k in ${sortedKeys[@]}
+    do
+            local opt1=${k%%|*}
+            local opt2=${k##*|}
+
+            if [ ! -z "$filter" ] ; then
+                if [ "$filter" = "0" ] && Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+                if [ "$filter" = "1" ] && ! Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+            fi
+
+            if [ ! -v OPTION_LIST_INTERN["$k"] ] ; then
+
+                displayOptionList["$k"]=$(printf "%s" "${k//|/, }")
+
+                if [ "${OPTION_LIST_ARGS["$k"]}" == "0" ] ; then    # one mandatory argument
+                    if [ -v OPTION_LIST_ARGS_TYPE["$k"] ] ; then
+                    #echo "=${OPTION_LIST_ARGS_TYPE["$k"]}"
+                    displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "${assignChar}${OPTION_LIST_ARGS_TYPE["$k"]}")"
+                    else
+                    #echo "=<arg>"
+                    displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "${assignChar}<arg>")"           
+                    fi
+                elif [ "${OPTION_LIST_ARGS["$k"]}" == "2" ] ; then  # one optional argument
+                    if [ -v OPTION_LIST_ARGS_TYPE["$k"] ] ; then
+                    #echo "=[${OPTION_LIST_ARGS_TYPE["$k"]}]"
+                    displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "${assignChar}[${OPTION_LIST_ARGS_TYPE["$k"]}]")"
+                    else
+                    displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "${assignChar}<arg>")"
+                    fi
+                #else
+                    #echo
+                    #displayOptionList["$k"]="${displayOptionList["$k"]} $(echo)"
+                fi
+
+                printf "%s" "${displayOptionList[$k]}"
+                printf "\n"
+
+                # With optionsN, always display the option description on
+                # on the next line with a default indent of 10
+                # NOTE: the indent must not be too great (e.g. 30), otherwise
+                # it messes up man page generation by helpman
+                local optionListDescription=""
+                optionListDescription="${OPTION_LIST_DESC["$k"]}"
+                Str__fitToLineWidth optionListDescription 80
+                Str__indent 10 optionListDescription
+                printf "%s\n" "$optionListDescription"
+            fi
+    done
+}
+
+
 :<<'EOF'
 Displays script options according to the description list of all options 
 as stored in global variable <APPNAME>__OPTION_LIST_DESC to be passed on as first argument
@@ -498,31 +663,74 @@ _options() {
     local -n OPTION_LIST_DESC=$1
     local -n OPTION_LIST_ARGS=$2
     local -n OPTION_LIST_INTERN=$3
+    local filter=$4
+
+if [ "$filter" = "0" ]   ; then
 cat << EOF
-OPTIONS DETAILS:
+COMMAND DETAILS
 
 EOF
+
+else
+cat << EOF
+OPTIONS DETAILS
+
+EOF
+fi
     local k=0
     local found=1
+
+    # First constructs the list of actual relevant keys
+    local sortedKeys=()
+    local keys=() 
     for k in ${!OPTION_LIST_DESC[@]}
     do
             local opt1=${k%%|*}
             local opt2=${k##*|}
-            if [ ! -v OPTION_LIST_INTERN["$k"] ] ; then
 
-                echo -n " ${k//|/,}"
+            if [ ! -z "$filter" ] ; then
+                if [ "$filter" = "0" ] && Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+                if [ "$filter" = "1" ] && ! Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+            fi
+
+            if [ ! -v OPTION_LIST_INTERN["$k"] ] ; then
+                keys+=("$k")
+            fi
+    done
+    Array__getSortedArray keys sortedKeys
+
+    for k in ${sortedKeys[@]}
+    do
+            local opt1=${k%%|*}
+            local opt2=${k##*|}
+
+            if [ ! -z "$filter" ] ; then
+                if [ "$filter" = "0" ] && Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+                if [ "$filter" = "1" ] && ! Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+            fi
+
+            if [ ! -v OPTION_LIST_INTERN["$k"] ] ; then
+                printf "%s" "${k//|/, }"                
                 if [ "${OPTION_LIST_ARGS["$k"]}" == "0" ] ; then
-                        echo -n " <arg>"
+                        printf "%s" " <arg>"
+                elif  [ "${OPTION_LIST_ARGS["$k"]}" == "2" ] ; then
+                        printf "%s" " [<arg>]"
                 fi
                 echo
-                local desc="${OPTION_LIST_DESC[$k]}"
-                local line=""
-                #echo "$desc"
-                while IFS= read -r line
-                do
-                        echo "    $line"
-                done <<<"$desc"
 
+                local optionListDescription=""
+                optionListDescription="${OPTION_LIST_DESC["$k"]}"
+                Str__fitToLineWidth optionListDescription 80
+                Str__indent 10 optionListDescription
+                printf "%s\n" "$optionListDescription"
             fi
     done
 }
@@ -538,6 +746,7 @@ _soptions() {
     local -n OPTION_LIST_ARGS=$3
     local -n OPTION_LIST_ARGS_TYPE=$4
     local -n OPTION_LIST_INTERN=$5
+    local filter=$6
     
 cat << EOF
 EOF
@@ -546,51 +755,141 @@ EOF
     local found=1
     declare -A displayOptionList
     local maxOptionListLength=0
-    local maxAllowedOptionListLength=50
+    local maxAllowedOptionListLength=30
+    local manMode=false
+    
+    if [ $# -ge 7 ] && [ "$7" = "man" ] ; then
+        manMode=true
+    fi
+
+    # First constructs the list of actual relevant keys
+    local sortedKeys=()
+    local keys=() 
     for k in ${!OPTION_LIST_DESC[@]}
     do
             local opt1=${k%%|*}
             local opt2=${k##*|}
+
+            if [ ! -z "$filter" ] ; then
+                if [ "$filter" = "0" ] && Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+                if [ "$filter" = "1" ] && ! Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+            fi
+
+            if [ ! -v OPTION_LIST_INTERN["$k"] ] ; then
+                keys+=("$k")
+            fi
+    done
+    Array__getSortedArray keys sortedKeys
+
+    for k in ${sortedKeys[@]}
+    do
+            local opt1=${k%%|*}
+            local opt2=${k##*|}
+
+            if [ ! -z "$filter" ] ; then
+                if [ "$filter" = "0" ] && Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+                if [ "$filter" = "1" ] && ! Str__startsWith "$opt1" "-" ; then
+                    continue
+                fi
+            fi
+
+            local assignChar=" "
+            if Str__startsWith "$opt1" "-" ; then
+                assignChar="="
+            fi
+            
             if [ ! -v OPTION_LIST_INTERN["$k"] ] ; then
               #echo -n " ${k//|/, }"
-              displayOptionList["$k"]=$(echo -n " ${k//|/, }")
+              displayOptionList["$k"]=$(printf "%s" "${k//|/, }")
+
               if [ "${OPTION_LIST_ARGS["$k"]}" == "0" ] ; then    # one mandatory argument
                 if [ -v OPTION_LIST_ARGS_TYPE["$k"] ] ; then
                   #echo "=${OPTION_LIST_ARGS_TYPE["$k"]}"
-                   displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "=${OPTION_LIST_ARGS_TYPE["$k"]}")"
+                   displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "${assignChar}${OPTION_LIST_ARGS_TYPE["$k"]}")"
                 else
                   #echo "=<arg>"
-                   displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "=<arg>")"           
+                   displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "${assignChar}<arg>")"           
                 fi
               elif [ "${OPTION_LIST_ARGS["$k"]}" == "2" ] ; then  # one optional argument
                 if [ -v OPTION_LIST_ARGS_TYPE["$k"] ] ; then
                   #echo "=[${OPTION_LIST_ARGS_TYPE["$k"]}]"
-                   displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "=[${OPTION_LIST_ARGS_TYPE["$k"]}]")"
+                   displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "${assignChar}[${OPTION_LIST_ARGS_TYPE["$k"]}]")"
                 else
-                   displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "=<arg>")"
+                   displayOptionList["$k"]="${displayOptionList["$k"]} $(echo -n "${assignChar}<arg>")"
                 fi
-              #else
-                  #echo
-                   #displayOptionList["$k"]="${displayOptionList["$k"]} $(echo)"
+              else
+                    if $manMode ; then
+                       displayOptionList["$k"]="${displayOptionList["$k"]} " # Need to add the space as separation with description
+                    fi
               fi
             fi
             local len=${#displayOptionList["$k"]}
             if  [ $len -lt $maxAllowedOptionListLength ] && [ $len -gt $maxOptionListLength ]  ; then maxOptionListLength=$len; fi
     done
     #echo "MAX LEN=$maxOptionListLength"
-    for k in ${!displayOptionList[@]}
+    
+    Int__max $maxOptionListLength $maxAllowedOptionListLength maxOptionListLength
+
+    #for k in ${!displayOptionList[@]}
+    for k in ${sortedKeys[@]}
+
     do
-      local len=${#displayOptionList["$k"]}
-      echo -n "${displayOptionList[$k]}"
-      if  [ $len -lt $maxAllowedOptionListLength ]  ; then
-        Str__spaces $(($maxOptionListLength - $len))
-      fi
-    if [ -v OPTION_LIST_SDESC["$k"] ] ; then
-      echo " ${OPTION_LIST_SDESC["$k"]}"
-    else
-      echo " ${OPTION_LIST_DESC["$k"]}"
-    fi
-    #  echo " toto"
+        local len=${#displayOptionList["$k"]}
+        printf "%s" "${displayOptionList[$k]}"
+
+
+        local optionListDescription=""
+        if [ -v OPTION_LIST_SDESC["$k"] ] ; then
+            optionListDescription="${OPTION_LIST_SDESC["$k"]}"
+        else
+            optionListDescription="${OPTION_LIST_DESC["$k"]}"
+        fi
+
+        local originalOptionListDescription="${optionListDescription}"
+        Str__fitToLineWidth optionListDescription 60
+        #Str__justify optionListDescription 60
+
+        # In normal mode (not man), display the description opposite
+        # the option if it holds on a 1 single line and its length
+        # is not greater than maxAllowedOptionListLength
+        # Otherwise, display it on the next line with an indent
+        # equal to maxOptionListLength - len
+        #
+        # In man mode, always display the option description on
+        # on the next line with a default indent of 10
+        # NOTE: the indent must not be too great (e.g. 30), otherwise
+        # it messes up man page generation by helpman
+        #
+        if $manMode ; then
+            printf "\n"
+            Str__indent 10 optionListDescription #maxOptionListLength
+            #Str__spaces $maxOptionListLength
+        else
+            local lc=0
+            Str__lineCount "$optionListDescription" lc
+            if  [ $len -lt $maxAllowedOptionListLength ] && [ $lc -eq 1 ] ; then
+                Str__indent $(($maxOptionListLength - $len)) optionListDescription
+                #Str__spaces $(($maxOptionListLength - $len))
+#:<<'EOF'
+            else
+                printf "\n"
+                Str__indent $maxOptionListLength optionListDescription
+                #Str__spaces $maxOptionListLength
+#EOF
+            fi
+        fi
+
+        printf "%s\n" "${optionListDescription}"
+
+        if $manMode ; then
+            printf "\n"
+        fi
     done
 }
 
@@ -613,7 +912,7 @@ _parseArgs() {
     local argc=${#argv[@]}
     local new_argv=()
     local arg=""
-    for arg in "${argv[@]}"        
+    for arg in "${argv[@]}"
     do
         case "$arg" in
         --man) 
@@ -628,11 +927,43 @@ _parseArgs() {
             _invokeCallback version
             __quit
             ;;
+        --revision) 
+            _invokeCallback revision
+            __quit
+            ;;
+        --hash) 
+            _invokeCallback hash
+            __quit
+            ;;
+        --version-num) 
+            _invokeCallback versionnum
+            __quit
+            ;;
+
         *) 
             new_argv+=("$arg") 
             ;;
         esac
     done
+
+    # Handle the default app options if any
+    local appName="${__SHELL_CURRENT_APPNAME__}"
+    local upperAppName="$appName"
+    Str__toUpper upperAppName
+
+    local globVar="\${${upperAppName}__VARS[\"DEFAULT_APP_OPTIONS\"]}"
+    local dfltAppOptions="$(eval echo "$globVar")"
+    #_log_dbg "$globVar: DEFAULT_APP_OPTIONS=  '$dfltAppOptions'"
+    Str__trim "$dfltAppOptions" dfltAppOptions
+    if [ ! -z "${dfltAppOptions}" ] ; then
+        local dfltAppOptionsAsArray=($dfltAppOptions)
+        local dftOpt
+        for dftOpt in "${dfltAppOptionsAsArray[@]}" ; do
+            #_log "ADDING DEFUALT OPT $dftOpt"
+            new_argv+=($dftOpt)
+        done
+    fi
+
     #local new_argc=${#new_argv[@]}
     #if [ ${new_argc} -gt 0 ] ; then
         _invokeCallback parseArgs "${new_argv[@]}"
@@ -658,42 +989,69 @@ _parseFromArgToVars() {
     local __arg=""
     local __prevarg=""
 
-    _log_dbg "_parseFromArgToVars out_argc=${!out_argc} ${__argv_o[@]}"
+    #_debug 
+    #_log_dbg "_parseFromArgToVars out_argc=${!out_argc} ${__argv_o[@]}"
 
     # First preprocess args to identify assigned option value --x=Y in order to split them into two
     for __arg in "${__argv_o[@]}"        
     do
             local optWithValueStart=${__arg%%--*}
+            local optWithoutValueStart=${__arg%%-*}
+
             if [ -z "$optWithValueStart" ] ; then
-                    local optName=${__arg%%=*}
-                    local optVal=${__arg##*=}
+                    local optName=${__arg%%=*}  # Get head till first '=' met
+                    local optVal=${__arg##*=}   # Get tail till first '=' met
                     __argv+=("$optName")       
+                        #_log_dbg "2dash arg: ${optName}"
 
                     if [ "$__arg" != "$optVal" ] ; then
-                            __argv+=("$optVal")
+                        # If a value is supplied, add the value as well
+                        __argv+=("$optVal")
+                        #_log_dbg "2dash arg value: ${optVal}"
                     else
-                            local k=0
-                            for k in ${!OPTION_LIST_DESC[@]}
-                            do
-                                    local opt1=${k%%|*}
-                                    local opt2=${k##*|}
-                                    if [ "$__arg" == "$opt1" ] || [ "$__arg" == "$opt2" ] ; then
-                                            if [ "${OPTION_LIST_ARGS["$k"]}" == "0" ] ; then # value expected
-                                                    local optName=${__arg%%=*}
-                                                    #_log_dbg "'$__arg' '$optName'"
-                                                    if [ "$__arg" == "$optName" ] ; then
-                                                            _susage "A value is mandatory for option '$optName'"    
-                                                    fi   
-                                            fi
-                                            break
+                        # Otherwise, this code block is just about checking whether 
+                        # a value is supplied in case in case one is configured
+                        # mandatory or optional
+                        local k=0
+                        for k in ${!OPTION_LIST_DESC[@]}
+                        do
+                        
+                            local opt1=${k%%|*}
+                            local opt2=${k##*|}
+                            if [ "$__arg" == "$opt1" ] || [ "$__arg" == "$opt2" ] ; then
+                                    if [ "${OPTION_LIST_ARGS["$k"]}" == "0" ] ; then # value expected
+                                            local optName=${__arg%%=*}
+                                            #_log_dbg "'$__arg' '$optName'"
+                                            if [ "$__arg" == "$optName" ] ; then
+                                                    _susage "A value is mandatory for option '$optName'"    
+                                            fi   
                                     fi
-                            done
+                                    break
+                            fi
+                        done
+                    fi
+            elif [ -z "$optWithoutValueStart" ] ; then
+                    local oneDashOptName=${__arg#*-}
+                    if [ ${#oneDashOptName} -gt 1 ] ; then
+                        local allChars=()
+                        Str__toCharArray "${oneDashOptName}" allChars
+                        local char=""
+                        for char in "${allChars[@]}" ; do
+                            __argv+=("-${char}")
+                        done
+                        #_log_dbg "1dash composite arg: ${oneDashOptName} => ${allChars[@]}"
+                    else
+                        #_log_dbg "1dash arg: ${__arg}"
+                        __argv+=("$__arg")
                     fi
             else
+                    #_log_dbg "raw arg: ${__arg}"
                     __argv+=("$__arg")
             fi
     done
+
     __argc=${#__argv[@]}
+    #_log_dbg "${__argv[@]}"
 
     # process all arguments
     for __arg in "${__argv[@]}"        
@@ -840,7 +1198,8 @@ _exit() {
             _log_err "$2"
         fi
     fi
-    exit $1
+
+    _cleanup $1 #exit $1
 }
 
 :<<'EOF'
@@ -878,7 +1237,7 @@ exit code
 EOF
 
 _cleanup() {    
-    local exitCode=$?
+    local exitCode=$1
     local appName="${__SHELL_CURRENT_APPNAME__}"
     local callback=""
     callback=cleanup
@@ -982,7 +1341,7 @@ _getConfigDir()
     local appName="${__SHELL_CURRENT_APPNAME__}"
     local __configDirPath="$HOME/.config/${appName}"
     if [ ! -e "$__configDirPath" ] ; then
-        _log "Creating configuration directory '$__configDirPath'"
+        _log_dbg "Creating configuration directory '$__configDirPath'"
         if ! mkdir -p "$__configDirPath" ; then
             _log_warn "Failed to create configuration directory '$__configDirPath'. Please check the access permission."
             _log_warn "Ignoring configuration."
@@ -1409,7 +1768,8 @@ _appendConfig() {
     #_log_dbg "configPath: $configPath in $configDirPath"
     if [ -e "$configPath" ] ; then
         Str__toLower paramname
-        local tmpf=$(mktemp)
+        local tmpf=""
+        File__createTempFile tmpf
         grep -v ^"${paramname}:" "$configPath" > "$tmpf"
         echo "${paramname}: ${paramvalue}" >> "$tmpf"
         mv -f "$tmpf" "$configPath"
@@ -1464,10 +1824,53 @@ _writeDependenciesCache()
     #_log_high "_writeDependenciesCache CALLED" # DEBUG
 }
 
+_resetDependenciesCache()
+{
+    local depName="$1"
+    if [ "$depName" = "all" ] ; then
+        for depName in "${!SHELL_API_DEP_LOADED[@]}" ; do
+            unset SHELL_API_DEP_LOADED["${depName}"]
+        done
+    else
+        unset SHELL_API_DEP_LOADED["${depName}"]
+    fi
+}
+
 
 # --------------------------------------------------------------------------------------
 # Log API
 # --------------------------------------------------------------------------------------
+
+:<<'EOF'
+Tells whether the debug mode is active.
+EOF
+
+_debugging() {
+    [ -v __LOG_DEBUG__ ]
+}
+
+:<<'EOF'
+Activate or deactivate debug mode.
+Debug mode is detected as active if variable __LOG_DEBUG__ is defined.
+It can be activated by this function with the following argument value:
+- no argument (null string)
+- true
+- 0
+Any other value unsets the variabmle
+EOF
+
+_debug() {
+    if [ $# -eq 0 ] ; then
+    __LOG_DEBUG__=0
+    elif [ "$1" = "true" ] ; then
+    __LOG_DEBUG__=0
+    elif [ "$1" = "0" ] ; then
+    __LOG_DEBUG__=0
+    else
+        unset __LOG_DEBUG__
+    fi
+}
+
 
 :<<'EOF'
 Displays the passed argument string on the standard error output if __LOG_DEBUG__ var. exists.
@@ -1590,13 +1993,14 @@ _log_high() {
     elif [ -v __SHELL_API_LOGS_INITIALIZED__ ] ; then
         Term__setColor "blue" true 
         _colorprint "info"| tee -a "${__LOG_FILE__}"
-
+        #echo -n -e "\t"
 cat <<EOF | tee -a "${__LOG_FILE__}"
  $@
 EOF
     else
         Term__setColor "blue" true     
         _colorprint "info" 
+        #echo -n -e "\t"
 cat <<EOF
  $@
 EOF
@@ -1632,6 +2036,32 @@ $@
 EOF
     fi
 }
+
+:<<'EOF'
+Same as _log(), but the first argument is boolean telling whether to actually log the passed message. 
+This is useful in application where there's a switch driven by a configuration parameter 
+EOF
+
+_log_if() 
+{
+    if [ $# -eq 0 ] ; then return 1; fi
+    if ! $1 ; then return 0 ; fi
+    shift
+    _log "$@"
+}
+
+:<<'EOF'
+Same as _log(), but the first argument is boolean giving a condition that shall not be met for the loggin
+EOF
+
+_log_ifnot() 
+{
+    if [ $# -eq 0 ] ; then return 1; fi
+    if $1 ; then return 0 ; fi
+    shift
+    _log "$@"
+}
+
 
 :<<'EOF'
 Same as _log(), but only writes the log file and no message is displayed on terminal.
@@ -1705,11 +2135,11 @@ _log_status() {
     __SHELL_API_WORK_STATUS_HT="${headerType}"
     case "$headerType" in
         high) 
-            Term__setColor "blue" true   
+            Term__setColor "purple" true   
             if [ -v __SHELL_API_LOGS_INITIALIZED__ ] ; then
-                _colorprint "info "| tee -a "${__LOG_FILE__}"
+                _colorprint "task"| tee -a "${__LOG_FILE__}"
             else
-                _colorprint "info "
+                _colorprint "task"
             fi
             ;;
         *) ;;
@@ -1717,9 +2147,9 @@ _log_status() {
     if Env__fn_exists "${appName}__${callback}" ; then
         _invokeCallback "${callback}" "${argv[@]}"
     elif [ -v __SHELL_API_LOGS_INITIALIZED__ ] ; then
-        echo -e -n "$@" | tee -a "${__LOG_FILE__}"
+        echo -e -n " $@" | tee -a "${__LOG_FILE__}"
     else
-        echo -e -n "$@"
+        echo -e -n " $@"
     fi
 }
 _log_status_end() {
@@ -1924,16 +2354,54 @@ Env__arch() {
 # Generate 7 passwords of length 13:
 #    pwgen 13 7
 
+declare -A Str__globalSwapBuffer
+
+:<<'EOF'
+If called with a value,  this value is assigned to the variable and saves the initial value of the variable in an internal buffer. 
+
+Afterwards, if the function is called without value, it restores any previously saved value for the given variable and forgets about it. Recalling the function does not affect anymore the variable. If called without value and not saved value is available, it has no effect.
+EOF
+Str__swap()
+{
+    local -n __inoutSwapVariable=$1
+    if [ $# -eq 1 ] ; then
+        if [ -v Str__globalSwapBuffer["$1"] ] ; then
+        #echo "restore $1: ${Str__globalSwapBuffer["$1"]}" >&2
+            #export $1="${Str__globalSwapBuffer["$1"]}"
+            local curValue="${Str__globalSwapBuffer["$1"]}"
+            local expcmd="export $1=${curValue}"
+            eval $expcmd
+            unset Str__globalSwapBuffer["$1"]
+        fi
+        # Otherwise value is unchanged
+    else 
+        #echo "store $1: ${2}" >&2
+
+        Str__globalSwapBuffer["$1"]="${__inoutSwapVariable}"
+        #export $1="$2"
+        local expcmd="export $1=$2"
+        eval $expcmd
+    fi
+}
+
 Str__randomWord()
 {
     local nbChars="$1"
     xxd -l${nbChars} -ps /dev/urandom
 }
 
+:<<'EOF'
+Makes a diff between 2 string using the diff systemtool
+@param [1] input string 
+@param [2] input string 
+EOF
+
 Str__diff()
 {
-    local tmp1=$(mktemp)
-    local tmp2=$(mktemp)
+    local tmp1=""
+    local tmp2=""
+    File__createTempFile tmp1
+    File__createTempFile tmp2
     echo "$1" > "$tmp1"
     echo "$2" > "$tmp2"
     diff "$tmp1" "$tmp2"
@@ -1961,6 +2429,26 @@ Str__spaces()
 }
 
 :<<'EOF'
+Prints the passed string and appends the number of space padding
+till to reach the specified fix size. There's no new line added.
+@param number of spaces
+EOF
+
+Str__padded()
+{
+    local __inRawStr="$1"
+    local __inLen=$2
+    local nbPadding=0
+    local lenStr=${#__inRawStr}
+
+    printf "%s" "${__inRawStr}"
+    if [ $lenStr -lt ${__inLen} ] ; then
+        Str__spaces $(( ${__inLen} - $lenStr ))
+    fi
+}
+
+
+:<<'EOF'
 Indents a paragraph by inserting spaces at the start of each line.
 @param[1] number of spaces to add
 @param[2] ref to the var used as input and modified with the indended content.
@@ -1978,7 +2466,7 @@ Str__prefix()
     local __prefix="$1"
     local -n __in_out_for_indent=$2
     local indented=""
-    out_res=""
+
     while IFS= read -r l 
     do
             if [ -z "${indented}" ] ; then
@@ -2012,9 +2500,8 @@ Str__seq()
 }
 
 :<<'EOF'
-Upcase the first letter of the passed argument string 
+Prints the length of the passed string
 @param [1] input string
-@return The input string with first letter downcased.
 EOF
 
 Str__len() {
@@ -2130,7 +2617,7 @@ Str__startsWith() {
         fi
     else
 	    _log_err "${FUNCNAME[0]}: invalid use. 2 args expected, $# passed ($*)" 
-        echo -n ""
+        echo -n "" >&2
         return 1
     fi        
 }
@@ -2146,7 +2633,7 @@ Str__endsWith() {
         fi
     else
 	    _log_err "${FUNCNAME[0]}: invalid use. 2 args expected, $# passed ($*)" 
-        echo -n ""
+        echo -n "" >&2
         return 1
     fi        
 }
@@ -2170,7 +2657,7 @@ Str__contains() {
         fi
     else
 	    _log_err "${FUNCNAME[0]}: invalid use. 2 args expected, $# passed ($*)"
-        echo -n ""
+        echo -n "" >&2
         return 1
     fi        
 }
@@ -2312,37 +2799,6 @@ Str__trim() {
     res_out="$in"
 }
 
-
-Str__trimOld() {
-    local in="$1"
-    local -n res_out=$2
-    local c="[[:space:]]"
-    if [ $# -ge 3 ] ; then
-        c=$3
-    fi
-    local count=0 # means infinite
-    if [ $# -eq 4 ] ; then
-        count=$4
-    fi
-    if [ $# -gt 4 ] ; then
-    	_log_warn "${FUNCNAME[0]}: at most 4 args expected, $# passed ($*)"
-    fi
-    local count_removed=0 # means infinite
-
-    local curSize=${#in}
-    local newSize=0
-    while [ ${curSize} -ne ${newSize} ] && ([ $count -eq 0 ] || $count_removed -lt $count ])
-    do
-        curSize=${#in}
-        in="${in#$c}"
-        in="${in%$c}"
-        newSize=${#in}
-        count_removed=$(( $count_removed + $curSize - $newSize ))
-    done
-    res_out="$in"
-    return ${count_removed}
-}
-
 :<<'EOF'
 Same as Str__trim but attempts to remove only 1 occurrence with a very simple
 implementation. Written for the sake of performance, since the regular variant
@@ -2414,37 +2870,6 @@ Str__skipWs() {
 }
 
 
-
-
-Str__trimStart_old() {
-    local in="$1"
-    local -n res_out=$2
-    local c="[[:space:]]"
-    if [ $# -ge 3 ] ; then
-        c=$3
-    fi
-    local count=0 # means infinite
-    if [ $# -eq 4 ] ; then
-        count=$4
-    fi
-    if [ $# -gt 4 ] ; then
-    	_log_warn "${FUNCNAME[0]}: at most 4 args expected, $# passed ($*)"
-    fi
-    local count_removed=0 # means infinite
-
-    local curSize=${#in}
-    local newSize=0
-    while [ ${curSize} -ne ${newSize} ] && ([ $count -eq 0 ] || $count_removed -lt $count ])
-    do
-        curSize=${#in}
-        in="${in#$c}"
-        newSize=${#in}
-        count_removed=$(( $count_removed + $curSize - $newSize ))
-    done
-    res_out="$in"
-    return ${count_removed}
-}
-
 :<<'EOF'
 Trims the passed string of the specified ending char
 @param [1] string to be trimmed
@@ -2469,34 +2894,6 @@ Str__trimEnd() {
     res_out="$in"
 }
 
-Str__trimEnd_old() {
-    local in="$1"
-    local -n res_out=$2
-    local c="[[:space:]]"
-    if [ $# -ge 3 ] ; then
-        c=$3
-    fi
-    local count=0 # means infinite
-    if [ $# -eq 4 ] ; then
-        count=$4
-    fi
-    if [ $# -gt 4 ] ; then
-    	_log_warn "${FUNCNAME[0]}: at most 4 args expected, $# passed ($*)"
-    fi
-    local count_removed=0 # means infinite
-    local curSize=${#in}
-    local newSize=0
-    while [ ${curSize} -ne ${newSize} ] && ([ $count -eq 0 ] || $count_removed -lt $count ])
-    do
-        curSize=${#in}
-        in="${in%$c}"
-        newSize=${#in}
-        count_removed=$(( $count_removed + $curSize - $newSize ))
-    done
-    res_out="$in"
-    return ${count_removed}    
-}
-
 :<<'EOF'
 Gets  the last char of the passed string
 and stores it in the second arg passed by reference
@@ -2513,7 +2910,7 @@ Str__last() {
 }
 
 :<<'EOF'
-Returns the first chars till to match
+Prints the first chars till to match
 the first occurrence of the passed separator,
 or the last occurrence if any third argument is specified.
 @param [1] input string 
@@ -2533,6 +2930,15 @@ Str__head() {
     return 0
 }
 
+:<<'EOF'
+Same as Str__head, except that it stores the results in the passed variable
+@param [1] var ref for input/output string 
+@param [2] separator
+@param [3] recurse flag
+@return the heading substring
+@example $(head "www.example.com" .) -> "www"
+@example $(head "www.example.com" . last) -> "www.example"
+EOF
 
 Str__toHead() {
     local -n __toHeadInRef=$1
@@ -2583,6 +2989,28 @@ Str__toTail() {
     return 0
 }
 
+Str__eraseCommonTail() {
+    local -n __ins1=$1
+    local -n __ins2=$2
+    local i1=$(( ${#__ins1} - 1 ))
+    local i2=$(( ${#__ins2} - 1 )) 
+    while [ $i1 -ge 0 ] && [ $i2 -ge 0 ] ; do
+        if [ "${__ins1:$i1}" != "${__ins2:$i2}" ] ; then
+            i1=$(($i1 + 1))
+            i2=$(($i2 + 1))
+            __ins1="${__ins1:0:$i1}"
+            __ins2="${__ins2:0:$i2}"
+            return 0
+        fi
+        i1=$(($i1 - 1 ))
+        i2=$(($i2 - 1 ))
+    done
+    i1=$(($i1 + 1))
+    i2=$(($i2 + 1))
+    __ins1="${__ins1:0:$i1}"
+    __ins2="${__ins2:0:$i2}"
+    return 0
+}
 
 :<<'EOF'
 Split the passed string in two parts according to the passed separator.
@@ -2648,6 +3076,29 @@ Str__replace() {
 }
 
 :<<'EOF'
+Replaces only 1 occurence of a certain string with another.
+Modifies the input string
+@param [1] input string 
+@param [2] substring to replace
+@param [3] replacement substring 
+@return updated input string
+EOF
+
+Str__replaceOne() {
+    if [ $# -eq 3 ] ; then
+        local -n in=$1
+        local oldSub="$2"
+        local newSub="$3"
+        in=${in/$2/$3} # with 1 slash, only one occurered
+        return 0
+    else
+    	_log_err "${FUNCNAME[0]}: invalid use. at least 1 arg expected, $# passed ($*)"
+        return 1
+    fi
+}
+
+
+:<<'EOF'
 Counts the number of occurences of a certain substring 
 @param [1] input string 
 @param [2] substring to count occurrences of
@@ -2663,6 +3114,35 @@ Str__substringCount() {
         return 1
     fi        
 }
+
+:<<'EOF'
+Returns the number of lines of the specified string 
+@param [1] inout reference to the input string
+@param [2] ref to the var that will store the result
+EOF
+Str__lineCount() {
+    local __inStr="$1"
+    local -n __outLineCount=$2
+    local strNoLF=""
+    strNoLF="${__inStr//
+/}"
+    __outLineCount=$(( 1 + ${#__inStr} - ${#strNoLF} ))
+}
+
+
+:<<'EOF'
+Retrieves the lines contained in a string and stores them into the passed array
+@param [1] inout reference to the input string
+@param [2] ref to the array var that will store the result
+EOF
+
+Str__linesToArray() {
+    local __inStr="$1"
+    local -n __outArray=$2
+    readarray -t -d"
+" __outArray <<< "${__inStr}"
+}
+
 
 :<<'EOF'
 If the passed string size exceeds a maximum size (maxlen) , it is truncated at right and 
@@ -2717,6 +3197,182 @@ Str__shrinkToMid() {
 }
 
 :<<'EOF'
+Rearranges a multiline text so that each line does not exceed the specified width as argument, 
+by splitting the line as many times as necessary. 
+During the process, the original linefeeds are preserved.
+@param [1] inout reference to the input string to be rearranged
+@param [2] maximum line width
+EOF
+Str__fitToLineWidth() {
+    local -n __inoutStr=$1
+    local lw="$2"
+    local newStr=""
+    local line=""
+    local lineRemainder=""
+    local c=""
+    local cIdx=0
+
+    while IFS='' read -r line
+    do
+        local llen=${#line}
+        if [ $llen -lt $lw ] ; then
+            # Basic case where the line is already less the max allowed
+            if [ ! -z "$newStr" ] ; then 
+                newStr="${newStr}
+"
+            fi
+            newStr="${newStr}$line"
+        else
+            lineRemainder="$line"
+            llen=${#lineRemainder}
+            while [ ! -z "${lineRemainder}" ] && [ $llen -gt $lw ] ; do
+                # Split the string into 2 parts so that 
+                # to have one part which is smaller than required line width
+                # We do not want to split words, therefore
+                # split occurs at first space found before the split point
+                cIdx=$lw
+                c="${lineRemainder:$cIdx:1}"
+                while [ "$c" != " " ] && [ $cIdx -gt 0 ]; do
+                    cIdx=$(( $cIdx - 1 ))
+                    c="${lineRemainder:$cIdx:1}"
+                done
+                
+                if [ $cIdx -eq  0 ] ; then
+                    # Specific case where no space found!
+                    # Take the line with max width lw - 1, the rest is the remainder
+                    if [ ! -z "$newStr" ] ; then 
+                        newStr="${newStr}
+"
+                    fi
+                    newStr="${newStr}${lineRemainder:0:$(( $lw-1 ))}-"
+                    lineRemainder="${line:$lw}"
+                else
+                    # Space found! cIdx is the index pointing to the found space
+                    if [ ! -z "$newStr" ] ; then 
+                        newStr="${newStr}
+"
+                    fi
+
+                    newStr="${newStr}${lineRemainder:0:$cIdx}"
+                    lineRemainder="${lineRemainder:$(($cIdx+1))}" # +1, space not needed anymore
+                fi
+
+                llen=${#lineRemainder}
+            done
+
+            if [ ! -z "${lineRemainder}" ] ; then
+                if [ ! -z "$newStr" ] ; then 
+                    newStr="${newStr}
+"
+                fi
+
+                newStr="${newStr}$lineRemainder"
+            fi
+        fi
+    done <<< "${__inoutStr}"
+
+    # Assign result to input string var reference
+    __inoutStr="${newStr}"
+}
+
+:<<'EOF'
+Rearranges a multiline text so that each line is forced to have the specified width by duplicating
+spaces as much as necessary.
+@param [1] inout reference to the input string to be rearranged
+@param [2] target line width
+EOF
+
+Str__justify() {
+    local -n __inoutStr=$1
+    local lw="$2"
+    local newStr=""
+    local line=""
+
+    while IFS='' read -r line
+    do
+        local justifiedLine=""
+        local justifiedLineLen=${#line} 
+
+        if [ $justifiedLineLen -lt $lw ]  ; then
+            local llen=${#line}
+            local c=""
+            local cIdx=0
+            local spaceFound=false
+            # As long as the line width does not reach, scan the line and duplicate each space till to reach it
+            while [ $justifiedLineLen -ne $lw ] ; do
+                c="${line:$cIdx:1}"
+                #echo "ITER c=$c idx=$cIdx justifiedLineLen:$justifiedLineLen"
+                while [ "$c" != " " ] && [ $cIdx -lt $llen ]; do
+                    justifiedLine="${justifiedLine}${c}"
+                    cIdx=$(( $cIdx + 1 ))
+                    c="${line:$cIdx:1}"                
+                #echo "c=$c idx=$cIdx '$justifiedLine'"
+                done
+
+                if [ $cIdx -eq $llen ]; then
+                    # Original line was fully scanned
+                    if ! $spaceFound ; then
+                        # If no space found in one pass, process next line
+                        break
+                    else
+                        # Rescan the original string to duplicate again space till to reach required width
+                        # The justified line becomes the new line to scan
+                        spaceFound=false                
+                        cIdx=0
+                        line="${justifiedLine}"
+                        justifiedLine=""
+                        llen=${#line}
+                        justifiedLineLen=${llen}
+                    fi
+                else
+                    spaceFound=true
+                    justifiedLine="${justifiedLine}${c}${c}" # duplicate space
+                    justifiedLineLen=$(( $justifiedLineLen + 1))
+
+                    cIdx=$(( $cIdx + 1 )) # Go on with next char following the space in the next loop iteration
+                fi
+            done
+
+            # The space filling of the justified string stopped before completing the full string scan
+            #echo "stopped at idx=$cIdx len:$justifiedLineLen"
+            if [ $cIdx -ne $llen ]; then
+                justifiedLine="${justifiedLine}${line:$cIdx}"
+            fi
+        else
+            justifiedLine="$line"
+        fi
+
+        if [ ! -z "$newStr" ] ; then 
+            newStr="${newStr}
+"
+        fi
+        newStr="${newStr}$justifiedLine"
+
+    done <<< "${__inoutStr}"
+
+    # Assign result to input string var reference
+    __inoutStr="${newStr}"
+}
+
+
+:<<'EOF'
+Converts a string to a char array, storing in the passed variable all chars as an array.
+@param [1] in input string
+@param [2] ref to the variable storing the chars. The variable will be an array.
+EOF
+Str__toCharArray() {
+    local __inString="$1"
+    local -n __outCharArray=$2
+    local c=${__inString:0:1}
+    __outCharArray=()
+    while [ -n "$c" ] ; do
+        __outCharArray+=("$c")
+        __inString=${__inString:1}
+        c=${__inString:0:1}
+    done
+}
+
+:<<'EOF'
 Str__toAsciiDocId
 EOF
 Str__toAsciiDocId()
@@ -2728,6 +3384,17 @@ Str__toAsciiDocId()
     Str__replace __s "-" "_"
     Str__replace __s " " "_"
     Str__squeeze "${__s}" "${!__inout_inS}" "_"
+}
+
+:<<'EOF'
+Indicates whether the passed argument is a word, than
+means a random sequence of chars from a to z (lowercase or uppercase)
+-, _ or .
+EOF
+
+Str__isWord() {
+    local pat="^([\.a-zA-Z0-9_-])*$"
+    [[ "$1" =~ $pat ]] 
 }
 
 # --------------------------------------------------------------------------------------
@@ -2871,6 +3538,22 @@ Int__readVersion()
         fi
     fi
     return 0
+}
+
+Int__getIntTrail()
+{
+    local __in_s="$1"
+    local -n __out_int=$2
+
+    local TRAIL_IDX=$(( ${#__in_s} - 1))
+    local TRAIL_I="${__in_s:${TRAIL_IDX}}"
+    __out_int=""
+    while Int__isInt "${TRAIL_I}"; do
+        __out_int=${TRAIL_I}
+        TRAIL_IDX=$(( ${TRAIL_IDX} - 1 ))
+        TRAIL_I="${__in_s:${TRAIL_IDX}}"
+    done
+    [ ! -z "${revnum}" ]
 }
 
 # --------------------------------------------------------------------------------------
@@ -3114,9 +3797,26 @@ Args__checkMinCount() {
         return 0
     fi 
 }
+
 # --------------------------------------------------------------------------------------
 # Array API
 # --------------------------------------------------------------------------------------
+
+Array__getSortedArray() {
+    local -n __inArrAsStr=$1
+    local -n __outSortedArr=$2
+
+    # First build a list of pair values <value> <key>
+    local __k
+    local __sortTable=""
+    for __k in "${__inArrAsStr[@]}"
+    do
+        __sortTable="${__k}
+${__sortTable}"
+    done
+    __outSortedArr=($(echo "$__sortTable"|sort))
+    #_log_dbg "SORT TABLE: ${__outSortedArr[@]}"
+}
 
 :<<'EOF'
 Tells whether an array contains a string equal to the passed value
@@ -3164,6 +3864,41 @@ Array__contains_by_string() {
     done
     return 1
 }
+
+:<<'EOF'
+Creates an array from a string, in which fields
+are separated by the specified separator.
+Spaces are trimmed from each field
+@param[1] input string providing the formatted array
+@param[2] separator
+@param[3] ref to the variable that will be assigned the created array
+EOF
+Array__fromString() {
+    local __inString="$1"
+    local __inSep="$2"
+    local -n __outFieldArray=$3
+
+    readarray -t -d"${__inSep}" __outFieldArray <<< "${__inString}"
+
+    # Remove any new line that may be introduced by readarray
+    local lastIndex="${#__outFieldArray[@]}"
+    if [ $lastIndex -gt 0 ] ; then
+        lastIndex=$(( $lastIndex - 1))
+        Str__trimEnd "${__outFieldArray[$lastIndex]}" __outFieldArray[$lastIndex] '
+'
+    fi
+    # Trim each field value
+    local __field
+    local __cnt=0
+    local __nb=${#__outFieldArray[@]}
+    while [ ${__cnt} -lt ${__nb} ] ; do
+        __field="${__outFieldArray[${__cnt}]}"
+        Str__trim "${__field}" __field
+        __outFieldArray[${__cnt}]="${__field}"
+        __cnt=$(( ${__cnt} + 1))
+    done
+}
+
 # --------------------------------------------------------------------------------------
 # Input API
 # --------------------------------------------------------------------------------------
@@ -3194,6 +3929,30 @@ Input__pushForcedInput()
 {
     Input____forced_input+=("$1")
     return 0
+}
+
+Input__testYesForcedInput()
+{
+    local __forcedInput=""
+    Input__getForcedInput __forcedInput
+    Str__toLower __forcedInput
+
+    case "${__forcedInput}" in
+        y|yes) return 0 ;;
+        *) return 1 ;; 
+    esac
+}
+
+Input__testForcedInput()
+{
+    local __forcedInput=""
+    Input__getForcedInput __forcedInput
+    Str__toLower __forcedInput
+
+    case "${__forcedInput}" in
+        y|yes|n|no) return 0 ;;
+        *) return 1 ;; 
+    esac
 }
 
 :<<'EOF'
@@ -3259,6 +4018,26 @@ Input__password() {
 
 
 :<<'EOF'
+Performs the exact same as Input__confirm, but prefixes the question sentence with
+'Question' on yellow background.
+EOF
+Input__confirm_high() {
+    if [ $# -gt 3 ] ; then
+        _log_warn "${FUNCNAME[0]}: too much arguments specified"
+    fi
+
+    local sentence="$(_colorText "question" "yellow_reverse") $1" 
+    if [ $# -eq 3 ] ; then
+        Input__confirm "${sentence}" "$2" "$3"
+    elif [ $# -eq 2 ] ; then
+        Input__confirm "${sentence}" "$2"
+    else
+        Input__confirm "${sentence}"
+    fi
+}
+
+
+:<<'EOF'
 Prompts for a confirmation among the following : y,Y,n,yes,YES,no,NO
 Default prompt 'y/n' is automatically appended to the question by default.
 @param [1] question sentence
@@ -3283,7 +4062,7 @@ Input__confirm() {
         _log_warn "${FUNCNAME[0]}: too much arguments specified"
     fi
     
-    local __forcedInput
+    local __forcedInput=""
     Input__getForcedInput __forcedInput
     Str__toLower __forcedInput
     if [ "${__forcedInput}" == "y" ] ; then
@@ -3342,7 +4121,7 @@ Input__memsize() {
     Term__reset # Ensure cursor is visible
 
     while true; do
-        local __forcedInput
+        local __forcedInput=""
         Input__getForcedInput __forcedInput
         Str__toLower __forcedInput
 
@@ -3433,7 +4212,7 @@ Input__dirpath() {
 
     Term__reset # Ensure cursor is visible
 
-    local __forcedInput
+    local __forcedInput=""
     Input__getForcedInput __forcedInput
     Str__toLower __forcedInput
 
@@ -3508,14 +4287,9 @@ Input__sentence() {
 
     if ! Args__checkMinCount "${FUNCNAME[0]}" 3 "$#" ; then return -1 ; fi
 
-    local __forcedInput
-    Input__getForcedInput __forcedInput
-    Str__toLower __forcedInput
-
-    case "${__forcedInput}" in
-        y|yes) forceDefaultInput=0 ;;
-        *) forceDefaultInput=1 ;; 
-    esac
+    if Input__testYesForcedInput ; then
+        forceDefaultInput=0
+    fi
 
     #if Input__getForcedInput out_word &>/dev/null;  then
     #    return 0
@@ -3531,6 +4305,9 @@ Input__sentence() {
                 read  -ep "$question (default:'$default', 'a' to abort) [$prompt]: " answer 
             fi
             printf '\033[A'
+        else
+            out_word="${default}"
+            break
         fi
 
         if [ "$answer" == "a" ] ; then return 1; fi
@@ -3583,7 +4360,7 @@ Input__Word() {
 
     if ! Args__checkMinCount "${FUNCNAME[0]}" 3 "$#" ; then return -1 ; fi
 
-    local __forcedInput
+    local __forcedInput=""
     Input__getForcedInput __forcedInput
     Str__toLower __forcedInput
 
@@ -3704,7 +4481,7 @@ Input__cursorSelect() {
         for ignIdx in "${ignoredIndexArray[@]}" ; do ignoredIndexMap[$ignIdx]="yes" ;  done
     fi
 
-    if [ $# -ge 4 ] ; then 
+    if [ $# -ge 4 ] && [ ! -z "$4" ]; then 
         displayFunction="$4"
         if ! Env__fn_exists "${displayFunction}" ; then
             _log_err "${FUNCNAME[0]}: $displayFunction is not a valid display function. Ignored."
@@ -3713,11 +4490,18 @@ Input__cursorSelect() {
     fi
 
     if [ $# -ge 5 ] ; then
-        if [ ! -z "$5" ] ; then prompt=($5) ; fi
+        if [ ! -z "$5" ] ; then 
+            if [ ${5:0:1} = "+" ] ; then
+                local extPrompt=(${5:1})
+                prompt+=($extPrompt)
+            else
+                prompt=($5)
+            fi
+        fi
     fi
 
 #_log_dbg "keyconfig: '$6'"
-    if [ $# -ge 6 ] ; then 
+    if [ $# -ge 6 ] && [ ! -z "$6" ] ; then 
         local actions=()
         local i=0
         readarray -t -d',' actions <<< "$6"
@@ -3733,7 +4517,7 @@ Input__cursorSelect() {
         done
     fi
 
-    if [ $# -ge 8 ] ; then 
+    if [ $# -ge 8 ] && [ ! -z "$8" ]  ; then 
         timeoutCallback=""
         timeoutTimer=0
         timeoutCallbackData=($8)
@@ -3759,7 +4543,7 @@ Input__cursorSelect() {
     fi
 
 
-    if [ $# -gt 8 ] ; then
+    if [ $# -gt 9 ] ; then
         _log_err "${FUNCNAME[0]}: too much arguments specified"
     fi
 
@@ -3784,6 +4568,9 @@ Input__cursorSelect() {
     if [ $nbPages -gt 1 ] ; then nbItemsPerPage=$termNbRows; fi
 
 
+    local termNbCols
+    Term__cols termNbCols
+
     while true; do
 #echo "'$termNbRows' '$nbItems', nbPages=$nbPages, currentPageIndex=$currentPageIndex, currentSelectIndex=$currentSelectIndex " >>"${__LOG_ERR_FILE__}" 
         # Print the menu with selected item
@@ -3794,22 +4581,28 @@ Input__cursorSelect() {
             printf '\033[s'
             while IFS= read -s -r line 
             do
-                    local testIndex
-                    testIndex=$(( ${currentPageIndex}*${termNbRows} + $currentSelectIndex ))
-                    if [ $cnt -gt $(( ${currentPageIndex}*${termNbRows} )) ]  && 
-                       [ $cnt -le $(( ${currentPageIndex}*${termNbRows} + $termNbRows)) ]  ; then
-                        Term__eraseCurrentLine                       
-                        Str__trimOnce "$line" line "'"
-                        #line="${line#\'}"
-                        #line="${line%\'}"
-                        if [ $(( $cnt - ( ${currentPageIndex}*${termNbRows}) )) -eq $currentSelectIndex ] ; then
-                            printf '\033[7m'
-                            printf "${line}\033[0m\n"
-                        else
-                            printf "${line}\n"
-                        fi
+                local lineLen=${#line}
+                local termNbColsMin=$(($termNbCols - 10))
+                if [ ${lineLen} -ge $termNbCols ] ; then
+                    line="${line:0:$termNbColsMin} ..."
+                fi
+
+                local testIndex
+                testIndex=$(( ${currentPageIndex}*${termNbRows} + $currentSelectIndex ))
+                if [ $cnt -gt $(( ${currentPageIndex}*${termNbRows} )) ]  && 
+                    [ $cnt -le $(( ${currentPageIndex}*${termNbRows} + $termNbRows)) ]  ; then
+                    Term__eraseCurrentLine                       
+                    Str__trimOnce "$line" line "'"
+                    #line="${line#\'}"
+                    #line="${line%\'}"
+                    if [ $(( $cnt - ( ${currentPageIndex}*${termNbRows}) )) -eq $currentSelectIndex ] ; then
+                        printf '\033[7m'
+                        printf "${line}\033[0m\n"
+                    else
+                        printf "${line}\n"
                     fi
-                    cnt=$((cnt + 1))
+                fi
+                cnt=$((cnt + 1))
             done <<< "$menuLines"
             # Clear remaining lines on the last pages
             if [ $nbPages -gt 1 ] && [ $currentPageIndex -eq $((nbPages -1 )) ] ; then
@@ -3832,7 +4625,7 @@ Input__cursorSelect() {
         prevAnswer="$answer"
         while [ $readRet -gt 128 ] 
         do
-            local __forcedInput
+            local __forcedInput=""
             Input__getForcedInput __forcedInput
 
             if [ ! -z "${__forcedInput}" ] ; then
@@ -3881,7 +4674,13 @@ Input__cursorSelect() {
         #exit 0
         if [ $readRet -eq 0 ] ; then 
             case $answer  in
-            'q') Term__reset; return 0;;
+            'q') 
+                if [ $# -ge 9 ] ; then
+                    local -n __outResSelectedIndex=$9
+                    __outResSelectedIndex=0
+                fi
+                Term__reset;                 
+                return 0;;
             # Previous index
             '[A') printf '\033[u' ; 
                 if [ $currentSelectIndex -gt 1 ] ; then
@@ -3960,26 +4759,43 @@ Input__cursorSelect() {
                 ;;
             #'[D') # left
             #'[C') # right
+
+            # <ENTER> key press
             $'\0') 
 #echo "'return \0 ??  $(( (${currentPageIndex} * ${nbItemsPerPage}) + $currentSelectIndex ))" >>"${__LOG_ERR_FILE__}" 
 
-                return $(( (${currentPageIndex} * ${nbItemsPerPage}) + $currentSelectIndex ))
+                local resRet=$(( (${currentPageIndex} * ${nbItemsPerPage}) + $currentSelectIndex ))
+                # Because return value range is limited to 255
+                # we return the value in 9th arg if availabe
+                if [ $# -ge 9 ] ; then
+                    local -n __outResSelectedIndex=$9
+                    __outResSelectedIndex=${resRet}
+                fi
+                return $resRet
+
                 ;;
             '[5'|'[6') 
                     # Possible page down/up  
                     printf '\033[u' ;          
                 ;;
+            # Any other: a key command e.g.
             *) 
                 local keyAction=${additionalKeyActions[$answer]}
-                if [ ! -z "${keyAction}" ] ; then        
+                if [ ! -z "${keyAction}" ] ; then
+                    local resRet=0
                     if Int__isInt ${keyAction} ; then
-                        return ${keyAction}
+                        resRet=${keyAction}
                     else
                         Str__replace keyAction '\?' $(( (${currentPageIndex} * ${nbItemsPerPage}) + $currentSelectIndex ))
-                        local ret="$(( ${keyAction} ))"
-
-                        return $ret
+                        resRet="$(( ${keyAction} ))"
                     fi
+                    # Because return value range is limited to 255
+                    # we return the value in 9th arg if availabe
+                    if [ $# -ge 9 ] ; then
+                        local -n __outResSelectedIndex=$9
+                        __outResSelectedIndex=${resRet}
+                    fi
+                    return $resRet
                 else
                     #printf '\033[f' # move cursor to the top INITIAL: correct ???
                     printf '\033[u' ; # NEW 21/7/25
@@ -4011,24 +4827,25 @@ Input__cursorSelect_manageIgnoreIndex()
     local answer="$1" # last user navigation
     local -n out_currentIndex=$2
     local -n in_ignoredIndexMap=$3
-    if [ ${#in_ignoredIndexMap[$currentSelectIndex]} != 0 ] ; then
-#_log_dbg "ignoring index selection '$currentSelectIndex'" 
+
+    if [ ${#in_ignoredIndexMap[$out_currentIndex]} != 0 ] ; then
+_log_dbg "ignoring index selection '$out_currentIndex'" 
         case "$answer"  in
         '[A'|'[H')  
             # we were going up
-            if [ $currentSelectIndex -gt 1 ] ; then 
-                currentSelectIndex=$(($currentSelectIndex-1)) ; 
+            if [ $out_currentIndex -gt 1 ] ; then 
+                out_currentIndex=$(($out_currentIndex-1)) ; 
             else
-                currentSelectIndex=$(($currentSelectIndex+1)) ;
+                out_currentIndex=$(($out_currentIndex+1)) ;
             fi
             Input__cursorSelect_manageIgnoreIndex "$answer" "${!out_currentIndex}" "${!in_ignoredIndexMap}"
             ;; 
         '[B'|'[F')   
             # we were going down the list
-            if [ $currentSelectIndex -lt $nbItems ] ; then 
-                currentSelectIndex=$(($currentSelectIndex+1)) ; 
+            if [ $out_currentIndex -lt $nbItems ] ; then 
+                out_currentIndex=$(($out_currentIndex+1)) ; 
             else
-                currentSelectIndex=$(($currentSelectIndex-1)) ;
+                out_currentIndex=$(($out_currentIndex-1)) ;
             fi
             Input__cursorSelect_manageIgnoreIndex "$answer" "${!out_currentIndex}" "${!in_ignoredIndexMap}"
             ;;
@@ -4194,6 +5011,107 @@ File__noext() {
     return 0
 }
 
+File__cwd() { 
+    local -n __outCwd=$1
+    __outCwd=${PWD} # More efficient than $(pwd)
+}
+
+File__dirExists() { 
+    [ -d "$1" ] 
+}
+
+File__exists() { 
+    [ -e "$1" ] 
+}
+
+File__fileExists() { 
+    [ -f "$1" ] 
+}
+
+File__linkExists() { 
+    [ -L "$1" ] 
+}
+
+:<<'EOF'
+Computes a signature for a directory based on the ls -gRA command ensuring 
+a consistent and deterministic ls content on any machine regardless of:
+
+- Time zone
+- System language
+- Entry sorting , using time-based sorting with --sort=time 
+- owner and group
+
+@param[1] in directory for which to compute the SHA256 fingerprint
+@param[2] out ref to variable that will be assigned the fingerprint value
+@param[3] in optional list of --ignore options for file patterns to be excluded from the computing Examples: --ignore="*.mp4" --ignore="*.jpg" --ignore=".nfs*" --ignore=".swp*"
+
+EOF
+File__dirSHA256() { 
+    _loadDep "tzdata"
+    _loadVDep "tzdata-legacy"
+
+    local __inFolder="$1"
+    local -n __outDirSHA=$2
+    local __inLSIgnoreOptions
+    if [ $# -ge 3 ] ; then
+        __inLSIgnoreOptions="$3"
+    fi
+
+    Str__swap TZ "US/Pacific"
+    Str__swap LC_ALL "C.UTF-8"
+    Str__swap LANG "EN.US.UTF-8"
+    #_log_vars LANG LC_ALL TZ >&2
+
+    local lsForSha256
+    if pushd "${__inFolder}" &>/dev/null ; then
+        # Note 
+        #   grep -E -v ^.*/$
+        # is used to remove directory entries listed inside a directory        
+        # only the content of the directories themselves is interesting 
+        # This was added because when rebuilding a revision, the option -u of rsync
+        # only affects files and not directory. 
+        # As consequence, older folder's times or even permissions could be copied
+        # while rewinding back to revision 0, even when no files below the old directory
+        # was copied.
+        #
+        # Alternatively to to the above grep, for masking the time of dir entries in list
+        # awk '/\/$/ { for (i=1;i<=NF;i++) { if (i==4) printf "na " ; else printf "%s ",$i; }  printf "\n"; }  /[^\/]$/ { print $0 } '
+	#
+        # -gG: do not display owner (-g) and group (-G)
+        # -p : append '/' to directory entries in the list
+        # --time-style=+'%s': show UTC time in seconds
+	# -A same as -a but do not display the . and .. which may mess the hash because of potential different times
+        #
+        # using --sort=time may cause problems because of the above explanation, but also it is even
+        # worse : masking time of dir entries or removing is not sufficient, because 
+        # their content is shown in the same order as the dir entry time.
+        #
+        # Using -X enables to sort alphabetically by extension. When no extension, it is sorted
+        # alphabetically. However, default alphabetic sorting had not the same behavior in previous test
+        # in particular in containers
+        #
+        local lsForSha256Cmd="ls -gGRA -p ${__inLSIgnoreOptions} --time-style=+'%s' -X '.'"
+        #_log_vars lsForSha256Cmd >&2 # DEBUG
+        lsForSha256=$(eval "${lsForSha256Cmd}" | awk '/\/$/ { for (i=1;i<=NF;i++) { if (i==4) printf "na " ; else printf "%s ",$i; }  printf "\n"; }  /[^\/]$/ { print $0 } ')
+        #lsForSha256=$(ls -gGRA -p --time-style=+'%s' -X ".")
+        #lsForSha256=$(ls -gGRA -p --time-style=+'%s' -X "." | grep -E -v ^.*/$)
+        #lsForSha256=$(ls -gGRA -p --time-style=+'%s' --sort=time "." | grep -E -v ^.*/$)
+        popd &>/dev/null
+        #_log_vars lsForSha256 >&2 # DEBUG
+        __outDirSHA=$(echo "$lsForSha256"|sha256sum|awk -F' ' '{print $1}')
+    else
+        __outDirSHA=""
+        _log_warn "File__dirSHA256: failed to cd to ${__inFolder}"
+    fi
+
+    Str__swap LANG
+    Str__swap LC_ALL
+    Str__swap TZ
+    #_log_vars LANG LC_ALL TZ  >&2
+
+}
+
+
 :<<'EOF'
 Creates in the current working directory subdirectories which names are given as array to this function
 @param [1] array of dirs to create
@@ -4210,6 +5128,138 @@ File__createSubdirs()
         fi
     done
 }
+
+declare -A File__temporaryDirMap
+
+:<<'EOF'
+Creates a temporary folder in default system /tmp folder
+and inserts it in the global map for subsequent cleanup
+@param [1] out the name of the temporary dir
+EOF
+File__createTempDir() 
+{
+    local -n __outTempDir=$1
+    local appName="${__SHELL_CURRENT_APPNAME__}"
+
+    __outTempDir="$(mktemp --tmpdir=/tmp -d "${appName}.tmp.XXXXXXXXXX")"
+    File__temporaryDirMap["${__outTempDir}"]="${__outTempDir}"
+    #echo "File__createTempDir $$: '${__outTempDir}'" >&2 # DEBUG
+}
+
+:<<'EOF'
+Deletes the temporary folder passed as argument.
+If it was created with File__createTempDir, it also clears the matching entry
+in the global map.
+This function adds a level of safety by checking that the argument really starts with /tmp
+@param [1] temporary directory
+EOF
+
+File__deleteTempDir() 
+{
+    local _tempdir="$1"
+    local _tempParent="${_tempdir:0:4}"
+
+    if [ $# -eq 0 ] || Str__isEmpty "${_tempdir}" ; then
+        return 1
+    fi
+
+    if [ "${_tempParent}" != "/tmp" ] ; then
+        _log_warn "${FUNCNAME[0]} called with argument '$1' which is not an accepted temporary folder path for this function."
+        return 1
+    fi
+
+    if [ -d "${_tempdir}" ] ; then 
+        #_log_dbg "File__deleteTempDir : removing temp dir '${_tempdir}'"
+        rm -r "${_tempdir}" 
+    fi
+    File__temporaryDirMap["${_tempdir}"]=""
+}
+
+:<<'EOF'
+Deletes all temporary folders created with File__createTempDir
+@param [1] temporary directory
+EOF
+
+File__deleteAllTempDirs() 
+{
+    #_log_dbg "File__deleteAllTempDirs $$ '${File__temporaryDirMap[@]}'"
+
+    local _tempdir
+    for _tempdir in "${File__temporaryDirMap[@]}" ; do
+        # Key and value are the same
+        #_log_dbg "File__deleteAllTempDirs : removing temp dir '${_tempdir}'"
+        File__deleteTempDir "${_tempdir}"
+    done
+}
+
+declare -A File__temporaryFileMap
+
+:<<'EOF'
+Creates a temporary file in default system /tmp folder
+and inserts it in the global map for subsequent cleanup
+@param [1] out the name of the temporary dir
+@param [2] in optional the extension of the temp file
+EOF
+File__createTempFile() 
+{
+    local appName="${__SHELL_CURRENT_APPNAME__}"
+    local -n __outTempFile=$1
+    local tempFileTemplate="${appName}.tmp.XXXXXXXXXX"
+    if [ $# -eq 2 ] ; then
+        tempFileTemplate="${tempFileTemplate}.$2"
+    fi
+
+    __outTempFile="$(mktemp --tmpdir=/tmp "${tempFileTemplate}")"
+    File__temporaryFileMap["${__outTempFile}"]="${__outTempFile}"
+    #echo "File__createTempFile $$: '${__outTempFile}'" >&2 # DEBUG
+}
+
+:<<'EOF'
+Deletes the temporary file passed as argument.
+If it was created with File__createTempFile, it also clears the matching entry
+in the global map.
+This function adds a level of safety by checking that the argument really starts with /tmp
+@param [1] temporary directory
+EOF
+
+File__deleteTempFile() 
+{
+    local _tempfile="$1"
+    local _tempParent="${_tempfile:0:4}"
+
+    if [ $# -eq 0 ] || Str__isEmpty "${_tempfile}" ; then
+        return 1
+    fi
+
+    if [ "${_tempParent}" != "/tmp" ] ; then
+        _log_warn "${FUNCNAME[0]} called with argument '$1' which is not an accepted temporary file path for this function."
+        return 1
+    fi
+
+    if [ -f "${_tempfile}" ] ; then 
+        #_log "File__deleteTempFile : removing temp dir '${_tempfile}'"
+        rm -f "${_tempfile}" 
+    fi
+    File__temporaryFileMap["${_tempfile}"]=""
+}
+
+:<<'EOF'
+Deletes all temporary files created with File__createTempFile
+@param [1] temporary directory
+EOF
+
+File__deleteAllTempFiles() 
+{
+    #_log "File__deleteAllTempFiles $$ '${File__temporaryFileMap[@]}'"
+
+    local _tempfile
+    for _tempfile in "${File__temporaryFileMap[@]}" ; do
+        # Key and value are the same
+        #_log "File__deleteAllTempFiles : removing temp dir '${_tempfile}'"
+        File__deleteTempFile "${_tempfile}"
+    done
+}
+
 
 :<<'EOF'
 Performs a mirror copy of folders contained within the passed source folder path 
@@ -4239,7 +5289,7 @@ File__copyDirs()
     fi
 
     if [ $# -ge 3 ] ; then
-        tmpFile=$(mktemp) # Create the exclusion file to be passed to the mirrorCopy
+        File__createTempFile tmpFile # Create the exclusion file to be passed to the mirrorCopy
         __in_excludedDirs="$3"
         local excludedDir
         (
@@ -4598,7 +5648,7 @@ EOF
     Str__split "${__in_yymmdd}" dateYMD " " dateTime 1
     Str__split "${dateYMD}" __out_y "-" monthday 1
     Str__split "${monthday}" __out_m "-" __out_d 1
-    _log "=====> Date__readYMD $1 => ${__out_y} ${__out_m} ${__out_d}"
+    #_log_dbg "=====> Date__readYMD $1 => ${__out_y} ${__out_m} ${__out_d}"
 }
 
 :<<'EOF'
@@ -4691,6 +5741,23 @@ Date__elapsedMinutesTimer()
     fi
 }
 
+# --------------------------------------------------------------------------------------
+# User API
+# --------------------------------------------------------------------------------------
+
+User__getFullUserName()
+{
+    local -n __outUserFn=$1
+    local passentry=""
+    passentry="$(getent passwd "$USER" 2>/dev/null)"
+    if [ $? -eq 0 ] ; then
+        local passentryFields=()
+        readarray -t -d':' passentryFields <<< "${passentry}"
+        __outUserFn="${passentryFields[4]}"
+    else
+        __outUserFn="<unknown full user name>"
+    fi
+}
 
 # --------------------------------------------------------------------------------------
 # Terminal API
@@ -4752,15 +5819,17 @@ Term__resize()
 Term__rows()
 {
     local -n nbRows=$1
-    local currentSize=($(stty size))
+    local currentSize=0
+    currentSize=($(stty size))
     nbRows=${currentSize[0]}
 }
 
 Term__cols()
 {
-    local -n nbRows=$1
-    local currentSize=($(stty size))
-    nbRows=${currentSize[1]}
+    local -n nbCols=$1
+    local currentSize=0
+    currentSize=($(stty size))
+    nbCols=${currentSize[1]}
 }
 
 :<<'EOF'
@@ -4883,7 +5952,7 @@ EOF
 Term__restoreCursor()
 {
     tput cnorm 2>/dev/null
-    stty echo 2>/dev/null
+    stty echo 2>/dev/null    
 }
 
 Term__eatReturns()
@@ -4920,7 +5989,7 @@ EOF
 
 Term__reset()
 {
-    Term__restoreCursor    
+    Term__restoreCursor 
 }
 
 :<<'EOF'
@@ -5504,4 +6573,180 @@ test__perf()
 
     time for __iterStep in $iterSeq; do eval "$@" ; done
 }
+
+
+
+Test__assertFilesShouldNotExist() {
+    local file
+    for file in "$@" ; do
+        [ -f "$file" ] && _exit -1 "Error: '$file' exists but should not" || echo "OK: '$file': not there"
+    done
+}
+
+Test__assertFilesShouldExist() {
+    local file
+    for file in "$@" ; do
+        [ -f "$file" ] && echo "OK: '$file': present" || _exit -1 "Error: '$file' does not exist but should"
+    done
+}
+
+Test__assertDirsShouldExist() {
+    local file
+    for file in "$@" ; do
+        [ -d "$file" ] && echo "OK: '$file': present" || _exit -1 "Error: '$file' does not exist but should"
+    done
+}
+
+Test__assertFileLastLine() {
+    if [ ! -f "$1" ] ; then
+        _exit -1 "Error: '$1' does not exist or not a valid file"
+    fi
+
+    local fileTail="$(tail -n1 "$1")"
+    [ "$fileTail" = "$2" ] && echo "OK '$1' last line is correct ('$2')" || (sleep 1 && _exit -1 "Error: '$1' has last line '$fileTail'")
+}
+
+Test__assertFileLine() {
+    if [ ! -f "$1" ] ; then
+        _exit -1 "Error: '$1' does not exist or not a valid file"
+    fi
+
+    local tcmd="tail -n+$2 '$1' | head -n1"
+    local fileLine="$(eval "$tcmd")"
+
+    [ "$fileLine" = "$3" ] && echo "OK '$1' line $2 is correct ('$3')" || (sleep 1 && _exit -1 "Error: '$1' line $2 is '$fileLine'")
+}
+
+
+Test__assertFileContent() {
+    if [ ! -f "$1" ] ; then
+        _exit -1 "Error: '$1' does not exist or not a valid file"
+    fi
+
+    local content="$(cat "$1")"
+    [ "$content" = "$2" ] && echo "OK '$1' content is correct ('$2')" || (sleep 1 && _exit -1 "Error: '$1' has content '$content'")
+}
+
+Test__assertFileContentPattern() {
+    if [ ! -f "$1" ] ; then
+        _exit -1 "Error: '$1' does not exist or not a valid file"
+    fi
+
+    local content="$(cat "$1")"
+    [[ "$content" =~ $2 ]] && echo "OK '$1' content is correct ('$2')" || (sleep 1 && _exit -1 "Error: '$1' has content '$content'")
+}
+
+Test__assertFileContainsLine() {
+    if [ ! -f "$1" ] ; then
+        _exit -1 "Error: '$1' does not exist or not a valid file"
+    fi
+
+    local tcmd="cat '$1' | grep -F '$2'"
+    local res=""
+    #res="$(eval "$tcmd")"
+    local line
+    while IFS='' read -r line ; do
+        if [ "$line" = "$2" ] ; then
+            echo "OK '$1' line '$2' was found"
+            return 0
+        fi
+    done < <(grep -F "$2" "$1") 
+
+    sleep 1 && _exit -1 "Error: '$1' line '$2' not found"
+}
+
+
+Test__assertSameFiles()
+{
+    if ! Args__checkCount ${FUNCNAME[0]} 3 "$#" "Usage: <extra message> <path1> <path2>"; then return 1; fi
+
+    local extraMessage="$1"
+    local sameFileBasename="$2"
+    File__basename "${sameFileBasename}" sameFileBasename
+    diff "$2" "$3" && echo "${sameFileBasename} is the same ${extraMessage}" || _exit -1 "File '$2' et '$3' differ"
+}
+
+Test__assertChangeDir()
+{
+    cd "$1" &>/dev/null || _exit -1 "failed to cd to '$1'"
+}
+
+Test__assertChangeToNewDir()
+{
+    if [ -d "$1" ] ; then
+        Test__assertChangeDir "$1"
+    else
+        if mkdir -p "$1" &>/dev/null ; then
+            Test__assertChangeDir "$1"
+        else
+            _exit -1 "failed to create folder path '$1'"
+        fi
+    fi
+}
+
+Test__assertCleanupDir()
+{
+    [ ! -z "$1" ] && [ -d "$1" ] && rm -r "$1" ||  _exit -1 "failed to remove '$1'"
+}
+
+:<<'EOF'
+    This checks the first output line resulting from passed command execution
+EOF
+Test__assertCmd()
+{
+    local res
+    res="$(eval "$1")"
+    if [ $? -eq 0 ] ; then
+        read firstLine <<<"${res}"
+        [ "$firstLine" = "$2" ] || _exit -1 "Wrong output of command '$1' : '$firstLine' != '$2'"
+    else
+         _exit -1 "Execution of command '$1' failed"
+    fi
+}
+
+:<<'EOF'
+This checks the exit code of the passed command execution against
+the passed reference value
+@param[1] expected exit code
+@param[2] command to execute
+EOF
+Test__assertCmdExit()
+{
+    local __inExpectedExitCode="$1"
+    local res
+
+    eval "$2"
+    res=$?
+    [ $res -eq ${__inExpectedExitCode} ] && echo "OK: $res returned by '$2'" || _exit -1 "Unexpected exit code $res returned by command '$2'"
+}
+
+
+Test__assertSymlinkPath()
+{
+    if [ ! -L "$1" ] ; then
+        _exit -1 "Error: '$1' does not exist or not a valid symbolic link"
+    fi
+
+    local rp=""
+    rp="$(readlink "$1")"
+
+    if [ $? -ne 0 ] ; then
+        _exit -1 "Error: failed to follow '$1' symbolic link"
+    fi
+
+    [ "$rp" = "$2" ] && echo "OK '$1' points to $2" || _exit -1 "Error: '$1' does not point to '$2'"
+}
+
+:<<'EOF'
+    This checks the output of one command is the same of another command
+EOF
+Test__assertTwoCommandsSameOutput()
+{
+    local res=""
+    res="$(eval "$1")"
+    local res2=""
+    res2="$(eval "$2")"
+    [ "$res" = "$res2" ] && echo "OK: '$res' was output by both commands '$1' and '$2'" || _exit -1 "Commands '$1' and '$2' did not produce the same output : '$res' != '$res2'"
+}
+
 _initShellApi

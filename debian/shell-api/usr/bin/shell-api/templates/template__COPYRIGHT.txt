@@ -1,3 +1,0 @@
-Genapp tool
-Copyright (c) 2026 Michel Mehl. All rights reserved. 
-License terms written down in file LICENSE.txt

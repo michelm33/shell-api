@@ -1,9 +1,22 @@
 #!/bin/bash
 ###############################################################################
+# HUMAN-READABLE "BSA BASH SHELL API" and genapp bash app generator
+# 
+# Copyright (c) 2024-2026 Michel Mehl.
+# All rights reserved. 
+# Tous droits réservés (France).
+# 
+# License terms written down in file LICENSE.txt
+# Les termes de la licence sont détaillés dans le fichier LICENSE.txt
+# 
+# Release file path: genapp
+# Release file date: 2026-07-23 13:37
+# App version: 1.1.0
+# App source revision: 97
+# App source signature: e20eb96b3d4e6835befb66ce8f066b37209f14602974b26a9ca3fd01599ac513
+# Source file last modification: 2026-07-22 11:56:10.136057892 +0200
 #
-# Genapp tool
-#
-# Copyright (c) 2026 Michel Mehl. All rights reserved.
+# This header was generated. Do not modify.
 #
 # ------------------------------------------------------------------------------
 #
@@ -14,9 +27,16 @@
 # help functions to enable packaging with dpkg.
 #
 # ------------------------------------------------------------------------------
-#
-# Report bugs to michel.mehl@slashetc.fr
-#
+# 
+# Report bugs and suggestions: 
+#     assistance@slashetc.fr
+# 
+# Specific or corporate requirements or extensions: 
+#     info@slashetc.fr
+# 
+# The author is overall not required to provide maintenance or support 
+# outside specific commercial terms agreed.
+# 
 ###############################################################################
 
 # GENAPP__VARS is aimed at storing variables specific to this app
@@ -155,13 +175,15 @@ Genapp__replaceGenAppRefsIntoTemplate()
     local upperAppname="$appname"
     Str__toLower lowerAppname
     Str__toUpper upperAppname
+    local varsVarName="${upperAppname}"
+    Str__replace varsVarName "-" "_"
 
     local relPathToShellApiDir="$(realpath --relative-to "${GENAPP__VARS["appdirname"]}" "${GENAPP__VARS["MYDIR"]}/")"
     #_log_vars relPathToShellApiDir
     local file
     for file in "${__inFilelist[@]}" ; do
         sed -i -E "s#%SHELL_API_DIR%#${relPathToShellApiDir}#g" "${GENAPP__VARS["appdirname"]}/$file"
-        sed -i -E "s/GENAPP__/${upperAppname}__/g" "${GENAPP__VARS["appdirname"]}/$file"
+        sed -i -E "s/GENAPP__/${varsVarName}__/g" "${GENAPP__VARS["appdirname"]}/$file"
         sed -i -E "s/Genapp/${appname}/g" "${GENAPP__VARS["appdirname"]}/$file"
         sed -i -E "s/genapp/${lowerAppname}/g" "${GENAPP__VARS["appdirname"]}/$file"
     done

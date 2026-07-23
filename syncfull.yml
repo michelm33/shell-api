@@ -1,0 +1,45 @@
+
+sources:
+  localhost:
+    hostnames: [ "riffian", "riffian-dell" ]
+    rootdir: 
+      riffian: $HOME/Data/Data/admin/linux/release/shell-api
+      riffian-dell: $HOME/riffian/Data/Data/admin/linux/release/shell-api
+
+# Storage
+#
+storage:
+  ftp_slashetc:
+    label: ftp://slash2438072@ftp.slashetc.fr
+    target: "$HOME/mnt/ftp.slashetc.fr"
+    size: "100 GiB"
+    desc: "SlashEtc FTP site"
+
+# Files
+#
+files:
+  ftp_release:
+    source: localhost
+    storage: [ ftp_slashetc ]
+    batch-folders:
+      src: [ "*.deb", "*.zip" ]
+      dst: "/download/"
+      copy-options: "-T /tmp -rv --size-only --no-group --no-perms --no-owner --copy-links --progress --out-format=%n --modify-window=1 --delete"
+      filters: 
+        - "exclude%20*#*"
+
+commands:
+  copy:
+    command: "rsync"
+    options: "-a --out-format=%n -X --progress --modify-window=1 --delete --filter='protect ._syncfull*'"
+    # When copying to exfact, a better command may:
+    #   rsync -rvh --size-only --progress --delete /path/to/ext4/ /path/to/fat32/
+    # also check
+    #   rsync -vrc --delete --progress --no-p source  destination
+    # --no-p : no permission
+  restore:
+    command: "rsync"
+    options: "-a --out-format=%n -X --progress --modify-window=1 --delete"
+  size:
+    command: "du"
+    options: "-Psmx"

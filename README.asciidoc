@@ -78,7 +78,7 @@ wget https://slashetc.fr/download/shell-api_1.0-0.zip
 unzip shell-api_1.0-0.zip 
 ----
 
-Instead of using `wget`, you can also use the following download links:
+The following table lists all the available versions. You can also click on the link to download instead of using `wget`:
 
 [%autowidth]
 |===
@@ -444,6 +444,13 @@ License terms written down in file LICENSE.txt
 == Module function lists
 
 ////
+cat shell-api-core.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^(.*)$/\| \1/g'
+cat shell-api-dev.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^(.*)$/\| \1/g'
+cat shell-api-multimedia.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^(.*)$/\| \1/g'
+cat shell-api-net.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^(.*)$/\| \1/g'
+cat shell-api-packing.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^(.*)$/\| \1/g'
+cat shell-api-sys.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^(.*)$/\| \1/g'
+cat shell-api-yaml.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^(.*)$/\| \1/g'
 cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^(.*)$/\| \1/g'
 ////
 
@@ -464,12 +471,15 @@ cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^
 | _colorprint() 
 | _colorText() 
 | _load() 
+| _isLoadDepCached() 
+| _loadVDep() 
 | _loadDep() 
 | _loaded() 
 | _usage() 
 | _susage() 
 | _invokeCallback() 
 | _help()     
+| _optionsN() 
 | _options() 
 | _soptions() 
 | _parseArgs() 
@@ -502,11 +512,16 @@ cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^
 | _getDependenciesCacheFile()
 | _readDependenciesCache()
 | _writeDependenciesCache()
+| _resetDependenciesCache()
+| _debugging() 
+| _debug() 
 | _log_dbg() 
 | _log_err() 
 | _log_warn() 
 | _log_high() 
 | _log() 
+| _log_if() 
+| _log_ifnot() 
 | _logf() 
 | _log_array() 
 | _log_n() 
@@ -523,10 +538,12 @@ cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^
 | Env__distroname() 
 | Env__distrover() 
 | Env__arch() 
+| Str__swap()
 | Str__randomWord()
 | Str__diff()
 | Str__isEmpty() 
 | Str__spaces()
+| Str__padded()
 | Str__indent()
 | Str__prefix()
 | Str__seq()
@@ -544,7 +561,6 @@ cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^
 | Str__escape() 
 | Str__escapeChar() 
 | Str__trim() 
-| Str__trimOld() 
 | Str__trimOnce() 
 | Str__trimStart() 
 | Str__skip() 
@@ -555,12 +571,20 @@ cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^
 | Str__toHead() 
 | Str__tail() 
 | Str__toTail() 
+| Str__eraseCommonTail() 
 | Str__split() 
 | Str__replace() 
+| Str__replaceOne() 
 | Str__substringCount() 
+| Str__lineCount() 
+| Str__linesToArray() 
 | Str__shrinkToRight() 
 | Str__shrinkToMid() 
+| Str__fitToLineWidth() 
+| Str__justify() 
+| Str__toCharArray() 
 | Str__toAsciiDocId()
+| Str__isWord() 
 | Int__isInt() 
 | Int__Int() 
 | Int__Int_r() 
@@ -571,6 +595,7 @@ cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^
 | Int__series() 
 | Int__max()
 | Int__readVersion()
+| Int__getIntTrail()
 | Float__compare() 
 | Float__calc() 
 | Math__byteSize2ReadableSize() 
@@ -579,14 +604,19 @@ cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^
 | Math__convertSizeToMiB() 
 | Args__checkCount() 
 | Args__checkMinCount() 
+| Array__getSortedArray() 
 | Array__contains() 
 | Array__contains_by_string() 
+| Array__fromString() 
 | Input__getForcedInput()
 | Input__pushForcedInput()
+| Input__testYesForcedInput()
+| Input__testForcedInput()
 | Input__popForcedInput()
 | Input__clearForcedInput()
 | Input__timeoutKeystroke() 
 | Input__password() 
+| Input__confirm_high() 
 | Input__confirm() 
 | Input__memsize() 
 | Input__dirpath() 
@@ -600,7 +630,19 @@ cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^
 | File__corename() 
 | File__ext() 
 | File__noext() 
+| File__cwd()  
+| File__dirExists()  
+| File__exists()  
+| File__fileExists()  
+| File__linkExists()  
+| File__dirSHA256()  
 | File__createSubdirs() 
+| File__createTempDir() 
+| File__deleteTempDir() 
+| File__deleteAllTempDirs() 
+| File__createTempFile() 
+| File__deleteTempFile() 
+| File__deleteAllTempFiles() 
 | File__copyDirs() 
 | File__mirrorCopy() 
 | File__readYAMLLikeFile() 
@@ -616,6 +658,7 @@ cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^
 | Date__startTimer()
 | Date__elapsedSecondsTimer()
 | Date__elapsedMinutesTimer()
+| User__getFullUserName()
 | Term__countdown() 
 | Term__resize()
 | Term__rows()
@@ -644,6 +687,22 @@ cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^
 | _testCase()
 | _testAll()
 | test__perf()
+| Test__assertFilesShouldNotExist() 
+| Test__assertFilesShouldExist() 
+| Test__assertDirsShouldExist() 
+| Test__assertFileLastLine() 
+| Test__assertFileLine() 
+| Test__assertFileContent() 
+| Test__assertFileContentPattern() 
+| Test__assertFileContainsLine() 
+| Test__assertSameFiles()
+| Test__assertChangeDir()
+| Test__assertChangeToNewDir()
+| Test__assertCleanupDir()
+| Test__assertCmd()
+| Test__assertCmdExit()
+| Test__assertSymlinkPath()
+| Test__assertTwoCommandsSameOutput()
 
 |===
 
@@ -705,7 +764,6 @@ cat shell-api-xslt.sh|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sed -E 's/^
 | Image__generateFromPDF()
 | Image__generatePDFFromImageFiles()
 | Image__watermark()
-michel@riffian:~/Dat
 |===
 
 === shell-api-net.sh
@@ -736,6 +794,11 @@ michel@riffian:~/Dat
 | Net__getHostname()
 | Net__IP2Name()
 | Net__resolve()
+| Net__getDeviceName()
+| Net__getDeviceMAC()
+| Net__getMAC()
+| Net__getMAC()
+| Net__MAC()
 | Net__download()
 | Net__isCloudDevice()
 | Net__getCloudURLFromDevice()
@@ -803,6 +866,7 @@ michel@riffian:~/Dat
 | YAML__escape()
 | YAML__get_bool()
 | YAML__get_int()
+| YAML__isUndefined()
 | YAML__getFilename() 
 | YAML__eval() 
 | YAML__read() 

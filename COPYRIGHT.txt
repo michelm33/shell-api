@@ -1,7 +1,6 @@
 HUMAN-READABLE "BSA BASH SHELL API" and genapp bash app generator
 
 Copyright (c) 2024-2026 Michel Mehl.
-
 All rights reserved. 
 Tous droits réservés (France).
 

@@ -1,16 +1,38 @@
 #!/bin/bash
 ###############################################################################
+# HUMAN-READABLE "BSA BASH SHELL API" and genapp bash app generator
+# 
+# Copyright (c) 2024-2026 Michel Mehl.
+# All rights reserved. 
+# Tous droits réservés (France).
+# 
+# License terms written down in file LICENSE.txt
+# Les termes de la licence sont détaillés dans le fichier LICENSE.txt
+# 
+# Release file path: shell-api-net.sh
+# Release file date: 2026-07-23 13:37
+# App version: 1.1.0
+# App source revision: 97
+# App source signature: e20eb96b3d4e6835befb66ce8f066b37209f14602974b26a9ca3fd01599ac513
+# Source file last modification: 2026-07-06 16:34:40.287414192 +0200
 #
-# Copyright (c) 2024-2025 Michel Mehl. All rights reserved.
+# This header was generated. Do not modify.
 #
 # -----------------------------------------------------------------------------
 #
 # A shell API related to networking.
 #
 # -----------------------------------------------------------------------------
-#
-# Report bugs to michel.mehl@slashetc.fr
-#
+# 
+# Report bugs and suggestions: 
+#     assistance@slashetc.fr
+# 
+# Specific or corporate requirements or extensions: 
+#     info@slashetc.fr
+# 
+# The author is overall not required to provide maintenance or support 
+# outside specific commercial terms agreed.
+# 
 ###############################################################################
 __SHELL_API_NET_DIR__=$(readlink -f $(dirname ${BASH_SOURCE[0]}))
 
@@ -558,6 +580,8 @@ Net__IP2Name()
 
 Net__resolve()
 {
+    _loadDep "bind9-host"
+
      local __in_addr="$1"   
      local -n __out_ip_addr=$2
      local -n __out_hostname_addr=$3
@@ -589,6 +613,62 @@ Net__resolve()
 }
 
 :<<'EOF'
+Retrieves the name of the network device 
+EOF
+Net__getDeviceName()
+{
+    local -n __outNetDeviceName=$1
+    __outNetDeviceName=$(ip route show default | awk '/default/ {print $5}')
+}
+
+:<<'EOF'
+Retrieves the MAC address bound with the network device passwed as argument
+@param [1] in network device name
+@param [2] out MAC addres
+EOF
+Net__getDeviceMAC()
+{
+    local __inDevice="$1"
+    local -n __outMACAddr=$2
+    local __cmd="ip -br link show ${__inDevice}|awk '/${__inDevice}/ {print \$3}'"
+    read __outMACAddr< <(eval "${__cmd}")
+}
+
+:<<'EOF'
+Retrieves the MAC address bound with the device used for default routing 
+@param [1] out MAC addres
+EOF
+Net__getMAC()
+{
+    local netdevice=""
+    Net__getDeviceName netdevice
+    if [ -n "${netdevice}" ] ; then
+        local -n __outMACAddr=$1
+        local __cmd="ip -br link show ${netdevice}|awk '/${netdevice}/ {print \$3}'"
+        read __outMACAddr< <(eval "${__cmd}")
+    else
+        __outMACAddr=""
+    fi
+}
+
+:<<'EOF'
+Net__getMAC()
+Same as Net__getMAC, except that it echoes the MAC instead of assigning a variable passed as argument
+EOF
+Net__MAC()
+{
+    local macaddr=""
+    local netdevice=""
+    Net__getDeviceName netdevice
+    if [ -n "${netdevice}" ] ; then
+        local __cmd="ip -br link show ${netdevice}|awk '/${netdevice}/ {print \$3}'"
+        read macaddr< <(eval "${__cmd}")
+    fi
+    echo "${macaddr}"
+}
+
+
+:<<'EOF'
 Download a file from a given URL using wget
 
 @param [1] URL
@@ -597,6 +677,8 @@ EOF
 
 Net__download()
 {
+    _loadDep "wget"
+        
     local url="$1"
     if wget --spider -T 4 -t 1 "$url" &>/dev/null; then # try once to reach server with a timeout of 4s
         if ! wget -nc --quiet "$url" ; then # -nc no clobber: do not allow download several times the same files with giving different names. 

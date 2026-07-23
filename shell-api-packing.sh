@@ -1,16 +1,38 @@
 #!/bin/bash
 ###############################################################################
+# HUMAN-READABLE "BSA BASH SHELL API" and genapp bash app generator
+# 
+# Copyright (c) 2024-2026 Michel Mehl.
+# All rights reserved. 
+# Tous droits réservés (France).
+# 
+# License terms written down in file LICENSE.txt
+# Les termes de la licence sont détaillés dans le fichier LICENSE.txt
+# 
+# Release file path: shell-api-packing.sh
+# Release file date: 2026-07-23 13:37
+# App version: 1.1.0
+# App source revision: 97
+# App source signature: e20eb96b3d4e6835befb66ce8f066b37209f14602974b26a9ca3fd01599ac513
+# Source file last modification: 2026-06-07 23:01:10.265430016 +0200
 #
-# Copyright (c) 2024-2025 Michel Mehl. All rights reserved.
+# This header was generated. Do not modify.
 #
 # -----------------------------------------------------------------------------
 #
 # A shell API intended for managing of package installation.
 #
 # -----------------------------------------------------------------------------
-#
-# Report bugs to michel.mehl@slashetc.fr
-#
+# 
+# Report bugs and suggestions: 
+#     assistance@slashetc.fr
+# 
+# Specific or corporate requirements or extensions: 
+#     info@slashetc.fr
+# 
+# The author is overall not required to provide maintenance or support 
+# outside specific commercial terms agreed.
+# 
 ###############################################################################
 __SHELL_API_PACKING_DIR__=$(readlink -f $(dirname ${BASH_SOURCE[0]}))
 
@@ -195,17 +217,20 @@ EOF
                 Str__replace url "%%distrovermajor%%" "${distrover_major}"
                 Str__replace url "%%distroverminor%%" "${distrover_minor}"
                 local pkgfile="$(basename "$url")"
-                _log "Trying to downloading $pkgfile from '$url' ..."
+                _log_status high "Downloading $pkgfile from '$url' ..."
                 if Net__download "$url" ; then
-                    _log "Installing Debian package '$pkgfile'"
+                    _log_status_end ok
                     ${__SUDO__}dpkg -i "$pkgfile" 2>>"${__LOG_ERR_FILE__}"  >>"${__LOG_FILE__}"
                     if [ $? -ne 0 ] ; then
                         _log_err "Failed to install $pkgfile. Further details in log file ${__LOG_ERR_FILE__}."
                         return 1
+                    else
+                        rm -f "$pkgfile"
                     fi
                     return 0
                 else
-                    _log_err "Failed to download $pkgfile from '$url'. The URL is probably incorrect or ressource is inexistent."
+                    _log_status_end fail
+                    #_log_err "Failed to download $pkgfile from '$url'. The URL is probably incorrect or ressource is inexistent."
                     return 1
                 fi
             else
@@ -261,8 +286,14 @@ DPKG__exists() {
     local res=0
 
     pushd /etc/apt &>/dev/null
-    apt-cache search --names-only "$1" &>/dev/null
-    res=$?
+    local retVal=""
+    retVal="$(apt-cache search --names-only "$1" 2>/dev/null)"
+    if [ $? -ne 0 ] || [ -z "${retVal}" ] ; then
+        # By test it happened that 0 was returned and empty string for non-available package e.g. tzdata-legacy
+        res=1
+    else
+        res=0
+    fi
     popd &>/dev/null
 
     return $res

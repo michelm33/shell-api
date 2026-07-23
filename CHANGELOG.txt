@@ -1,1 +1,51 @@
-* First release
+* Release 1.1.0
+    - CORE API  
+        Options help now alphabetically ordered
+        added default supported options : --revison, --hash, --version-num
+        added implicit supported config parameter 'default app options', which enables to implicit activate options for each app call
+        various changes and addons log API
+        additional functions (string, array, input,test)
+        _cleanup fixes: now called also on normal app exit, correct caught signal value now forwarded to _cleanup
+    - NET API: added 
+        Net__getDeviceName, 
+        Net__getDeviceMAC, 
+        Net__getMAC. 
+        add dynamic dep loading
+    - YAML API: 
+        strings starting with '#' where removed when appearing as first line of a multiline string,
+        added YAML__isUndefined for convenience. 
+    - PACK API: 
+        DPKG__exists robustness fix, 
+        status display when downloading. CORE API: 
+    - SYS API:
+        Sys__terminate
+    OVERVIEW NEW FUNCTIONS: 
+        Input__confirm_high
+        Int__getIntTrail
+        Test__assertSymlinkPath
+        Str__eraseCommonTail
+        Str__toCharArray
+        _log_if, _log_ifnot
+        _optionsN() a better variant than _options() to display actual arg types
+        help function 'xxx__versionnum
+        added an API to auto manage and cleanup temporary dirs and files. 
+       ADDONS/IMPROVS: 
+        Enabling option combinations (eg -ym for -y -m)
+        Input__cursorSelect: predefined prompt can now be extended using '+' as 1st char, 
+        input__cursor : limiting displayed width of menu items to the terminal width and minor robustness fixes; 
+        added builtin cfg param 'default app options' which enables to inject default parameters at each app launch; 
+        in Input__confirm, added forced input 'no' along the 'yes
+        Input__memsize allowing function to abort on invalid input depending on passed bool (could result in endlessloop)
+       BUGFIXES:
+        fixes: Input__cursorSelect  added 9th param to return value of sections greater than 255; fixed the signal trapping and handling ; extended soptions() to work in manpage mode; 
+        fixed endless loop in Input__sentence when forced -y is specified, now returning directly default value,
+        fixed option help display in case of a dashless option (command) not requiring '='
+        improved _appendConfig by removing any prior existing config param for not creating duplicates if operation is performed multiple times
+    - GENAPP:
+       GENERATED FILES:
+        added default generated option --log; 
+        Makefile: cleanup after package creation, added --config param
+        update/extended template app for genapp, various addons
+        completed genapp with 'verbose' option
+* Release 1.0.0:
+    - initial version separated from sumo

@@ -1,16 +1,38 @@
 #!/bin/bash
 ###############################################################################
+# HUMAN-READABLE "BSA BASH SHELL API" and genapp bash app generator
+# 
+# Copyright (c) 2024-2026 Michel Mehl.
+# All rights reserved. 
+# Tous droits réservés (France).
+# 
+# License terms written down in file LICENSE.txt
+# Les termes de la licence sont détaillés dans le fichier LICENSE.txt
+# 
+# Release file path: shell-api-sys.sh
+# Release file date: 2026-07-23 13:37
+# App version: 1.1.0
+# App source revision: 97
+# App source signature: e20eb96b3d4e6835befb66ce8f066b37209f14602974b26a9ca3fd01599ac513
+# Source file last modification: 2026-07-22 15:43:07.958338449 +0200
 #
-# Copyright (c) 2024 Michel Mehl. All rights reserved.
+# This header was generated. Do not modify.
 #
 # -----------------------------------------------------------------------------
 #
 # A shell API related to low-level system functions.
 #
 # -----------------------------------------------------------------------------
-#
-# Report bugs to michel.mehl@slashetc.fr
-#
+# 
+# Report bugs and suggestions: 
+#     assistance@slashetc.fr
+# 
+# Specific or corporate requirements or extensions: 
+#     info@slashetc.fr
+# 
+# The author is overall not required to provide maintenance or support 
+# outside specific commercial terms agreed.
+# 
 ###############################################################################
 __SHELL_API_SYS_DIR__=$(readlink -f $(dirname ${BASH_SOURCE[0]}))
 
@@ -319,10 +341,31 @@ Sys__pool_waitall()
     return $lastStatus
 }
 
+:<<'EOF'
+Tells whether the process of the passed PID is alive by sending signal 0
+@return 0 if kill was ok (alive), another value otherwise
+EOF
+
 Sys__isAlive()
 {
     kill -s 0 "$1" 2>/dev/null
 }
+
+:<<'EOF'
+Terminates the process of the passed PID by sending signal TERM (15)
+@return 0 if termination was ok, another value otherwise (no such process)
+EOF
+
+Sys__terminate()
+{
+    kill -s 15 "$1" 2>/dev/null
+}
+
+:<<'EOF'
+Terminates all processes which process name matches the passed first argument. An additional string filter can be passed to search for in the ps output which is 'pid comm cmd' (comm is the process name)
+@param[1] process name
+@param[2] addition string filter
+EOF
 
 Sys__sweep()
 {

@@ -1,4 +1,4 @@
-GENAPP(8)                                                                          System Administration Utilities                                                                          GENAPP(8)
+GENAPP(8)               System Administration Utilities              GENAPP(8)
 
 NAME
        Genapp - shell-api
@@ -9,43 +9,65 @@ SYNOPSIS
        Arguments:
 
        <application name>
-              a word identifying the app, starting with an uppercase (will be enforced)
+              a  word identifying the app, starting with an uppercase (will be
+              enforced)
 
        OPTIONS:
 
-       --verbose
-              Verbose mode
-
-       --email =<TEXTE>
-              app's official contact email
-
-       --help, -h
-              Displays app usage
-
-       -y     Assume 'Yes' when prompted for confirmation
-
-       --github-id =<TEXTE>
-              User id to use to build the github URL for the debian package homepage definition
-
-       -v, --version
-              Displays the app version
-
-       --root-release-dir =<FOLDER PATH> Path to the root folder where are stored software release
-
        --author =<TEXTE>
-              Author of the app
+
+              Author of the app to generate
+
+       --config
+
+              Show the configuration file content
 
        --desc =<TEXTE>
-              Description of the app
+
+              Description of the app to generate
+
+       --email =<TEXTE>
+
+              Official contact email for the app to generate
+
+       --github-id =<TEXTE>
+
+              User id to use to build the github URL for  the  debian  package
+              homepage definition of the generated app
+
+       --help, -h
+
+              Display Genapp usage
 
        --http =<URL>
-              URL for the debian package homepage of the app
 
-       --man  Displays the manual page
+              URL for the debian package homepage of the app to generate
+
+       --man
+
+              Display the Genapp manual page
+
+       --root-release-dir =<FOLDER PATH>
+
+              software release folder for the generated app
+
+       --verbose
+
+              Verbose mode
+
+       -v, --version
+
+              Display the Genapp version
+
+       -y
+
+              Assume 'Yes' when prompted for confirmation
 
 DESCRIPTION
-       Genapp tool generates shell script app skeletons based the shell-api library. The generated skeletons are immediately operational and just need to be adapted to the specific app to be imple‐
-       mented. It will generate the following files:
+       Genapp  tool  generates  shell script app skeletons that build upon the
+       shell-api library. The generated skeletons are immediately  operational
+       and  ready  for  the app implementation. It will generate the following
+       files:
 
        - COPYRIGHT.txt : copyright notice
 
@@ -55,7 +77,8 @@ DESCRIPTION
 
        - EXAMPLES.txt: List of examples. Indentation matters for manpage.
 
-       - <yourapp>__options.sh: file for managing options. For default ones, see doc.
+       - <yourapp>__options.sh: file for managing options. For  default  ones,
+       see doc.
 
        - <yourapp>__help.h: file providing help functions.
 
@@ -65,65 +88,136 @@ DESCRIPTION
 
        - pack/debian/control : for packaging with dpkg
 
+OPTIONS DETAILS
+       --author <TEXTE>
+
+              Specifies  the  author of the generated app as it will appear in
+              the source file headers, copyright notices and debian packages
+
+       --config
+
+              Shows the configuration file content
+
+       --desc <TEXTE>
+
+              Supplies a description of the app to generate
+
+       --email <TEXTE>
+
+              Specifies the generated app's official contact email,  typically
+              the  author's one, as it will appear in the source file headers,
+              copyright notices and debian packages
+
+       --github-id <TEXTE>
+
+              Supplies the github id to use to build https github URL for  the
+              debian package when --http is not specified
+
+       --help, -h
+
+              Displays Genapp usage
+
+       --http <URL>
+
+              Specifies  the URL for the debian package homepage of the gener‐
+              ated  app.   If  none   is   supplied   the   default   URL   is
+              https://github/<github  user  id>/<appname>,  where <github user
+              id> is specified with --github-id
+
+       --man
+
+              Displays the Genapp manual page. The output can be used to  gen‐
+              erate regular MAN PAGES
+
+       --root-release-dir <FOLDER PATH>
+
+              Specifies  the path to the root folder where are stored software
+              release for the generated app.  The folder path shall  be  rela‐
+              tive to the application source folder.  A subfolder will be cre‐
+              ated below the release folder for the generated  app,  therefore
+              the release folder can be used for other apps as well.
+
+       --verbose
+
+              Verbose mode
+
+       -v, --version
+
+              Displays  the Genapp version. The output can be used to generate
+              regular debian packages
+
+       -y
+
+              Assume 'Yes' answer for any confirmation request
+
 EXAMPLES
-       Generating a test app
+       Generate a test app
 
-              # An app named 'TestApp' is generated, inside folder 'testapp', main script will be 'testapp'. The home page URL for the app will be https://github/michelm33/testapp
+              # An app named 'TestApp' is generated, inside folder  'testapp',
+              main  script  will  be  'testapp'. The home page URL for the app
+              will be https://github/michelm33/testapp
 
-              genapp TestApp -y --author="George Washington" --email="george.washington@whitehouse.org" --desc="A test application" --github-id="michelm33" --root-release-dir="../release"
+              genapp TestApp -y --author="George W"  --email="george.w@wh.org"
+              --desc="A  test  application" --github-id="michelm33" --root-re‐
+              lease-dir="../release"
 
-              # Same as previous example, but the home page URL for the app is explicitely defind as 'https://slashetc/testapp'
+              # Same as previous example, but the home page URL for the app is
+              explicitly defined as 'https://slashetc/testapp'
 
-              genapp TestApp -y --author="George Washington" --email="george.washington@whitehouse.org" --desc="A test application" --http="https://slashetc/testapp" --root-release-dir="../release"
+              genapp  TestApp -y --author="George W" --email="george.w@wh.org"
+              --desc="A  test  application"  --http="https://slashetc/testapp"
+              --root-release-dir="../release"
 
-       Executing the generated app
+       Execute the generated app
 
               # 'TestApp' is the generated app
 
               ./testapp
 
-       Showing the app help
+       Show the app help
 
               # 'TestApp' is the generated app
 
               ./testapp -h
 
-       Showing the last 30 log lines
+       Show the last 30 log lines
 
               # 'TestApp' is the generated app
 
               ./testapp --log=30
 
-       Showing the files managed by the app
+       Show the files managed by the app
 
               # 'TestApp' is the generated app
 
               ./testapp --files
 
-       Generating a debian package
+       Generate a debian package
 
               # This generates a release file tree and a debian package
 
               make release
 
-       Generating the man pages
+       Generate the man pages
 
-              # This generates the manpage which can be open using 'man testapp'
+              #  This  generates  the  manpage  which  can  be open using 'man
+              testapp'
 
               make man
 
               man testapp
 
 AUTHOR
-       Written by Michel Mehl
+       Written by Michel MEHL
 
 REPORTING BUGS
        Report bugs to <michel.mehl@slashetc.fr>
 
-       All rights reserved.
-       Tous droits réservés (France).
+COPYRIGHT
+       Copyright © 2024-2026 Michel Mehl.  All rights reserved.   Tous  droits
+       réservés (France).
 
-       License terms written down in file LICENSE.txt
-       Les termes de la licence sont détaillés dans le fichier LICENSE.txt
+       License terms written down in file LICENSE.txt Les termes de la licence
+       sont détaillés dans le fichier LICENSE.txt
 
-Genapp 1.0.0                                                                                   May 2026                                                                                     GENAPP(8)
+Genapp 1.1.0                     juillet 2026                        GENAPP(8)

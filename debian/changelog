@@ -1,6 +1,6 @@
-shell-api (1.0-0) UNRELEASED; urgency=low
+shell-api (1.1-0) UNRELEASED; urgency=low
 
-  * First release
+  * Release 1.1.0
 
- -- Michel Mehl <michel.mehl@slashetc.fr>  Thu, 21 May 2026 01:51:11 +0000
+ -- Michel Mehl <michel.mehl@slashetc.fr>  Thu, 23 Jul 2026 13:37:39 +0200
 

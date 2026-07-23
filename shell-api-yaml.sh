@@ -1,14 +1,38 @@
 #!/bin/bash
 ###############################################################################
+# HUMAN-READABLE "BSA BASH SHELL API" and genapp bash app generator
+# 
+# Copyright (c) 2024-2026 Michel Mehl.
+# All rights reserved. 
+# Tous droits réservés (France).
+# 
+# License terms written down in file LICENSE.txt
+# Les termes de la licence sont détaillés dans le fichier LICENSE.txt
+# 
+# Release file path: shell-api-yaml.sh
+# Release file date: 2026-07-23 13:37
+# App version: 1.1.0
+# App source revision: 97
+# App source signature: e20eb96b3d4e6835befb66ce8f066b37209f14602974b26a9ca3fd01599ac513
+# Source file last modification: 2026-07-21 22:00:05.673169943 +0200
 #
-# Copyright (c) 2024 Michel Mehl. All rights reserved.
+# This header was generated. Do not modify.
 #
 # -----------------------------------------------------------------------------
 #
 # Report bugs to michel.mehl@slashetc.fr
 #
 # -----------------------------------------------------------------------------
-#
+# 
+# Report bugs and suggestions: 
+#     assistance@slashetc.fr
+# 
+# Specific or corporate requirements or extensions: 
+#     info@slashetc.fr
+# 
+# The author is overall not required to provide maintenance or support 
+# outside specific commercial terms agreed.
+# 
 ###############################################################################
 
 __SHELL_API_YAML_DIR__=$(readlink -f $(dirname ${BASH_SOURCE[0]}))
@@ -154,9 +178,9 @@ EOF
 YAML__isntVoid()
 {
     local -n __in_val=$1
-    if [ "$1" = null ] ; then return false; fi
-    if [ -z "$1" ] ; then return false; fi
-    return true;
+    if [ "${__in_val}" = null ] ; then return 1; fi
+    if [ -z "${__in_val}" ] ; then return 1; fi
+    return 0;
 }
 
 YAML__unescape()
@@ -208,6 +232,20 @@ YAML__get_int()
     fi
 }
 
+:<<EOF
+Tells whether the value of the passed YAML field is either empty or 'null'.
+It reads the value using YAML__get using the passed key and check whether it is empty
+or 'null'
+@param [1] YAML key name
+@returns Returns 0 when the passed YAML field value is either empty or 'null'
+EOF
+YAML__isUndefined()
+{
+    local fieldValue=""
+    YAML__get "$1" fieldValue
+
+    Str__isEmpty ${fieldValue} || [  "${fieldValue}" = null ]
+}
 
 :<<EOF
 Get the currently processed YAML file as set with YAML__setFile.
@@ -784,10 +822,12 @@ $yv"
                         multilineIndent=$(( ${line_indent} - ${ypath_indent} ))
                         #echo "=======> multilineIndent: $multilineIndent"
                         yv="${yv:${multilineIndent}}"
-                    fi
 
-                    #storeMap["${ypath}"]="$yv"
-                    YAML__readAll_storeValue "${!storeMap}" "$ypath" "$yv"
+                        YAML__readAll_storeRawValue "${!storeMap}" "$ypath" "$yv"
+                    else
+                        #storeMap["${ypath}"]="$yv"
+                        YAML__readAll_storeValue "${!storeMap}" "$ypath" "$yv"
+                    fi
                 fi
             else
                 if [ -z "${ypath}" ] ; then

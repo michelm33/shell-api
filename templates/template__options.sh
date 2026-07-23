@@ -117,7 +117,6 @@ fi
 _quit ""
 '
 
-
 GENAPP__OPTION_LIST_SDESC["--log"]="Show the log tail"
 GENAPP__OPTION_LIST_DESC["--log"]="
 Show the log tail. By default, shows the last 40 lines and the number of lines specified as option value.
@@ -134,4 +133,22 @@ local __log
 _getLogPath __log
 tail -F "${__log}" -n "${__myarg}"
 _quit ""
+'
+
+GENAPP__OPTION_LIST_SDESC["--config"]="Show the configuration file content"
+GENAPP__OPTION_LIST_DESC["--config"]="
+Shows the configuration file content
+"
+GENAPP__OPTION_LIST_ARGS["--config"]="1"
+GENAPP__OPTION_LIST_ACTI["--config"]='
+local file
+if _getConfigFilePath file ; then
+        echo "${file}:"
+        cat "${file}"
+        echo "END"
+        _quit ""
+else
+        _exit -1 "Failed to retrieve configuration file path"
+
+fi 
 '
