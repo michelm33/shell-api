@@ -85,6 +85,7 @@ The following table lists all the available versions. You can also click on the 
 | Platform | Debian Package | Zip | Creation time
 
 //@insert_new_balise
+| Linux | link:/download/shell-api_1.1-0_amd64.deb[shell-api_1.1-0_amd64.deb] | link:/download/shell-api_1.1-0.zip[shell-api_1.1-0.zip] | 2026-07-23 22:05:29 +02 CEST
 | Linux | link:/download/shell-api_1.0-0_amd64.deb[shell-api_1.0-0_amd64.deb ] | link:/download/shell-api_1.0-0.zip[shell-api_1.0-0.zip] | 2026-05-20
 
 |===
