@@ -10,11 +10,11 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-core.sh
-# Release file date: 2026-07-23 13:37
-# App version: 1.1.0
-# App source revision: 97
-# App source signature: e20eb96b3d4e6835befb66ce8f066b37209f14602974b26a9ca3fd01599ac513
-# Source file last modification: 2026-07-23 13:35:41.130518694 +0200
+# Release file date: 2026-07-26 12:29
+# App version: 1.1.1
+# App source revision: 107
+# App source signature: 094062a083817e1748b229d768a9ea5c7ec5605f028c7c8372f58b6882795238
+# Source file last modification: 2026-07-24 00:17:35.345836386 +0200
 #
 # This header was generated. Do not modify.
 #
@@ -5260,6 +5260,16 @@ File__deleteAllTempFiles()
     done
 }
 
+:<<'EOF'
+Deletes all temporary files created with File__createTempFile
+@param [1] temporary directory
+EOF
+
+File__deleteAllTempItems() 
+{
+    File__deleteAllTempFiles
+    File__deleteAllTempDirs
+}
 
 :<<'EOF'
 Performs a mirror copy of folders contained within the passed source folder path 

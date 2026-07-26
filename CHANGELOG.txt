@@ -1,3 +1,8 @@
+* Release 1.1.1
+    - Release coming with hot fix for arcv 1.0.1
+    - added 'export' target in template genapp makefile for exporting a folder to GitHub
+    - added File__deleteAllTempItems() for convenience
+    - There could be words in local language appearing in the generated man page (month at end of page)
 * Release 1.1.0
     - CORE API  
         Options help now alphabetically ordered

@@ -25,4 +25,5 @@ shell-api-xslt.sh /usr/bin/shell-api
 shell-api-yaml.sh /usr/bin/shell-api
 syncfull.yml /usr/bin/shell-api
 templates /usr/bin/shell-api
+tools /usr/bin/shell-api
 VERSION.txt /usr/bin/shell-api

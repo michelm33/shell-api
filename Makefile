@@ -27,6 +27,7 @@ DATE=$(shell LC_ALL=en_US.UTF-8 date --rfc-email)
 
 PROD_REL_DIR=../release/$(PRODUCT)/
 VERS_REL_DIR=$(PROD_REL_DIR)/$(PKG)
+WEBSITE_DIR=$(shell echo ~/riffian/Data/Documents/professionnel/SlashEtc/siteweb)
 
 .PHONY: FORCE
 
@@ -61,7 +62,7 @@ shellapi.8: required_help2man FORCE
 	@echo "#################################"
 	@echo "Creating manpage with help2man"
 	@echo 
-	help2man -L en_EN@euro --no-info --section 8 --name "shell-api" --help-option="--man" --output=$@ ./genapp
+	export TZ="US/Pacific" && export LC_ALL="C.UTF-8" && export LANG="EN.US.UTF-8" && help2man -L en_EN@euro --no-info --section 8 --name "shell-api" --help-option="--man" --output=$@ ./genapp
 # --manual="System Administration Utilities"
 
 .PHONY: required_help2man
@@ -104,7 +105,7 @@ export:
 	@echo "REQUESTING TO EXPORT RELEASE TO GITHUB WITH ARCV. CTRL-C TO ABORT"
 	@echo " IF ABORTED, TYPE 'make release_export' or 'av export' TO RESTART"
 	@echo 
-	@av export $(VERSION_DEB)
+	@av export $(VERS_REL_DIR)
 
 .PHONY: build_release
 build_release:  required_tools  CHANGELOG.txt COPYRIGHT.txt VERSION.txt
@@ -193,6 +194,17 @@ build_package_cleanup:
 	@echo "CLEANING UP DEBIAN BUILD GENERATED FILES"
 	@echo 
 	@cd $(VERS_REL_DIR)/debian && rm -r .debhelper && rm -rf $(PRODUCT) && rm debhelper* && rm files && rm rules && echo || echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
+
+.PHONY: update_web_download_page
+update_web_download_page:
+	@echo 
+	@echo 
+	@echo "UPDATING DOWNLOAD PAGE"
+	@echo "WARNING YOU MAY HAVE TO RUN MAKE RELEASE TWICE IF ./README.ASCIIDOC IS UPDATED"
+	@echo 
+	@tools/update-web-download-page.sh "$(WEBSITE_DIR)/developertoolsforlinux/pages/shellapi/shellapi_1_overview.adoc" "$(PRODUCT)" "$(VERSION_DEB)" "$(VERSION_DEB_FOR_ZIP)"  && echo && echo '>>>>>>>>>>>>>>> SUCCESS <<<<<<<<<<<<<<<<<<<<' ||  echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
+	@tools/update-web-download-page.sh "./README.asciidoc" "$(PRODUCT)" "$(VERSION_DEB)" "$(VERSION_DEB_FOR_ZIP)"  && echo && echo '>>>>>>>>>>>>>>> SUCCESS <<<<<<<<<<<<<<<<<<<<' ||  echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
+	@echo 
 
 .PHONY: update_website_ftp
 update_website_ftp:

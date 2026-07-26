@@ -52,7 +52,7 @@ man_install: %appname%.8
 	@echo "#################################"
 	@echo "Creating manpage with help2man"
 	@echo 
-	help2man -L en_EN@euro --no-info --section 8 --name "%appdesc%" --help-option="--man" --output=$@ ./%appname%
+	export TZ="US/Pacific" && export LC_ALL="C.UTF-8" && export LANG="EN.US.UTF-8" && help2man -L en_EN@euro --no-info --section 8 --name "%appdesc%" --help-option="--man" --output=$@ ./%appname%
 # --manual="System Administration Utilities"
 
 .PHONY: required_help2man
@@ -71,6 +71,15 @@ release: required_tools man release_no_man_internal
 .PHONY: release_no_man_internal
 release_no_man_internal: create_package 
 	@echo SUCCESS
+
+.PHONY: export
+export:
+	@echo 
+	@echo 
+	@echo "REQUESTING TO EXPORT RELEASE FOLDER $(VERS_REL_DIR) TO GITHUB WITH ARCV. CTRL-C TO ABORT"
+	@echo "IF ABORTED, TYPE 'make export'"
+	@echo 
+	@av export $(VERS_REL_DIR)
 
 .PHONY: build_release
 build_release: required_tools CHANGELOG.txt COPYRIGHT.txt VERSION.txt
@@ -159,3 +168,17 @@ build_package_cleanup:
 	@echo 
 	@cd $(VERS_REL_DIR)/debian && rm -r .debhelper && rm -rf $(PRODUCT) && rm debhelper* && rm files && rm rules && echo || echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
 
+.PHONY: update_website_ftp
+update_website_ftp: ./syncfull.yml /usr/bin/syncfull/syncfull
+	@echo 
+	@echo 
+	@echo "UPLOADING TO FTP"
+	@echo "REQUIRES syncfull TO BE INSTALLED"
+	@echo "REQUIRES FILE syncfull.yml TO BE DEFINED"
+	@echo 
+	@sf -F -y && echo && echo '>>>>>>>>>>>>>>> SUCCESS <<<<<<<<<<<<<<<<<<<<' ||  echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
+	@echo 
+
+# an alias for update_website_ftp
+.PHONY: upload
+upload : update_website_ftp

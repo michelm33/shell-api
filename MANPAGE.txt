@@ -220,4 +220,4 @@ COPYRIGHT
        License terms written down in file LICENSE.txt Les termes de la licence
        sont détaillés dans le fichier LICENSE.txt
 
-Genapp 1.1.0                     juillet 2026                        GENAPP(8)
+Genapp 1.1.1                       July 2026                         GENAPP(8)
