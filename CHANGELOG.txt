@@ -1,3 +1,32 @@
+* Release 1.1.2
+120 2026-08-13 11:39:54  Added Str__grepAndGetField, Str__grep, Str__getField. Fixed bug of
+                        File__dirSHA256 not restoring properly timezone after setting it to US/Pacific
+119 2026-08-13 00:22:43 fixed bug in Str__fitToWidth
+118 2026-08-12 18:06:43 fixed potential endless loop in Str__fitToLineWidth
+117 2026-08-12 02:17:25 extended File__getSize to retrieve size of a folder
+116 2026-08-12 01:08:24 extended Str__swap to enable  alternating  between 2 fixed values regardless of
+                        input var current value
+115 2026-08-12 00:28:01 new _setColored() to enable some color managing code to be more efficient;
+                        additional parameter for Str__indent to control start line of indentation
+114 2026-08-11 20:02:59 extended _colorText function to manage fore and background colors; fix in
+                        setTermColor;  changed dependency handling of shell-api for arcv install: now
+                        the tool looks for a local shell-api dir which is a symbolic to a folder thereof
+                        holding the exact version, whereby genapp has been adapted accordingly to create
+                        automatically a symlink from the  shell-api used for the generation
+113 2026-08-11 16:06:12 shell-api pkg now installs in a folder containing the version number to allow
+                        multiple tools depending on it to use different shell api versions
+112 2026-08-10 10:40:22 extended Array__fromString and Array__toTextTable with the ability not to
+                        interpret  as an escape char, whereby Array__fromString has also been rewritten
+                        using read instead of readarray
+111 2026-08-09 17:02:15 added Str__highlight; error message now displayed after usage following a usage
+                        error (_susage called); Array__csvToTextTable converted to the more generic
+                        Array__toTextTable where separators can be given
+110 2026-08-09 12:33:29 added Array__toString
+109 2026-08-08 18:24:45 added Array__csvToTextTable
+108 2026-08-08 17:06:23 improved generic options handling by checking that options AND commands (no
+                        dash) expecting a value are actually assigned one ; added check whether expected
+                        app-specific option variables are defined
+
 * Release 1.1.1
     - Release coming with hot fix for arcv 1.0.1
     - added 'export' target in template genapp makefile for exporting a folder to GitHub
