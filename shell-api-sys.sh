@@ -10,11 +10,11 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-sys.sh
-# Release file date: 2026-07-26 12:29
-# App version: 1.1.1
-# App source revision: 107
-# App source signature: 094062a083817e1748b229d768a9ea5c7ec5605f028c7c8372f58b6882795238
-# Source file last modification: 2026-07-22 15:43:07.958338449 +0200
+# Release file date: 2026-08-13 11:40
+# App version: 1.1.2
+# App source revision: 120
+# App source signature: 5ac23715bc2616c2c0023b4318b0a932f1fbf863a53eeada5b5f5b596d3f2c7a
+# Source file last modification: 2026-08-12 02:14:55.823043104 +0200
 #
 # This header was generated. Do not modify.
 #
@@ -43,7 +43,7 @@ if _loaded "${BASH_SOURCE[0]}"  ; then
 fi
 
 :<<'EOF'
-Return size of the passed file
+Return the size of the passed file or directory in bytes
 @param[1] file path
 @param[2] ref to variable where to store size
 EOF
@@ -56,9 +56,19 @@ File__getSize()
 
     local filePath="$1"
     local -n __out_size="$2"
-    local ret
-    read __out_size < <(stat -c "%s" "$filePath") # &>/dev/null)
-    ret=$?
+    local ret=1
+    if [ -f "${filePath}" ] ; then
+        read __out_size < <(stat -c "%s" "$filePath") # &>/dev/null)
+        ret=$?
+    elif [ -d "${filePath}" ] ; then
+        # By default du returns size of 1K (1024). Note using block-size=1KB would be 1000 bytes
+        read __out_size < <(du -sSc --block-size=1 "$filePath"|tail -n1|awk -F" " '{print $1}')
+        ret=$?
+    else
+        _log_err "${filePath} either does not exist or is neither a regular file nor a folder."
+        ret=1
+    fi
+
     if [ $ret -ne 0 ] ; then
         _log_dbg "${FUNCNAME[0]}: '${__out_size}'"
         _log_warn "${FUNCNAME[0]}: invalid file path $filePath."

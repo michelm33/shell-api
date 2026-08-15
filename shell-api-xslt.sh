@@ -10,10 +10,10 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-xslt.sh
-# Release file date: 2026-07-26 12:29
-# App version: 1.1.1
-# App source revision: 107
-# App source signature: 094062a083817e1748b229d768a9ea5c7ec5605f028c7c8372f58b6882795238
+# Release file date: 2026-08-13 11:40
+# App version: 1.1.2
+# App source revision: 120
+# App source signature: 5ac23715bc2616c2c0023b4318b0a932f1fbf863a53eeada5b5f5b596d3f2c7a
 # Source file last modification: 2026-07-05 18:58:56.711248556 +0200
 #
 # This header was generated. Do not modify.

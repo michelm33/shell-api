@@ -10,11 +10,11 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-selftest.sh
-# Release file date: 2026-07-26 12:29
-# App version: 1.1.1
-# App source revision: 107
-# App source signature: 094062a083817e1748b229d768a9ea5c7ec5605f028c7c8372f58b6882795238
-# Source file last modification: 2026-07-10 00:45:32.050170901 +0200
+# Release file date: 2026-08-13 11:40
+# App version: 1.1.2
+# App source revision: 120
+# App source signature: 5ac23715bc2616c2c0023b4318b0a932f1fbf863a53eeada5b5f5b596d3f2c7a
+# Source file last modification: 2026-08-13 11:35:37.376330318 +0200
 #
 # This header was generated. Do not modify.
 #
@@ -52,6 +52,89 @@ Test__resultAll=0
 
 ###############################################################################
 # UNFORMAL QUICKTESTS TO BE PUT IN ORDER
+
+testGrepAndGetField()
+{
+    local search="$1"
+    local idx=$2
+    local testStr="
+              Local time: jeu. 2026-08-13 10:37:07 CEST
+           Universal time: jeu. 2026-08-13 08:37:07 UTC 
+                 RTC time: jeu. 2026-08-13 08:37:07     
+                Time zone: Europe/Paris (CEST, +0200)   
+System clock synchronized: yes                          
+              NTP service: active                       
+          RTC in local TZ: no    
+                Time zone: US/Pacific
+System clock synchronized: no                       
+                Time zone: Africa/Alger"
+    local found=()
+    Str__grepAndGetField "$testStr" "${search}" ":" $idx found
+    for oneFound in "${found[@]}" ; do 
+        echo "'${oneFound}'"
+    done
+}
+
+testGetField()
+{
+    fields="after:lunch:i:will:go:to:the:swimmingpool"
+    Str__getField "$fields" ":" "0" testGetFieldRes
+    echo "'$testGetFieldRes'"
+    Str__getField "$fields" ":" "1" testGetFieldRes
+    echo "'$testGetFieldRes'"
+    Str__getField "$fields" ":" "6" testGetFieldRes
+    echo "'$testGetFieldRes'"
+    Str__getField "$fields" ":" "7" testGetFieldRes
+    echo "'$testGetFieldRes'"
+
+    fields="singlefield"
+    Str__getField "$fields" ":" "0" testGetFieldRes
+    echo "'$testGetFieldRes'"
+    Str__getField "$fields" ":" "1" testGetFieldRes
+    echo "'$testGetFieldRes' should be empty"
+
+    fields=""
+    Str__getField "$fields" ":" "0" testGetFieldRes
+    echo "'$testGetFieldRes' should be empty"
+    Str__getField "$fields" ":" "1" testGetFieldRes
+    echo "'$testGetFieldRes' should be empty"
+}
+
+testPerfGrepApi()
+{
+    local useGrep=$1
+
+    for i in {1..1000};do
+        testGrepApi "Time zone" $useGrep >/dev/null
+        testGrepApi "time" $useGrep >/dev/null
+    done    
+}
+
+testGrepApi()
+{
+    local search="$1"
+    local useGrep=$2
+    local testStr="
+              Local time: jeu. 2026-08-13 10:37:07 CEST
+           Universal time: jeu. 2026-08-13 08:37:07 UTC 
+                 RTC time: jeu. 2026-08-13 08:37:07     
+                Time zone: Europe/Paris (CEST, +0200)   
+System clock synchronized: yes                          
+              NTP service: active                       
+          RTC in local TZ: no    
+                Time zone: US/Pacific
+System clock synchronized: no                       
+"
+    if $useGrep ; then
+        grep -F "${search}" <<<"$testStr"
+    else
+        local found=""
+        Str__grep "$testStr" "${search}" found
+        echo "$found"
+    fi
+}
+
+return 0
 
 timerid=0
 elapsed=0

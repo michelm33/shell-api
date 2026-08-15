@@ -10,11 +10,11 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-core.sh
-# Release file date: 2026-07-26 12:29
-# App version: 1.1.1
-# App source revision: 107
-# App source signature: 094062a083817e1748b229d768a9ea5c7ec5605f028c7c8372f58b6882795238
-# Source file last modification: 2026-07-24 00:17:35.345836386 +0200
+# Release file date: 2026-08-13 11:40
+# App version: 1.1.2
+# App source revision: 120
+# App source signature: 5ac23715bc2616c2c0023b4318b0a932f1fbf863a53eeada5b5f5b596d3f2c7a
+# Source file last modification: 2026-08-13 11:38:00.813666182 +0200
 #
 # This header was generated. Do not modify.
 #
@@ -130,6 +130,10 @@ Term__setBgColorOn()
     echo -n -e "${Term__text_color}"
 }
 
+:<<'EOF'
+Sets either the foreground or the background color
+To change the background color, 'true' must be passed as second argument
+EOF
 Term__setColor()
 {
     if ! test -n "${Term__colorList}" || test ${Term__colorList} -lt 8 ; then
@@ -160,12 +164,12 @@ Term__setColor()
         _ccodeOffset=40 
         _textmode=""
         tmcode=""
-        if [ -z "cname" ] ; then
+        if [ -z "$cname" ] ; then
             Term__text_bgcolor=""
             return 0
         fi
     else
-        if [ -z "cname" ] ; then
+        if [ -z "$cname" ] ; then
             Term__text_color="${Term__reset_color}"
             return 0
         fi
@@ -266,12 +270,55 @@ _colorprint() {
 }
 
 :<<'EOF'
-Colors the passed text with the specified color without 
+Print the passed text with the specified color without 
 impacting the current terminal setting (resets to normal)
+The background color name of the palette shall be specified without the "bg_" prefix
+@param[1] text to print
+@param[2] text foreground color
+@param[3] text background color
+
 EOF
 _colorText() {
-    echo -n -e "${_pal["$2"]}$1${Term__reset_color}"
+    local __outText=""
+    if [ $# -ge 2 ] ; then
+        __outText="${__outText}${_pal["$2"]}"
+    fi
+    if [ $# -ge 3 ] ; then
+        __outText="${__outText}${_pal["bg_$3"]}"
+    fi
+    if [ $# -ge 1 ] ; then
+        __outText="${__outText}$1"
+    fi
+    if [ $# -ge 2 ] ; then
+        __outText="${__outText}${Term__reset_color}"
+    fi
+    echo -n -e "${__outText}"
 }
+
+:<<'EOF'
+Updates the passed text by adding the specified fore and background colors
+The background color name of the palette shall be specified without the "bg_" prefix
+@param[1] text to print
+@param[2] text foreground color
+@param[3] text background color
+EOF
+
+_setColored() {
+    local -n __inoutText=$1
+    local __inText="${__inoutText}"
+    __inoutText=""
+    if [ $# -ge 1 ] ; then
+        __inoutText="${__inoutText}${_pal["$2"]}"
+    fi
+    if [ $# -ge 2 ] ; then
+        __inoutText="${__inoutText}${_pal["bg_$3"]}"
+    fi
+    __inoutText="${__inoutText}${__inText}"
+    if [ $# -ge 2 ] ; then
+        __inoutText="${__inoutText}${Term__reset_color}"
+    fi
+}
+
 
 #Term__testColors
 Term__buildPalette
@@ -486,12 +533,14 @@ EOF
 
 _susage() {
     local msg="$*"
+
+    _invokeCallback susage "$msg"
+
     if [ ! -z "$msg" ] ; then
         echo "" 1>&2
         _log_err "$msg"
         echo "" 1>&2
     fi
-    _invokeCallback susage "$msg"
     exit -1
 }
 
@@ -1003,8 +1052,11 @@ _parseFromArgToVars() {
                     local optVal=${__arg##*=}   # Get tail till first '=' met
                     __argv+=("$optName")       
                         #_log_dbg "2dash arg: ${optName}"
-
                     if [ "$__arg" != "$optVal" ] ; then
+                        if [ -z "$optVal" ] ; then
+                            _susage "A empty value is passed for option '$optName'"
+                        fi
+
                         # If a value is supplied, add the value as well
                         __argv+=("$optVal")
                         #_log_dbg "2dash arg value: ${optVal}"
@@ -1019,14 +1071,28 @@ _parseFromArgToVars() {
                             local opt1=${k%%|*}
                             local opt2=${k##*|}
                             if [ "$__arg" == "$opt1" ] || [ "$__arg" == "$opt2" ] ; then
-                                    if [ "${OPTION_LIST_ARGS["$k"]}" == "0" ] ; then # value expected
-                                            local optName=${__arg%%=*}
-                                            #_log_dbg "'$__arg' '$optName'"
-                                            if [ "$__arg" == "$optName" ] ; then
-                                                    _susage "A value is mandatory for option '$optName'"    
-                                            fi   
+
+                                # Check expected option vars are defined for options with values
+
+                                if [ ! -v OPTION_LIST_ARGS["$k"] ] ; then
+                                    _susage "definition of XXXX___OPTION_LIST_ARGS is expected for option ${k}"
+                                fi
+
+                                if [ "${OPTION_LIST_ARGS["$k"]}" == "0" ] || [ "${OPTION_LIST_ARGS["$k"]}" == "2" ] ; then # value expected
+                                    if [ ! -v OPTION_LIST_VALS["$k"] ] ; then
+                                        _susage "definition of XXXX___OPTION_LIST_VALS is expected for option ${k}"
                                     fi
-                                    break
+                                fi
+
+                                if [ "${OPTION_LIST_ARGS["$k"]}" == "0" ] ; then # value expected
+                                        local optName=${__arg%%=*}
+                                            #_log_dbg "'$__arg' '$optName'"
+                                        if [ "$__arg" == "$optName" ] ; then
+                                                _susage "A value is mandatory for option '$optName'"
+                                        fi   
+                                fi
+
+                                break
                             fi
                         done
                     fi
@@ -1056,43 +1122,65 @@ _parseFromArgToVars() {
     # process all arguments
     for __arg in "${__argv[@]}"        
     do
-            _log_dbg "process all arguments ${__argc}: $__arg '$__prevarg' keys:'${!OPTION_LIST_DESC[@]}'"
+        #_log_vars __arg
+        _log_dbg "process all arguments ${__argc}: $__arg '$__prevarg' keys:'${!OPTION_LIST_DESC[@]}'"
 
-            # try process with new map
-            local k=0
-            local found=1
-            for k in ${!OPTION_LIST_DESC[@]}
-            do
+        # try process with new map
+        local k=0
+        local found=1
+        for k in "${!OPTION_LIST_DESC[@]}"
+        do
                 #_log_dbg "test key $k: opt1=$opt1 opt2=$opt2 args?'${OPTION_LIST_ARGS["$k"]}' action?'${OPTION_LIST_ACTI["$k"]}'"
-                    local opt1=${k%%|*}
-                    local opt2=${k##*|}
-                    if [ "$__arg" == "$opt1" ] || [ "$__arg" == "$opt2" ] ; then
-                            _log_dbg "MATCH key $k: opt1=$opt1 opt2=$opt2 args?'${OPTION_LIST_ARGS["$k"]}' action?'${OPTION_LIST_ACTI["$k"]}'"
-                            if [ ! -z "${OPTION_LIST_ACTI["$k"]}"  ] ; then
-                                    eval "${OPTION_LIST_ACTI["$k"]}" 
-                            fi
+                local opt1=${k%%|*}
+                local opt2=${k##*|}
+        
+                #_log_vars __arg k __prevarg
 
+                if [ "$__arg" == "$k" ] || [ "$__arg" == "$opt1" ] || [ "$__arg" == "$opt2" ] ; then
+                        # When detecting and handling a new option, __prevarg should be 
+                        # empty, any previous assign option must have been assigned a value
+                        # in which process __prevarg is reset to "". See comments below too
+                        if [ ! -z "$__prevarg" ] ; then
+                                if [ "${OPTION_LIST_ARGS["$__prevarg"]}" != 2 ] ; then
+                                        _susage "argument expected for option ${__prevarg}" # ${__prevarg//|/}"
+                                fi
+                        fi
+
+                        #_log_dbg "MATCH key $k: opt1=$opt1 opt2=$opt2 args?'${OPTION_LIST_ARGS["$k"]}' action?'${OPTION_LIST_ACTI["$k"]}'"
+                        if [ ! -z "${OPTION_LIST_ACTI["$k"]}"  ] ; then
+                            eval "${OPTION_LIST_ACTI["$k"]}" 
+                        fi
+                        
+                        if [ -v OPTION_LIST_ARGS["$k"] ] ; then
                             if [ "${OPTION_LIST_ARGS["$k"]}" == "1" ] ; then
-                                    __prevarg=""
+                                __prevarg=""
                             else
-                                    __prevarg="$k" 
+                                __prevarg="$k" 
                             fi
-                            found=0
-                            break
-                    fi
-            done
+                        else
+                            __prevarg=""
+                        fi
+                        found=0
+                        break
+                fi
+        done
 
-            if [ $found -ne 0 ] ; then 
-                    _parseArgsProcessDashLessArg ${!OPTION_LIST_VALS} "$__arg" __prevarg $__arg_cnt # handle it as file or device
-                    __arg_cnt=$?
-            fi
+        # When argument (__arg) did not match an option, it is either an independent argument
+        # (dashless), or it may be an option value. In this latter case, __prevarg gives
+        # the key of the actual option for which the value is assigned
+        if [ $found -ne 0 ] ; then 
+                _parseArgsProcessDashLessArg ${!OPTION_LIST_VALS} "$__arg" __prevarg $__arg_cnt # handle it as file or device
+                __arg_cnt=$?
+        fi
+
+        #_log_vars __prevarg
     done
 
+    # End test: prevarg should be empty
     if [ ! -z "$__prevarg" ] ; then
             if [ "${OPTION_LIST_ARGS["$__prevarg"]}" != 2 ] ; then
                     _susage "argument expected for option ${__prevarg}" # ${__prevarg//|/}"
-            fi       
-
+            fi
     fi
 
     out_argc="$__argc"
@@ -1129,6 +1217,7 @@ _parseArgsProcessDashLessArg()
     if Str__startsWith "$__myarg" "-" ; then
             _susage "unknown option '$__myarg'"
     fi
+
     if [ -z "$__myprevarg" ] ; then
             _invokeCallback parseArgsHandleOptionLessArg ${__myarg_cnt} "$__myarg" 
 
@@ -2357,14 +2446,18 @@ Env__arch() {
 declare -A Str__globalSwapBuffer
 
 :<<'EOF'
-If called with a value,  this value is assigned to the variable and saves the initial value of the variable in an internal buffer. 
+If called with a single value, this value is assigned to the variable and saves the initial value of the variable in an internal buffer. 
 
-Afterwards, if the function is called without value, it restores any previously saved value for the given variable and forgets about it. Recalling the function does not affect anymore the variable. If called without value and not saved value is available, it has no effect.
+Afterwards, if the function is called without value, it restores the last saved value for the given variable and forgets about it. Recalling the function does not affect anymore the variable. If called without value and not saved value is available, it has no effect.
+
+If called with 2 values, variable is assigned alternatively between the 2 values by successive calls by checking the currently saved value. 
+
 EOF
 Str__swap()
 {
     local -n __inoutSwapVariable=$1
     if [ $# -eq 1 ] ; then
+        # Value is NOT specified
         if [ -v Str__globalSwapBuffer["$1"] ] ; then
         #echo "restore $1: ${Str__globalSwapBuffer["$1"]}" >&2
             #export $1="${Str__globalSwapBuffer["$1"]}"
@@ -2374,7 +2467,31 @@ Str__swap()
             unset Str__globalSwapBuffer["$1"]
         fi
         # Otherwise value is unchanged
-    else 
+    elif [ $# -eq 3 ] ; then    
+        if [ -v Str__globalSwapBuffer["$1"] ] ; then
+            # Value is stored
+            local storedVal="${Str__globalSwapBuffer["$1"]}"
+            local expcmd=""
+            if [ "${storedVal}" = "$2" ] ; then
+                Str__globalSwapBuffer["$1"]="$3"
+                expcmd="export $1=$2"
+            elif [ "${storedVal}" = "$3" ] ; then
+                Str__globalSwapBuffer["$1"]="$2"
+                expcmd="export $1=$3"
+            else
+                Str__globalSwapBuffer["$1"]="${__inoutSwapVariable}"
+                expcmd="export $1=${storedVal}"
+            fi
+            eval $expcmd
+        else
+            # No value is stored. Set var to first value and save the second
+            Str__globalSwapBuffer["$1"]="$3"
+            local expcmd="export $1=$2"
+            eval $expcmd
+        fi
+
+    else # [ $# -eq 2 ] # 2 args
+        # Value is specified
         #echo "store $1: ${2}" >&2
 
         Str__globalSwapBuffer["$1"]="${__inoutSwapVariable}"
@@ -2452,29 +2569,49 @@ Str__padded()
 Indents a paragraph by inserting spaces at the start of each line.
 @param[1] number of spaces to add
 @param[2] ref to the var used as input and modified with the indended content.
+@param[3] in optional Start line from which to indent
 EOF
 Str__indent()
 {
     local extraIndent="$(Str__spaces $1)"
     local -n __out_str=$2
     #local -n __in_out_for_indent=$2
-    Str__prefix "$extraIndent" ${!__out_str}
+    Str__prefix "$extraIndent" ${!__out_str} $3
 }
+
+:<<'EOF'
+Prefixes each line of a paragraph with the passed prefix string
+@param[1] prefix
+@param[2] ref to the var used as input and modified with the prefixed content.
+@param[3] in optional Start line from which to prefix
+EOF
 
 Str__prefix()
 {
     local __prefix="$1"
     local -n __in_out_for_indent=$2
     local indented=""
+    local __startLine=0
 
+    if [ $# -ge 3 ] && Int__isInt "$3" ; then
+        __startLine=$3
+    fi
+    local __lineCounter=0
     while IFS= read -r l 
     do
-            if [ -z "${indented}" ] ; then
-                    indented="${__prefix}${l}"
-            else
-                    indented="${indented}
-${__prefix}$l"
-            fi
+    #_log_vars __lineCounter __startLine
+        local actualPrefix="${__prefix}"
+        if [ ${__lineCounter} -lt ${__startLine} ] ; then 
+            actualPrefix=""
+        fi
+
+        if [ -z "${indented}" ] ; then
+                indented="${actualPrefix}${l}"
+        else
+                indented="${indented}
+${actualPrefix}$l"
+        fi
+        __lineCounter=$(( ${__lineCounter} + 1))
     done <<<"${__in_out_for_indent}"
     __in_out_for_indent="${indented}"
     return 0
@@ -2636,6 +2773,102 @@ Str__endsWith() {
         echo -n "" >&2
         return 1
     fi        
+}
+
+:<<'EOF'
+Greps all lines matching exactly the input string and retrieves the field values of the matching lines according to the passed separator and index
+@param [1] input string
+@param [2] substring to search for
+@param[3] field separator
+@param[4] field index
+@param [5] out ref to var storing the array of found fields
+@param[6] in optional bool telling with not to interpret \ as an escape char
+EOF
+
+Str__grepAndGetField() {
+    local __inStr="$1"
+    local __inSearch="$2"
+    local __inSep="$3"
+    local __inIdx=$4
+    local -n __outMatches=$5
+    local opt=false
+    if [ $# -ge 6 ] ; then    
+        opt=$6
+    fi
+
+    __outMatches=()
+    local line
+    while IFS='' read -r line
+    do
+        if Str__contains "$line" "${__inSearch}" ; then
+            local fieldValue=""
+            Str__getField "$line" "${__inSep}" "${__inIdx}" fieldValue $opt
+            __outMatches+=("$fieldValue")
+        fi
+    done <<< "${__inStr}"
+}
+
+:<<'EOF'
+Greps all lines matching exactly the input string 
+@param [1] input string
+@param [2] substring to search for
+@param [3] out ref to var storing the lines that matached
+EOF
+
+Str__grep() {
+    local __inStr="$1"
+    local __inSearch="$2"
+    local -n __outMatches=$3
+    local line
+
+    __outMatches=""
+    while IFS='' read -r line
+    do
+        if Str__contains "$line" "${__inSearch}" ; then
+            __outMatches="${__outMatches}
+${line}"
+        fi
+    done <<< "${__inStr}"
+
+    # Remove the extra heading new line added for first item
+    __outMatches="${__outMatches#[[:space:]]}"
+}
+
+:<<'EOF'
+Retrieves the field value in the passed string according to the passed separator and field index.
+@param[1] input string providing the formatted string fields
+@param[2] field separator
+@param[3] field index
+@param[4] ref to the variable that will be assigned the field value
+@param[5] in optional bool telling with not to interpret \ as an escape char
+EOF
+Str__getField() {
+    local __inString="$1"
+    local __inSep="$2"
+    local __inIdx=$3
+    local -n __outField=$4
+
+    local opt=""
+    if [ $# -ge 5 ] ; then    
+        if $5 ; then opt="-r" ; fi
+    fi
+    local count=0
+    __outField=""
+    local __field=""
+    while IFS='' read $opt -d "${__inSep}" __field; do 
+        if [ $count -eq ${__inIdx} ] ; then
+            Str__trim "${__field}" __field
+            __outField="${__field}"
+            count=$(( $count + 1))
+            break
+        fi
+        count=$(( $count + 1))
+    done <<< "${__inString}"
+
+    if [ $count -eq ${__inIdx} ] ; then
+        Str__trim "${__field}" __field
+        __outField="${__field}"
+    fi
 }
 
 
@@ -3139,8 +3372,9 @@ EOF
 Str__linesToArray() {
     local __inStr="$1"
     local -n __outArray=$2
-    readarray -t -d"
-" __outArray <<< "${__inStr}"
+    # By default read array uses new line as delimited no need for -d"
+    # "
+    readarray -t __outArray <<< "${__inStr}"
 }
 
 
@@ -3236,7 +3470,7 @@ Str__fitToLineWidth() {
                     cIdx=$(( $cIdx - 1 ))
                     c="${lineRemainder:$cIdx:1}"
                 done
-                
+
                 if [ $cIdx -eq  0 ] ; then
                     # Specific case where no space found!
                     # Take the line with max width lw - 1, the rest is the remainder
@@ -3244,8 +3478,9 @@ Str__fitToLineWidth() {
                         newStr="${newStr}
 "
                     fi
-                    newStr="${newStr}${lineRemainder:0:$(( $lw-1 ))}-"
+                    newStr="${newStr}${lineRemainder:0:$(( $lw ))}-"
                     lineRemainder="${line:$lw}"
+                    line="${lineRemainder}"
                 else
                     # Space found! cIdx is the index pointing to the found space
                     if [ ! -z "$newStr" ] ; then 
@@ -3395,6 +3630,60 @@ EOF
 Str__isWord() {
     local pat="^([\.a-zA-Z0-9_-])*$"
     [[ "$1" =~ $pat ]] 
+}
+
+:<<'EOF'
+Highlight substrings in input string matching any of the passed keywords
+@param[1] in input string
+@param[2] in var ref to keywords to hightlight
+@param[3] in bool ignore case?
+@param[4] in highlight color
+@param[5] out string with hightlighted items
+EOF
+Str__highlight() {
+    local __inStr="$1"
+    local -n __inKW=$2
+    local __inIgnCase=$3
+    local __color="$4"
+    local -n __outstr=$5
+
+    __outstr=""
+
+    local inString="${__inStr}"
+    if ${__inIgnCase} ; then 
+        Str__toLower inString 
+    fi
+
+    local keywords=()
+    for kw in "${__inKW[@]}" ; do
+        if ${__inIgnCase} ; then Str__toLower kw ; fi
+        keywords+=("$kw")
+    done
+
+    local len=${#inString}
+    local i=0
+    while [ $i -lt $len ] ; do
+        local kw=""
+        local kwLen=0
+        local found=false
+        for kw in "${keywords[@]}" ; do
+            kwLen=${#kw}
+            if [ $(($len - $i)) -ge ${kwLen} ] ; then
+                local subs="${inString:i:$kwLen}"
+                if [ "$subs" = "$kw" ] ; then
+                    found=true
+                    break
+                fi
+            fi
+        done
+        if $found ; then
+            __outstr="${__outstr}${_pal["${__color}"]}${kw}${Term__reset_color}"
+            i=$(( $i + $kwLen))
+        else
+            __outstr="${__outstr}${inString:i:1}"
+            i=$(( $i + 1))
+        fi
+    done
 }
 
 # --------------------------------------------------------------------------------------
@@ -3802,6 +4091,14 @@ Args__checkMinCount() {
 # Array API
 # --------------------------------------------------------------------------------------
 
+:<<'EOF'
+Sorts an array of spaceless values. 
+Note this does not work if an value contains any space, because this output array
+is rebuilt from a sorted string
+@param [1] ref to input array
+@param [2] ref to new sorted output array
+@return 0 when found, 1 when not
+EOF
 Array__getSortedArray() {
     local -n __inArrAsStr=$1
     local -n __outSortedArr=$2
@@ -3865,6 +4162,41 @@ Array__contains_by_string() {
     return 1
 }
 
+
+:<<'EOF'
+Creates an array from a string, in which fields
+are separated by the specified separator.
+Spaces are trimmed from each field
+
+Update: this replaces Array__fromStringOLD, because it is possible to detect chars escaped with \, whereby the separator can be contained itself in a value. It is also more efficient.
+
+@param[1] input string providing the formatted array
+@param[2] separator
+@param[3] ref to the variable that will be assigned the created array
+@param[4] in optional bool telling with not to interpret \ as an escape char
+EOF
+Array__fromString() {
+    local __inString="$1"
+    local __inSep="$2"
+    local -n __outFieldArray=$3
+    __outFieldArray=()
+    local __field=""
+
+    local opt=""
+    if [ $# -ge 4 ] ; then    
+        if $4 ; then opt="-r" ; fi
+    fi
+
+    while IFS='' read $opt -d "${__inSep}" __field; do 
+        Str__trim "${__field}" __field
+        __outFieldArray+=("${__field}")
+    done <<< "${__inString}"
+    # Read fails when no other field was read, bit __field yet contains
+    # remaining value till the end
+    Str__trim "${__field}" __field
+    __outFieldArray+=("${__field}")
+}
+
 :<<'EOF'
 Creates an array from a string, in which fields
 are separated by the specified separator.
@@ -3873,7 +4205,7 @@ Spaces are trimmed from each field
 @param[2] separator
 @param[3] ref to the variable that will be assigned the created array
 EOF
-Array__fromString() {
+Array__fromStringOLD() {
     local __inString="$1"
     local __inSep="$2"
     local -n __outFieldArray=$3
@@ -3881,12 +4213,14 @@ Array__fromString() {
     readarray -t -d"${__inSep}" __outFieldArray <<< "${__inString}"
 
     # Remove any new line that may be introduced by readarray
+
     local lastIndex="${#__outFieldArray[@]}"
     if [ $lastIndex -gt 0 ] ; then
         lastIndex=$(( $lastIndex - 1))
         Str__trimEnd "${__outFieldArray[$lastIndex]}" __outFieldArray[$lastIndex] '
 '
     fi
+
     # Trim each field value
     local __field
     local __cnt=0
@@ -3897,6 +4231,140 @@ Array__fromString() {
         __outFieldArray[${__cnt}]="${__field}"
         __cnt=$(( ${__cnt} + 1))
     done
+}
+
+:<<'EOF'
+Converts an array to a string , separating items by the supplied separator
+@param[1] ref to input array
+@param[2] separator
+@param[3] ref to var that will contain output string
+EOF
+
+Array__toString() {
+    local -n __inArray=$1
+    local __inSep="$2"
+    local -n __outStr=$3
+    local __item=""
+    __outStr=""
+    for __item in "${__inArray[@]}" ; do
+        __outStr="${__outStr}${__inSep}${__item}"
+    done
+    Str__trimStart "${__outStr}" __outStr ${__inSep}
+}
+
+:<<'EOF'
+Converts a table of records to a terminal output sheet where the data of each line is displayed in a column on equal size, which is set to the data field of maximum size
+
+A record is a lines containing data fields which are separated by the specified separator as arg 2. When no separator is specified, ';' is assumed, i.e. CSV records format is assumed
+
+Option third parameter enables to pass an alternate table of records to use explicitly for the computing of the column width. A typical use is when the input string containing escape chars for terminal colors, whereby the length of the internal string won't match that on the display. Typically, the 3rd argument would be the copy of the 1st argument, but without the terminal escape chars.
+
+@param[1] in input string
+@param[2] in separator 
+@param[3] in alternate table of records to use explicitly for the computing of the column width
+@param[4] in optional bool telling whether not to interpret \ as an escape char. This can be useful when values contains terminal color escale sequences
+
+EOF
+Array__toTextTable()
+{
+    local __inCVSLines="$1"
+    local __inSep=";"
+    local __inCVSLinesForColWidth="$1"
+    if [ $# -ge 2 ] ; then
+        __inSep="$2"
+    fi
+
+    if [ $# -ge 3 ] ; then
+         __inCVSLinesForColWidth="$3"
+    fi
+
+    local doNotInterpretEscapeBackslash=false
+    if [ $# -ge 4 ] ; then    
+        if $4 ; then doNotInterpretEscapeBackslash=$4 ; fi
+    fi
+
+    declare -A maxColWidth
+    declare -A additionalSpaces
+    local line=""
+    while IFS='' read -r line ; do
+        local csvFields=()
+        Array__fromString "${line}" "${__inSep}" csvFields $doNotInterpretEscapeBackslash
+
+        local csvIndex=0
+        local csvField=""
+        while [ $csvIndex -lt ${#csvFields[@]} ]  ; do
+            csvField="${csvFields[$csvIndex]}"
+            local curMax=${maxColWidth[$csvIndex]}
+            if [ -z "$curMax" ] ; then curMax=0; fi
+            Int__max ${#csvField} ${curMax} curMax
+            maxColWidth[$csvIndex]=$curMax            
+            csvIndex=$(($csvIndex + 1))
+        done
+    done <<< "${__inCVSLinesForColWidth}"
+    
+    local allLines=()
+    local allLinesForColWidth=()
+    readarray -t allLines <<< "${__inCVSLines}"
+    if [ $# -ge 3 ] ; then
+        readarray -t allLinesForColWidth <<< "${__inCVSLinesForColWidth}"
+    fi
+    local lineCnt=0
+    
+    while [ $lineCnt -lt ${#allLines[@]} ] ; do
+        line="${allLines[$lineCnt]}"
+        local lineForColWidths=""
+        if [ $# -ge 3 ] ; then
+            lineForColWidths="${allLinesForColWidth[$lineCnt]}"
+        else
+            lineForColWidths="${line}"
+        fi
+        local csvFields=()
+        local csvFieldsForColWidths=()
+        local csvIndex=0
+        local csvField=""
+        local csvFieldForColWidth=""
+        Array__fromString "${line}" "${__inSep}" csvFields $doNotInterpretEscapeBackslash
+        if [ $# -ge 3 ] ; then
+            Array__fromString "${lineForColWidths}" "${__inSep}" csvFieldsForColWidths $doNotInterpretEscapeBackslash
+        fi
+
+        while [ $csvIndex -lt ${#csvFields[@]} ]  ; do
+            csvField="${csvFields[$csvIndex]}"
+            if [ $# -ge 3 ] ; then
+                csvFieldForColWidth="${csvFieldsForColWidths[$csvIndex]}"
+            else
+                csvFieldForColWidth="${csvField}"
+            fi
+            local curMax=${maxColWidth[$csvIndex]}
+            printf "%s" "${csvField}"
+            Str__spaces $(( ${curMax} - ${#csvFieldForColWidth}))
+            printf " "
+            csvIndex=$(($csvIndex + 1))
+        done
+        printf "\n"
+
+        lineCnt=$(( $lineCnt + 1))
+    done
+
+:<<'EOF'
+    # THIS WAS THE IMPLEMENTATION PRIOR TO INTRODUCING __inCVSLinesForColWidth
+    while IFS='' read -r line ; do
+        local csvFields=()
+        Array__fromString "${line}" "${__inSep}" csvFields
+        local csvIndex=0
+        local csvField=""
+        while [ $csvIndex -lt ${#csvFields[@]} ]  ; do
+            csvField="${csvFields[$csvIndex]}"
+            local curMax=${maxColWidth[$csvIndex]}
+            _log_vars curMax >&2
+            #csvField="$(_colorText "$csvField" "blue_reverse")"
+            Str__padded "${csvField}" ${curMax}
+            printf " "
+            csvIndex=$(($csvIndex + 1))
+        done
+        printf "\n"
+    done <<< "${__inCVSLines}"
+EOF
 }
 
 # --------------------------------------------------------------------------------------
@@ -5056,6 +5524,11 @@ File__dirSHA256() {
     if [ $# -ge 3 ] ; then
         __inLSIgnoreOptions="$3"
     fi
+    #_log_vars LANG LC_ALL TZ >&2
+
+    if [ -z "$TZ" ] ; then
+        Date__getTimezone TZ
+    fi
 
     Str__swap TZ "US/Pacific"
     Str__swap LC_ALL "C.UTF-8"
@@ -5748,6 +6221,25 @@ Date__elapsedMinutesTimer()
         fi
     else
         return 1
+    fi
+}
+
+:<<'EOF'
+Returns the active timezone. First attempts to read it from TZ env variables. When not attempts to read it using timedatectl 
+@param[1] ref to var where to store timezone
+EOF
+
+Date__getTimezone()
+{
+    local -n __outTZ=$1
+    if [ -z "${TZ}" ] ; then
+        local timeStatus="$(timedatectl status)"
+        local foundFields=()
+        Str__grepAndGetField "${timeStatus}" "Time zone" ":" 1 foundFields
+        __outTZ="${foundFields[0]}"
+        __outTZ=${__outTZ%% *}
+    else
+        __outTZ="${TZ}"
     fi
 }
 

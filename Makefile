@@ -155,7 +155,7 @@ build_release:  required_tools  CHANGELOG.txt COPYRIGHT.txt VERSION.txt
 	@cp pack/debian/control $(VERS_REL_DIR)/debian/
 	@#
 	@echo "----- CREATING THE DEBIAN INSTALL FILES"
-	@cd $(VERS_REL_DIR) && ls -1|grep -v debian|awk '{ print $$1,"/usr/bin/shell-api" }' > debian/install
+	@cd $(VERS_REL_DIR) && ls -1|grep -v debian|awk -v pkg=$(PKG) '{ print $$1,"/usr/bin/" pkg }' > debian/install
 	@#
 	@#echo "----- DEBIAN MANPAGE FILE"
 	@#cp shell-api.8 $(VERS_REL_DIR)/debian/$(PRODUCT).8
