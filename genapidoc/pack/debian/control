@@ -1,0 +1,13 @@
+Source: genapidoc
+Maintainer: Michel MEHL <michel.mehl@slashetc.fr>
+Section: misc
+Priority: optional
+Standards-Version: 4.7.0
+Build-Depends: debhelper-compat (= 13)
+
+Package: genapidoc
+Homepage: https://github.com/michelm33/genapidoc
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, shell-api (>=1.0-0)
+Description: Generates various content from the shell api
+ Generates various content from the shell api

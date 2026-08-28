@@ -1,0 +1,5 @@
+Genapidoc
+
+Copyright (c) 2026 Michel MEHL. All rights reserved. 
+
+License terms written down in file LICENSE.txt

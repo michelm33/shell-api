@@ -10,11 +10,11 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-selftest.sh
-# Release file date: 2026-08-13 11:40
+# Release file date: 2026-08-27 17:40
 # App version: 1.1.2
-# App source revision: 120
-# App source signature: 5ac23715bc2616c2c0023b4318b0a932f1fbf863a53eeada5b5f5b596d3f2c7a
-# Source file last modification: 2026-08-13 11:35:37.376330318 +0200
+# App source revision: 162
+# App source signature: ba5b642a92066a4177dcd891c19a03c235a837a604312a0801a4aeea7c8929a4
+# Source file last modification: 2026-08-15 13:35:01.023359955 +0200
 #
 # This header was generated. Do not modify.
 #
@@ -52,6 +52,19 @@ Test__resultAll=0
 
 ###############################################################################
 # UNFORMAL QUICKTESTS TO BE PUT IN ORDER
+
+testPerfTrim()
+{
+    _log "Standard tests"
+    Test__Str
+
+    _log "Perf test Str__trim"
+    local var="$(find /home/michel/photobook-demos/output -name "*")"
+    for i in {1..1000};do
+        Str__trim "$var" var
+    done    
+
+}
 
 testGrepAndGetField()
 {
@@ -134,21 +147,21 @@ System clock synchronized: no
     fi
 }
 
-return 0
-
-timerid=0
-elapsed=0
-Date__startTimer timerid 
-sleep 5
-Date__elapsedSecondsTimer $timerid elapsed
-echo "${elapsed} seconds elapsed"
-sleep 3
-Date__elapsedSecondsTimer $timerid elapsed
-echo "${elapsed} seconds elapsed"
-Date__elapsedMinutesTimer $timerid elapsed
-echo "${elapsed} minutes elapsed"
-exit 0
-
+testTimer()
+{
+    timerid=0
+    elapsed=0
+    Date__startTimer timerid 
+    sleep 5
+    Date__elapsedSecondsTimer $timerid elapsed
+    echo "${elapsed} seconds elapsed"
+    sleep 3
+    Date__elapsedSecondsTimer $timerid elapsed
+    echo "${elapsed} seconds elapsed"
+    Date__elapsedMinutesTimer $timerid elapsed
+    echo "${elapsed} minutes elapsed"
+    exit 0
+}
 
 
 testYamlPerfReadAll() {
@@ -174,347 +187,363 @@ testYamlOneFile() {
     YAML__dumpAll myYAMLDataMap
 }
 
-#testYamlOneFile "" "/home/michel/website2/conf/bookmake.yml" ; exit 0
+testManyYamlTests() {
+    #testYamlOneFile "" "/home/michel/website2/conf/bookmake.yml" ; exit 0
 
 
-testStr="$(cat <<'EOF' 
-titles:
- - [ "1", "Milan", ~ ]
- - [ "2", "Rome", "2023-04-23{nbsp}00:00:00" ]
- - [ "3", "Pompéi", "2023-04-29{nbsp}00:00:00" ]
-
-
-EOF
-)"
-testYamlOneFile "$testStr"  
-
-#exit 0
-
-
-testStr="$(cat <<'EOF' 
-  include:
-    start-date: ~
-    end-date: ~
-    explicit-files:
-      "mountpilot_sshot_list_1.png" :
-        chapter: "Examples of list commands for list 1"
-        title: "Default List (everything but loop devices)"
-      "mountpilot_sshot_list_2.png" :
-        chapter: "Examples of list commands for list 2"
-        title: "List all except loop devices (default behavior)"
-EOF
-)"
-testYamlOneFile "$testStr"  
-#exit 0
-
-testYArray1='[ 1,2,3,4]# comment with an array [ word, int ]'
-echo "result for $testYArray1"
-YAML__readAll_decodeArrayValue testYArray1 1 " bidon" 
-echo "'$testYArray1'"
-
-testYArray1='[ 1,2,3,4]#comment'
-echo "result for $testYArray1"
-YAML__readAll_decodeArrayValue testYArray1 1 " bidon" 
-echo "'$testYArray1'"
-
-testYArray1='[ 1,2,3,4]  #comment'
-echo "result for $testYArray1"
-YAML__readAll_decodeArrayValue testYArray1 1 " bidon" 
-echo "'$testYArray1'"
-
-testYArray1='[ 1,2,3,4]'
-echo "result for $testYArray1"
-YAML__readAll_decodeArrayValue testYArray1 1 " bidon" 
-echo "'$testYArray1'"
-
-testYArray2='[ "s1", "s2", "s3" ]'
-echo "result for $testYArray2"
-YAML__readAll_decodeArrayValue testYArray2 1 " bidon" 
-echo "'$testYArray2'"
-
-testYArray2='[ "value with space", "s2", " here also spaces at both ends " ]'
-echo "result for $testYArray2"
-YAML__readAll_decodeArrayValue testYArray2 1 " bidon" 
-echo "'$testYArray2'"
-
-
-testYArray3='[ "s1", "s2", "s3"'
-echo "result for $testYArray3"
-YAML__readAll_decodeArrayValue testYArray3 1 " bidon" 
-echo "'$testYArray3'"
-
-testYArray4='[ "s1", "s2, "s3" ]'
-echo "result for $testYArray4"
-YAML__readAll_decodeArrayValue testYArray4 1 " bidon" 
-echo "'$testYArray4'"
-
-#exit 0
-
-
-
-
-testStr="$(cat <<'EOF' 
-f0: 
- - f0_1
- - f0_2
-
-field1: - f1_1
- - f1_2
-
-f2: 
- - f2_1 with space
- - f2_2 with space too
-
-f3:
-  f4:
-    - v1
-  -v2:12
-
-f4: [ 1,2,3,4]
-f5:
-  [ "s1", "s2", "s3" ]
-
-# Values with quotes
-f6: 
-    -    "file1 f6"  
-    - "file2 f6"
-    - "file3 f6"
-    - "file4 f6"
-
-titles:
- - [ "1", "Milan", ~ ]
- - [ "2", "Rome", "2023-04-23{nbsp}00:00:00" ]
- - [ "3", "Pompéi", "2023-04-29{nbsp}00:00:00" ]
+    testStr="$(cat <<'EOF' 
+    titles:
+    - [ "1", "Milan", ~ ]
+    - [ "2", "Rome", "2023-04-23{nbsp}00:00:00" ]
+    - [ "3", "Pompéi", "2023-04-29{nbsp}00:00:00" ]
 
 
 EOF
-)"
-testYamlOneFile "$testStr"  
+    )"
+    testYamlOneFile "$testStr"  
 
-exit 0
+    #exit 0
 
 
-testStr="$(cat <<'EOF' 
-property0:
+    testStr="$(cat <<'EOF' 
+    include:
+        start-date: ~
+        end-date: ~
+        explicit-files:
+        "mountpilot_sshot_list_1.png" :
+            chapter: "Examples of list commands for list 1"
+            title: "Default List (everything but loop devices)"
+        "mountpilot_sshot_list_2.png" :
+            chapter: "Examples of list commands for list 2"
+            title: "List all except loop devices (default behavior)"
+EOF
+    )"
+    testYamlOneFile "$testStr"  
+    #exit 0
+
+    testYArray1='[ 1,2,3,4]# comment with an array [ word, int ]'
+    echo "result for $testYArray1"
+    YAML__readAll_decodeArrayValue testYArray1 1 " bidon" 
+    echo "'$testYArray1'"
+
+    testYArray1='[ 1,2,3,4]#comment'
+    echo "result for $testYArray1"
+    YAML__readAll_decodeArrayValue testYArray1 1 " bidon" 
+    echo "'$testYArray1'"
+
+    testYArray1='[ 1,2,3,4]  #comment'
+    echo "result for $testYArray1"
+    YAML__readAll_decodeArrayValue testYArray1 1 " bidon" 
+    echo "'$testYArray1'"
+
+    testYArray1='[ 1,2,3,4]'
+    echo "result for $testYArray1"
+    YAML__readAll_decodeArrayValue testYArray1 1 " bidon" 
+    echo "'$testYArray1'"
+
+    testYArray2='[ "s1", "s2", "s3" ]'
+    echo "result for $testYArray2"
+    YAML__readAll_decodeArrayValue testYArray2 1 " bidon" 
+    echo "'$testYArray2'"
+
+    testYArray2='[ "value with space", "s2", " here also spaces at both ends " ]'
+    echo "result for $testYArray2"
+    YAML__readAll_decodeArrayValue testYArray2 1 " bidon" 
+    echo "'$testYArray2'"
+
+
+    testYArray3='[ "s1", "s2", "s3"'
+    echo "result for $testYArray3"
+    YAML__readAll_decodeArrayValue testYArray3 1 " bidon" 
+    echo "'$testYArray3'"
+
+    testYArray4='[ "s1", "s2, "s3" ]'
+    echo "result for $testYArray4"
+    YAML__readAll_decodeArrayValue testYArray4 1 " bidon" 
+    echo "'$testYArray4'"
+
+    #exit 0
+
+
+
+
+    testStr="$(cat <<'EOF' 
+    f0: 
+    - f0_1
+    - f0_2
+
+    field1: - f1_1
+    - f1_2
+
+    f2: 
+    - f2_1 with space
+    - f2_2 with space too
+
+    f3:
+    f4:
+        - v1
+    -v2:12
+
+    f4: [ 1,2,3,4]
+    f5:
+    [ "s1", "s2", "s3" ]
+
+    # Values with quotes
+    f6: 
+        -    "file1 f6"  
+        - "file2 f6"
+        - "file3 f6"
+        - "file4 f6"
+
+    titles:
+    - [ "1", "Milan", ~ ]
+    - [ "2", "Rome", "2023-04-23{nbsp}00:00:00" ]
+    - [ "3", "Pompéi", "2023-04-29{nbsp}00:00:00" ]
+
+
+EOF
+    )"
+    testYamlOneFile "$testStr"  
+
+    exit 0
+
+
+    testStr="$(cat <<'EOF' 
+    property0:
+        property1 : | 
+        1st line of property1
+        2nd line of property1
+            third line with more indent
+        prop2: caramel - a crazy one
+
+    p0:
+        p1 : | 
+            1st line of p1
+            2nd line of p1
+                third line with more indent
+            4th line
+
+    property2: |
+    1st line of property2
+    2nd line of property2
+
+
+    property3:
+    joe
+    tata
+EOF
+    )"
+    testYamlOneFile "$testStr"  
+
+    #exit 0
+
+    testStr="$(cat <<'EOF' 
     property1 : | 
-     1st line of property1
-     2nd line of property1
-         third line with more indent
-     prop2: caramel - a crazy one
-
-p0:
-    p1 : | 
-        1st line of p1
-           2nd line of p1
-              third line with more indent
-        4th line
-
-property2: |
- 1st line of property2
- 2nd line of property2
-
-
-property3:
-  joe
-  tata
+    this is a simple multiline value                
+    second line
 EOF
-)"
-testYamlOneFile "$testStr"  
+    )"
+    testYamlOneFile "$testStr"  
 
-#exit 0
+    #exit 0
 
-testStr="$(cat <<'EOF' 
-property1 : | 
-   this is a simple multiline value                
-   second line
+
+    testStr="$(cat <<'EOF' 
+    property1 :
+    subprop1_1: 
+        value is below
+    subprop1_2:
+        subprop1_2_1: 
+                    1_2_1 value below too
+        subprop1_2_2: 1_2_2 value on the same level
+                    
 EOF
-)"
-testYamlOneFile "$testStr"  
+    )"
+    testYamlOneFile "$testStr" 
 
-#exit 0
-
-
-testStr="$(cat <<'EOF' 
-property1 :
-  subprop1_1: 
-      value is below
-  subprop1_2:
-      subprop1_2_1: 
-                1_2_1 value below too
-      subprop1_2_2: 1_2_2 value on the same level
-                
-EOF
-)"
-testYamlOneFile "$testStr" 
-
-#exit 0
+    #exit 0
 
 
-testStr="$(cat <<'EOF' 
-property1 :
-  subprop1_1: 
-      subprop1_1_1: zizou
-   subprop1_2:
-      subprop1_2_1: 
-prop2: 
-    subprop2_1:
-        subprop2_1_1: tata
-        subprop2_1_2: toto
-EOF
-)"
-testYamlOneFile "$testStr" 
-
-exit 0
-
-testStr="$(cat <<'EOF' 
-property1 :
+    testStr="$(cat <<'EOF' 
+    property1 :
     subprop1_1: 
         subprop1_1_1: zizou
     subprop1_2:
         subprop1_2_1: 
-prop2: 
-    subprop2_1:
-        subprop2_1_1: tata
-        subprop2_1_2: toto
-prop3: 
-    subprop3_1:
-prop4: 
-    subprop4_1: joe
-
-property2 : val2
-property3 : val3
-property4 : 
-    subprop4_1: subval4_1
-    subprop4_2: subval4_2
-    subprop4_3: subval4_3
+    prop2: 
+        subprop2_1:
+            subprop2_1_1: tata
+            subprop2_1_2: toto
 EOF
-)"
-testYamlOneFile "$testStr" 
+    )"
+    testYamlOneFile "$testStr" 
 
-exit 0
+    exit 0
 
-
-testStr="$(cat <<'EOF' 
-property1 :
-    subprop1_1: 
-        subprop1_1_1: 
-    subprop1_2:
-        subprop1_2_1: 
-        subprop1_2_2: 
-    subprop1_3:
-        subprop1_3_1: 
-        subprop1_3_2: toto
-property2 : val2
-property3 : val3
-property4 : 
-    subprop4_1: subval4_1
-    subprop4_2: subval4_2
-    subprop4_3: subval4_3
-EOF
-)"
-testYamlOneFile "$testStr"
-
-exit 0
-
-testStr="$(cat <<'EOF' 
+    testStr="$(cat <<'EOF' 
     property1 :
         subprop1_1: 
-            subprop1_1_1: 
-            subprop1_1_2: 
-            subprop1_1_3: 
+            subprop1_1_1: zizou
+        subprop1_2:
+            subprop1_2_1: 
+    prop2: 
+        subprop2_1:
+            subprop2_1_1: tata
+            subprop2_1_2: toto
+    prop3: 
+        subprop3_1:
+    prop4: 
+        subprop4_1: joe
+
     property2 : val2
     property3 : val3
-    property4 : val4 
+    property4 : 
         subprop4_1: subval4_1
         subprop4_2: subval4_2
         subprop4_3: subval4_3
 EOF
-)"
-testYamlOneFile "$testStr"
+    )"
+    testYamlOneFile "$testStr" 
 
-#exit 0
-testStr="$(cat <<'EOF' 
+    exit 0
+
+
+    testStr="$(cat <<'EOF' 
     property1 :
+        subprop1_1: 
+            subprop1_1_1: 
+        subprop1_2:
+            subprop1_2_1: 
+            subprop1_2_2: 
+        subprop1_3:
+            subprop1_3_1: 
+            subprop1_3_2: toto
+    property2 : val2
+    property3 : val3
+    property4 : 
+        subprop4_1: subval4_1
+        subprop4_2: subval4_2
+        subprop4_3: subval4_3
+EOF
+    )"
+    testYamlOneFile "$testStr"
+
+    exit 0
+
+    testStr="$(cat <<'EOF' 
+        property1 :
+            subprop1_1: 
+                subprop1_1_1: 
+                subprop1_1_2: 
+                subprop1_1_3: 
+        property2 : val2
+        property3 : val3
+        property4 : val4 
+            subprop4_1: subval4_1
+            subprop4_2: subval4_2
+            subprop4_3: subval4_3
+EOF
+    )"
+    testYamlOneFile "$testStr"
+
+    #exit 0
+    testStr="$(cat <<'EOF' 
+        property1 :
+            subprop1_1: subval1_1
+        property2 : val2
+        property3 : val3
+        property4 : val4 
+            subprop4_1: subval4_1
+EOF
+    )"
+    testYamlOneFile "$testStr"
+    #exit 0
+
+    testStr="$(cat <<'EOF' 
+    property1 : 
         subprop1_1: subval1_1
     property2 : val2
     property3 : val3
-    property4 : val4 
+    property4 :
         subprop4_1: subval4_1
 EOF
-)"
-testYamlOneFile "$testStr"
-#exit 0
+    )"
+    testYamlOneFile "$testStr"
 
-testStr="$(cat <<'EOF' 
-property1 : 
-    subprop1_1: subval1_1
-property2 : val2
-property3 : val3
-property4 :
-    subprop4_1: subval4_1
+    testStr="$(cat <<'EOF' 
+        property1 : val1
+        property2 : val2
+        property3 : val3
+        property4 : val4 
 EOF
-)"
-testYamlOneFile "$testStr"
+    )"
+    testYamlOneFile "$testStr"
 
-testStr="$(cat <<'EOF' 
-    property1 : val1
-    property2 : val2
-    property3 : val3
-    property4 : val4 
-EOF
-)"
-testYamlOneFile "$testStr"
+    exit 0
+}
 
-exit 0
+testCommonEndString() {
+    commonTailStr=""
+    Str__nbCommonEndString "Mounting a block DEvice"  "Example of mounting of a block device" commonTailStr
+    _log_vars commonTailStr
+    exit 0
+}
 
+testAdbAPI() {
+    adbStr=""
+    Adb__getVersion adbStr
+    _log_vars adbStr
+    Adb__getSDKVersion adbStr
+    _log_vars adbStr
+    Adb__getDeviceName adbStr
+    _log_vars adbStr
+    Adb__listDevices adbStr
+    echo "List of devices "${adbStr[@]}""
+    exit 0
+}
 
-commonTailStr=""
-Str__nbCommonEndString "Mounting a block DEvice"  "Example of mounting of a block device" commonTailStr
-_log_vars commonTailStr
-exit 0
-adbStr=""
-Adb__getVersion adbStr
-_log_vars adbStr
-Adb__getSDKVersion adbStr
-_log_vars adbStr
-Adb__getDeviceName adbStr
-_log_vars adbStr
-Adb__listDevices adbStr
-echo "List of devices "${adbStr[@]}""
-exit 0
-_log_high "Testing install alternatives exfat-utils|exfatlabel"
-Pkg__install "exfatlabel@exfat-utils|exfatlabel" "" apt
-_log_high "Testing install alternatives exfatlabel|exfat-utils"
-Pkg__install "exfatlabel@exfatlabel|exfat-utils" "" apt
-exit 0
-# Env__distrover()
-distro=""
-time Env__distrover 1 distro
-time echo "$distro"
-time Env__distrover 2  distro
-time echo "$distro"
-time Env__distrover 3 distro
+testPkgInstallAlternative() {
+    _log_high "Testing install alternatives exfat-utils|exfatlabel"
+    Pkg__install "exfatlabel@exfat-utils|exfatlabel" "" apt
+    _log_high "Testing install alternatives exfatlabel|exfat-utils"
+    Pkg__install "exfatlabel@exfatlabel|exfat-utils" "" apt
+    exit 0
+}
 
-echo "$distro"
-echo "source: $Env__LSB_RELEASE"
-exit 0
+testDistroEnv() {
+    # Env__distrover()
+    distro=""
+    time Env__distrover 1 distro
+    time echo "$distro"
+    time Env__distrover 2  distro
+    time echo "$distro"
+    time Env__distrover 3 distro
 
-Test__ProgressBar
-exit 0
+    echo "$distro"
+    echo "source: $Env__LSB_RELEASE"
+    exit 0
 
-Test__Input__dirpath
-Test__Input__dirpath_forcedinput
-Test__Str
-Test_URL
-Test_File
-#exit 0
+    Test__ProgressBar
+    exit 0
+}
 
-_log_status high "Uploading app..."
-sleep 3
-_log_status_end ok
-_log_status_end fail
+testInputDirPath() {
+    Test__Input__dirpath
+    Test__Input__dirpath_forcedinput
+    Test__Str
+    Test_URL
+    Test_File
+    #exit 0
+}
 
-exit 0
+testLogStatus() {
+    _log_status high "Uploading app..."
+    sleep 3
+    _log_status_end ok
+    _log_status_end fail
+
+    exit 0
+}
 
 
 :<<'EOF'
@@ -741,15 +770,17 @@ Test__Str_escape_testOneString()
 Test__Str_trim_testOneString()
 {
     local res
-    local nbTrimmed
+    local retCode
     $1 "$2" res
-    nbTrimmed=$?
-    [ $nbTrimmed -eq $4 ] && [ "$res" == "$3" ]
-    Test__printResult $? "$res" "$nbTrimmed"
+    retCode=$?
+    #echo "$2 = $3??"
+    #_log_vars res
+    [ $retCode -eq 0 ] && [ "$res" == "$3" ]
+    Test__printResult $? "$res" 
 }
 
-// MUST BE FORMALIZED
-// MANUALL TESTED ONCE: OK
+# MUST BE FORMALIZED
+# MANUALL TESTED ONCE: OK
 Test__Str_eraseCommonTail()
 {
     s1="/home/michel/riffian/Data/Data/admin/linux/testapp"

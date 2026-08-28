@@ -1,9 +1,9 @@
 #!/bin/bash
 ###############################################################################
 #
-# Genapp tool
+# Genapidoc
 #
-# Copyright (c) 2026 Michel Mehl. All rights reserved.
+# Copyright (c) 2026 Michel MEHL. All rights reserved.
 #
 # ------------------------------------------------------------------------------
 #
@@ -15,11 +15,11 @@
 #
 ###############################################################################
 
-Genapp__version() {
+Genapidoc__version() {
 
-  local verfile="${GENAPP__VARS["MYDIR"]}/VERSION.txt"
-  local revfile="${GENAPP__VARS["MYDIR"]}/REVISION.txt"
-  local copyright="${GENAPP__VARS["MYDIR"]}/COPYRIGHT.txt"
+  local verfile="${GENAPIDOC__VARS["MYDIR"]}/VERSION.txt"
+  local revfile="${GENAPIDOC__VARS["MYDIR"]}/REVISION.txt"
+  local copyright="${GENAPIDOC__VARS["MYDIR"]}/COPYRIGHT.txt"
 
   # Version info
   # Version file contains one line giving the version x.y.z
@@ -73,8 +73,8 @@ Written by ${fnUser}
 EOF
 }
 
-Genapp__revision() {
-  local revfile="${GENAPP__VARS["MYDIR"]}/REVISION.txt"
+Genapidoc__revision() {
+  local revfile="${GENAPIDOC__VARS["MYDIR"]}/REVISION.txt"
 
   # Revision info if any
   if [ -f "${revfile}" ] ;  then
@@ -100,8 +100,8 @@ Genapp__revision() {
   fi
 }
 
-Genapp__hash() {
-  local revfile="${GENAPP__VARS["MYDIR"]}/REVISION.txt"
+Genapidoc__hash() {
+  local revfile="${GENAPIDOC__VARS["MYDIR"]}/REVISION.txt"
 
   # Revision info if any
   if [ -f "${revfile}" ] ;  then
@@ -127,8 +127,8 @@ Genapp__hash() {
   fi
 }
 
-Genapp__versionnum() {
-  local vfile="${GENAPP__VARS["MYDIR"]}/VERSION.txt"
+Genapidoc__versionnum() {
+  local vfile="${GENAPIDOC__VARS["MYDIR"]}/VERSION.txt"
   if [ -f "$vfile" ] ; then
 cat << EOF
 $(cat "$vfile")
@@ -142,16 +142,16 @@ EOF
 Help display callback (-h) for usage
 EOF
 
-Genapp__help() {
+Genapidoc__help() {
   echo
-  Genapp__usage
+  Genapidoc__usage
 }
 
 :<<'EOF'
 Short usage display callback without the option details
 EOF
 
-Genapp__susage_without_options() {
+Genapidoc__susage_without_options() {
   local __cmdbasename="$(basename $0)"
 cat << EOF
 Usage: ${__cmdbasename} OPTIONS [<sample usage arg>]
@@ -163,7 +163,7 @@ EOF
 Usage display callback 
 EOF
 
-Genapp__susage() {
+Genapidoc__susage() {
 
   local ctrlFlag=""
   if [ $# -gt 0 ] ; then
@@ -171,16 +171,16 @@ Genapp__susage() {
   fi
 
 cat << EOF
-$(Genapp__susage_without_options)
+$(Genapidoc__susage_without_options)
 
 OPTIONS:
 
-$(_soptions GENAPP__OPTION_LIST_DESC GENAPP__OPTION_LIST_SDESC GENAPP__OPTION_LIST_ARGS GENAPP__OPTION_LIST_ARGS_TYPE GENAPP__OPTION_LIST_INTERN "" $ctrlFlag)
+$(_soptions GENAPIDOC__OPTION_LIST_DESC GENAPIDOC__OPTION_LIST_SDESC GENAPIDOC__OPTION_LIST_ARGS GENAPIDOC__OPTION_LIST_ARGS_TYPE GENAPIDOC__OPTION_LIST_INTERN "" $ctrlFlag)
 
 EOF
 }
 
-Genapp__usage_args() {
+Genapidoc__usage_args() {
 cat << EOF
 
 Arguments:
@@ -194,31 +194,31 @@ EOF
 Usage display callback 
 EOF
 
-Genapp__usage() {
+Genapidoc__usage() {
 cat << EOF
-$(Genapp__susage)
-$(Genapp__usage_args)
+$(Genapidoc__susage)
+$(Genapidoc__usage_args)
 
 EOF
 }
 
-Genapp__examples() {
-  local exampleFile="${GENAPP__VARS["MYDIR"]}/EXAMPLES.txt"
+Genapidoc__examples() {
+  local exampleFile="${GENAPIDOC__VARS["MYDIR"]}/EXAMPLES.txt"
   if [ -f "${exampleFile}" ] ; then
     cat "${exampleFile}"
   fi
 }
 
-Genapp__man() {
+Genapidoc__man() {
 cat << EOF | less
 *SYNOPSIS*
 
-$(Genapp__susage_without_options)
-$(Genapp__usage_args)
+$(Genapidoc__susage_without_options)
+$(Genapidoc__usage_args)
 
 OPTIONS:
 
-$(_soptions GENAPP__OPTION_LIST_DESC GENAPP__OPTION_LIST_SDESC GENAPP__OPTION_LIST_ARGS GENAPP__OPTION_LIST_ARGS_TYPE GENAPP__OPTION_LIST_INTERN "" "man")
+$(_soptions GENAPIDOC__OPTION_LIST_DESC GENAPIDOC__OPTION_LIST_SDESC GENAPIDOC__OPTION_LIST_ARGS GENAPIDOC__OPTION_LIST_ARGS_TYPE GENAPIDOC__OPTION_LIST_INTERN "" "man")
 
 *DESCRIPTION*
 
@@ -226,7 +226,7 @@ Put your description here
 
 *EXAMPLES*
 
-$(Genapp__examples)
+$(Genapidoc__examples)
 
 Report bugs to <michel.mehl@slashetc.fr>
 

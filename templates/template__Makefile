@@ -47,7 +47,7 @@ man_install: %appname%.8
 	@echo "#################################"
 	@echo "Installing man pages and building gzip for $(TARGET)/$<"
 	@echo 
-	@if which arcv >/dev/null 2>/dev/null; then av diff >/dev/null ; if [ $$? -eq 0 ] ; then av -y co $< >/dev/null; fi ; fi
+	@if which arcv >/dev/null 2>/dev/null; then av diff --fmt=plain >/dev/null ; if [ $$? -eq 0 ] ; then av -y co $< >/dev/null; fi ; fi
 	sudo install -g 0 -o 0 -m 0644 $< $(TARGET)
 	sudo gzip -f $(TARGET)/$<
 

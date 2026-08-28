@@ -10,11 +10,11 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-dev.sh
-# Release file date: 2026-08-13 11:40
+# Release file date: 2026-08-27 17:40
 # App version: 1.1.2
-# App source revision: 120
-# App source signature: 5ac23715bc2616c2c0023b4318b0a932f1fbf863a53eeada5b5f5b596d3f2c7a
-# Source file last modification: 2026-05-05 02:58:12.821290966 +0200
+# App source revision: 162
+# App source signature: ba5b642a92066a4177dcd891c19a03c235a837a604312a0801a4aeea7c8929a4
+# Source file last modification: 2026-08-17 16:22:31.700945128 +0200
 #
 # This header was generated. Do not modify.
 #
@@ -738,7 +738,7 @@ bootable
 @param [1] system device path
 EOF
 
-Sytem__getBootType()
+Dev__getBootType()
 {
 	local devpath="$1"
 	local -n out_boottype=$2

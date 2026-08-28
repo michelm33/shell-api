@@ -2,6 +2,7 @@ CHANGELOG.txt /usr/bin/shell-api-1.1-2
 COPYRIGHT.txt /usr/bin/shell-api-1.1-2
 doc /usr/bin/shell-api-1.1-2
 EXAMPLES.txt /usr/bin/shell-api-1.1-2
+genapidoc /usr/bin/shell-api-1.1-2
 genapp /usr/bin/shell-api-1.1-2
 genapp__help.sh /usr/bin/shell-api-1.1-2
 genapp__options.sh /usr/bin/shell-api-1.1-2

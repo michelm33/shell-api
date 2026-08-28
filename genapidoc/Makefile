@@ -21,13 +21,17 @@ VERSION=$(shell cat VERSION.txt)
 VERSION_DEB=$(shell awk -F'.' '{ printf("%s.%s-%s" ,$$1,$$2,$$3);}' VERSION.txt)
 VERSION_DEB_FOR_TARXV=$(shell awk -F'.' '{ printf("%s.%s_%s" ,$$1,$$2,$$3);}' VERSION.txt)
 VERSION_DEB_FOR_ZIP=$(shell awk -F'.' '{ printf("%s.%s-%s" ,$$1,$$2,$$3);}' VERSION.txt)
-PRODUCT=shell-api
+
+VERSION_SHELLAPI=$(shell cat shell-api/VERSION.txt)
+VERSION_DEB_SHELLAPI=$(shell awk -F'.' '{ printf("%s.%s-%s" ,$$1,$$2,$$3);}' shell-api/VERSION.txt)
+
+PRODUCT=genapidoc
 PKG=$(PRODUCT)-$(VERSION_DEB)
 DATE=$(shell LC_ALL=en_US.UTF-8 date --rfc-email)
 
 PROD_REL_DIR=../release/$(PRODUCT)/
 VERS_REL_DIR=$(PROD_REL_DIR)/$(PKG)
-WEBSITE_DIR=$(shell echo ~/riffian/Data/Documents/professionnel/SlashEtc/siteweb)
+EMAIL=michel.mehl@slashetc.fr
 
 .PHONY: FORCE
 
@@ -35,20 +39,10 @@ WEBSITE_DIR=$(shell echo ~/riffian/Data/Documents/professionnel/SlashEtc/siteweb
 all:
 
 .PHONY: man
-man: shellapi.8 man_install
-	@echo 
-	@echo "#################################"
-	@echo "Creating MANPAGE.txt from man pages"
-	@echo 
-	# Run manpage.txt generation in a terminal of a preselected
-	# width, because paging done by man is dependent of it
-	gnome-terminal --geometry 80x50+0+0 --title="shellapi"  --wait -- bash -c 'man shellapi > MANPAGE.txt'
-	#man shellapi > MANPAGE.txt
-	@if which arcv >/dev/null 2>/dev/null; then av diff >/dev/null ; if [ $$? -eq 0 ] ; then av -y co MANPAGE.txt >/dev/null; fi ; fi
-
+man: genapidoc.8 man_install
 
 .PHONY: man_install
-man_install: shellapi.8
+man_install: genapidoc.8
 	@echo 
 	@echo "#################################"
 	@echo "Installing man pages and building gzip for $(TARGET)/$<"
@@ -57,58 +51,42 @@ man_install: shellapi.8
 	sudo install -g 0 -o 0 -m 0644 $< $(TARGET)
 	sudo gzip -f $(TARGET)/$<
 
-shellapi.8: required_help2man FORCE
+genapidoc.8: required_help2man FORCE
 	@echo 
 	@echo "#################################"
 	@echo "Creating manpage with help2man"
 	@echo 
-	export TZ="US/Pacific" && export LC_ALL="C.UTF-8" && export LANG="EN.US.UTF-8" && help2man -L en_EN@euro --no-info --section 8 --name "shell-api" --help-option="--man" --output=$@ ./genapp
+	export TZ="US/Pacific" && export LC_ALL="C.UTF-8" && export LANG="EN.US.UTF-8" && help2man -L en_EN@euro --no-info --section 8 --name "Generates various content from the shell api" --help-option="--man" --output=$@ ./genapidoc
 # --manual="System Administration Utilities"
 
 .PHONY: required_help2man
 required_help2man:
 	@[  `dpkg-query -W -f='$${db:Status-Abbrev}' help2man` = "ii"  ] && echo "help2man is installed" || sudo apt install help2man
 
-
 .PHONY: required_tools
 required_tools:
 	@[  `dpkg-query -W -f='$${db:Status-Abbrev}' zip` = "ii"  ] && echo "Zip is installed" || sudo apt install zip
 	@[  `dpkg-query -W -f='$${db:Status-Abbrev}' dh-make` = "ii"  ] && echo "dh-make is installed" || sudo apt install dh-make
-
-check_uptodate: FORCE
-	cd "$(ROOT_DIR)" && av check
 
 .PHONY: release
 release: required_tools man release_no_man_internal
 	@echo SUCCESS
 
 .PHONY: release_no_man_internal
-release_no_man_internal: doc check_uptodate create_package web ftp
+release_no_man_internal: create_package 
 	@echo SUCCESS
-
-.PHONY: pub
-pub: export tag
-
-.PHONY: tag
-tag:
-	@echo 
-	@echo 
-	@echo "REQUESTING TO TAG RELEASE WITH ARCV. CTRL-C TO ABORT."
-	@echo " IF ABORTED, TYPE 'make release_tag' or 'av pub' TO RESTART"
-	@echo 
-	@av pub
 
 .PHONY: export
 export:
 	@echo 
 	@echo 
-	@echo "REQUESTING TO EXPORT RELEASE TO GITHUB WITH ARCV. CTRL-C TO ABORT"
-	@echo " IF ABORTED, TYPE 'make release_export' or 'av export' TO RESTART"
+	@echo "REQUESTING TO EXPORT RELEASE FOLDER $(VERS_REL_DIR) TO GITHUB WITH ARCV. CTRL-C TO ABORT"
+	@echo "IF ABORTED, TYPE 'make export'"
 	@echo 
 	@av export $(VERS_REL_DIR)
 
 .PHONY: build_release
-build_release:  required_tools  CHANGELOG.txt COPYRIGHT.txt VERSION.txt
+build_release: required_tools CHANGELOG.txt COPYRIGHT.txt VERSION.txt
 	@echo 
 	@echo "#################################"
 	@echo "CLEAN UP EXISTING RELEASE FOLDER IF ANY"
@@ -123,12 +101,10 @@ build_release:  required_tools  CHANGELOG.txt COPYRIGHT.txt VERSION.txt
 	@echo 
 	@echo "#################################"
 	@echo BUILD RELEASE $(PKG)
-	@rsync -a * $(VERS_REL_DIR)/ \
-			--filter="exclude *.templ"
+	@rsync -av * $(VERS_REL_DIR)/ 
 	@# If arcv is used, generate the REVISION.txt file
-	@if which arcv >/dev/null 2>/dev/null; then arcv -n --silent check 2>/dev/null; if [ $$? -lt 200 ] ; then arcv rev > $(VERS_REL_DIR)/REVISION.txt ; arcv hash >> $(VERS_REL_DIR)/REVISION.txt ;  fi; fi
-	@cm-manage-copyright.sh $(VERS_REL_DIR) .
-	@cd $(VERS_REL_DIR)/
+	@if which arcv >/dev/null 2>/dev/null ; then arcv -n --silent check 2>/dev/null; if [ $$? -lt 200 ] ; then arcv rev > $(VERS_REL_DIR)/REVISION.txt ; arcv hash >> $(VERS_REL_DIR)/REVISION.txt ;  fi; fi
+	@cd $(VERS_REL_DIR)/ && chmod +x genapidoc
 	@echo 
 	@echo "#################################"
 	@echo "CREATING THE RELEASE ZIP FILES"
@@ -138,7 +114,7 @@ build_release:  required_tools  CHANGELOG.txt COPYRIGHT.txt VERSION.txt
 	@echo "#################################"
 	@echo "CREATING THE DEBIAN PACKAGE"
 	@# DEB_BUILD_OPTIONS=nocheck
-	@cd $(VERS_REL_DIR) &&  dh_make --createorig  -c custom --copyrightfile ../COPYRIGHT.txt -e michel.mehl@slashetc.fr -i -y
+	@cd $(VERS_REL_DIR) &&  dh_make --createorig  -c custom --copyrightfile ../COPYRIGHT.txt -e $(EMAIL) -i -y
 	@#
 	@echo "----- CREATING THE DEBIAN CHANGE LOG FILE"
 	@echo -n "$(PRODUCT) " > $(VERS_REL_DIR)/debian/changelog
@@ -149,18 +125,21 @@ build_release:  required_tools  CHANGELOG.txt COPYRIGHT.txt VERSION.txt
 	@cat CHANGELOG.txt|head -n1 >> $(VERS_REL_DIR)/debian/changelog
 	@# INDENT IS RELEVANT BELOW !!
 	@echo >> $(VERS_REL_DIR)/debian/changelog
-	@echo " -- Michel Mehl <michel.mehl@slashetc.fr>  $(DATE)" >> $(VERS_REL_DIR)/debian/changelog
+	@echo " -- Michel MEHL <$(EMAIL)>  $(DATE)" >> $(VERS_REL_DIR)/debian/changelog
 	@echo "" >> $(VERS_REL_DIR)/debian/changelog
 	@#
 	@echo "----- CREATING THE DEBIAN CONTROL FILE"
 	@cp pack/debian/control $(VERS_REL_DIR)/debian/
 	@#
-	@echo "----- CREATING THE DEBIAN INSTALL FILES"
-	@cd $(VERS_REL_DIR) && ls -1|grep -v debian|awk -v pkg=$(PKG) '{ print $$1,"/usr/bin/" pkg }' > debian/install
+	@echo ""----- CREATING THE DEBIAN LINK FILE"
+	@cd $(VERS_REL_DIR) && echo "usr/bin/shell-api-$(VERSION_DEB_SHELLAPI) usr/bin/$(PRODUCT)/shell-api" > debian/links
 	@#
-	@#echo "----- DEBIAN MANPAGE FILE"
-	@#cp shell-api.8 $(VERS_REL_DIR)/debian/$(PRODUCT).8
-	@#echo "debian/shell-api.8" > $(VERS_REL_DIR)/debian/$(PRODUCT).manpages
+	@echo "----- CREATING THE DEBIAN INSTALL FILES"
+	@cd $(VERS_REL_DIR) && ls -1|grep -v debian|awk '{ print $$1,"/usr/bin/genapidoc" }' > debian/install
+	@#
+	@echo "----- DEBIAN MANPAGE FILE"
+	@cp genapidoc.8 $(VERS_REL_DIR)/debian/$(PRODUCT).8
+	@echo "debian/genapidoc.8" > $(VERS_REL_DIR)/debian/$(PRODUCT).manpages
 	@#
 	@echo "----- CLEANUP EXAMPLE FILES"
 	@rm -rf $(VERS_REL_DIR)/debian/*.ex 2>/dev/null || echo  # example folders
@@ -175,6 +154,7 @@ create_package: build_release build_package build_package_cleanup
 	@echo "FINISHED"
 	@echo 
 
+# an alias for update_website_ftp
 .PHONY: package
 package : create_package
 
@@ -195,28 +175,17 @@ build_package_cleanup:
 	@echo 
 	@cd $(VERS_REL_DIR)/debian && rm -r .debhelper && rm -rf $(PRODUCT) && rm debhelper* && rm files && rm rules && echo || echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
 
-.PHONY: web
-web:
+.PHONY: update_website_ftp
+update_website_ftp: ./syncfull.yml /usr/bin/syncfull/syncfull
 	@echo 
 	@echo 
-	@echo "UPDATING DOWNLOAD PAGE"
-	@echo "WARNING YOU MAY HAVE TO RUN MAKE RELEASE TWICE IF ./README.ASCIIDOC IS UPDATED"
-	@echo 
-	@tools/update-web-download-page.sh "$(WEBSITE_DIR)/developertoolsforlinux/pages/shellapi/shellapi_1_overview.adoc" "$(PRODUCT)" "$(VERSION_DEB)" "$(VERSION_DEB_FOR_ZIP)"  && echo && echo '>>>>>>>>>>>>>>> SUCCESS <<<<<<<<<<<<<<<<<<<<' ||  echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
-	@echo 
-
-.PHONY: ftp
-ftp:
-	@echo 
-	@echo "#################################"
 	@echo "UPLOADING TO FTP"
+	@echo "REQUIRES syncfull TO BE INSTALLED"
+	@echo "REQUIRES FILE syncfull.yml TO BE DEFINED"
 	@echo 
 	@sf -F -y && echo && echo '>>>>>>>>>>>>>>> SUCCESS <<<<<<<<<<<<<<<<<<<<' ||  echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
 	@echo 
 
-doc: shell-api-core.sh shell-api-dev.sh shell-api-multimedia.sh shell-api-net.sh shell-api-packing.sh shell-api-sys.sh shell-api-yaml.sh shell-api-xslt.sh
-	@echo Generating online doc for shell api modules and functions
-	@genapidoc/genapidoc --doc="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions.adoc"
-	@tools/update-README.sh
-	@if which arcv >/dev/null 2>/dev/null; then av diff --fmt=plain >/dev/null ; if [ $$? -eq 0 ] ; then av -y co README.asciidoc >/dev/null; fi ; fi
-
+# an alias for update_website_ftp
+.PHONY: upload
+upload : update_website_ftp

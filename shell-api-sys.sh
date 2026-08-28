@@ -10,11 +10,11 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-sys.sh
-# Release file date: 2026-08-13 11:40
+# Release file date: 2026-08-27 17:40
 # App version: 1.1.2
-# App source revision: 120
-# App source signature: 5ac23715bc2616c2c0023b4318b0a932f1fbf863a53eeada5b5f5b596d3f2c7a
-# Source file last modification: 2026-08-12 02:14:55.823043104 +0200
+# App source revision: 162
+# App source signature: ba5b642a92066a4177dcd891c19a03c235a837a604312a0801a4aeea7c8929a4
+# Source file last modification: 2026-08-16 20:32:37.295728942 +0200
 #
 # This header was generated. Do not modify.
 #
@@ -119,11 +119,11 @@ Sys__wait()
     return $ret
 }
 
-
 :<<'EOF'
 Spawns a process in background and stores the PID in passed var.
 @param [1] ref to the variable that will contain the PID of launched process. 
-@param [2] the command to launch
+@param [2] the command to launch and all its arguments
+NOTE: spawn now executes directly the passed arguments with calling eval. However, this latter option might still be useful e.g. there would be some arguments to interpret
 @returns return 0 on success only.
 EOF
 
@@ -135,8 +135,9 @@ Sys__spawn()
     local -n __out_pid=$1
     shift
 
-#echo "Sys__spawn avec args '$@'"
-    eval "$@" &
+    #echo "Sys__spawn avec args $# '$@' " # DEBUG
+    "$@" &
+    #eval "$@" &
     __out_pid=$!
     return 0
 }
@@ -159,7 +160,16 @@ Sys__gspawn()
         return 1
     fi
     local pid
-	Sys__spawn pid "$@"
+    local spawnArgs=()
+    while [ $# -gt 0 ] ; do
+        #_log "spawnArgs $1" >&2
+        spawnArgs+=("$1")
+        shift
+    done
+
+    Sys__spawn pid "${spawnArgs[@]}"
+    #Sys__spawn pid "$@"
+
     if [ $? -eq 0 ] ; then
         #Sys__global_pid+=($pid)
         Sys__addGlobalPid "$pid"
@@ -288,13 +298,20 @@ Sys__pool_spawn()
 
     local -n __inout_pool_spawn=$1
     local size=${__inout_pool_spawn[1]}
-    shift # Shif to the command to launch
+    shift # Shift to the command to launch
  
     if [ -z "$size" ] ; then
         _log_err "${FUNCNAME[0]}: Invalid pool passed. No pool size value stored in \${pool[1]}."
         return 1
     fi
-    
+
+    local spawnArgs=()
+    while [ $# -gt 0 ] ; do
+        #_log "spawnArgs $1" >&2
+        spawnArgs+=("$1")
+        shift
+    done
+
     size=$(($size+2)) # 2 first are name and size
     local c=2
     while [ $c -lt $size ] ; do
@@ -304,7 +321,8 @@ Sys__pool_spawn()
 
 #echo "Sys__pool_spawn avec args '$@'"
 
-            Sys__spawn pid "$@"
+            Sys__spawn pid "${spawnArgs[@]}"
+            #Sys__spawn pid "$@"
             if [ $pid -ne 0 ] ; then
                 #_log "${FUNCNAME[0]}: launched $pid on slot $c"
                 __inout_pool_spawn[$c]=$pid
@@ -321,7 +339,8 @@ Sys__pool_spawn()
     while [ $c -lt $size ] ; do
         if [ ${__inout_pool_spawn[$c]} == "x" ] ; then
             local pid=0
-            Sys__spawn pid "$@"
+            Sys__spawn pid "${spawnArgs[@]}"
+            #Sys__spawn pid "$@"
             if [ $pid -ne 0 ] ; then
                 #_log "${FUNCNAME[0]}: launched $pid on slot $c after a waitall"
                 __inout_pool_spawn[$c]=$pid
@@ -350,6 +369,23 @@ Sys__pool_waitall()
     Sys__pool_reset __inout_pool_waitall
     return $lastStatus
 }
+
+Sys__pool_sweepall()
+{
+    local -n __inout_pool_swipeall=$1
+    local pidlist=()
+    local lastStatus=0
+    Sys__pool_pid_list __inout_pool_swipeall pidlist
+
+    #_log "${FUNCNAME[0]}: killing pid : ${pidlist[@]}"
+
+    kill -s 9 ${pidlist[@]} &>/dev/null
+    lastStatus=$?
+
+    Sys__pool_reset __inout_pool_swipeall
+    return $lastStatus
+}
+
 
 :<<'EOF'
 Tells whether the process of the passed PID is alive by sending signal 0
@@ -427,6 +463,11 @@ Desktop__getResolution()
 }
     # Note wmctrl -d returns the dimension of the whole desktop
 
+Desktop__isAvailable()
+{
+    _loadDep "net-tools"
+    ${__SUDO__}netstat -lp | grep -i Xorg &>/dev/null    
+}
 
 CPU__model()
 {

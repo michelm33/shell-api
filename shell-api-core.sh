@@ -10,11 +10,11 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-core.sh
-# Release file date: 2026-08-13 11:40
+# Release file date: 2026-08-27 17:40
 # App version: 1.1.2
-# App source revision: 120
-# App source signature: 5ac23715bc2616c2c0023b4318b0a932f1fbf863a53eeada5b5f5b596d3f2c7a
-# Source file last modification: 2026-08-13 11:38:00.813666182 +0200
+# App source revision: 162
+# App source signature: ba5b642a92066a4177dcd891c19a03c235a837a604312a0801a4aeea7c8929a4
+# Source file last modification: 2026-08-27 17:36:48.470090442 +0200
 #
 # This header was generated. Do not modify.
 #
@@ -109,12 +109,12 @@ Term__textMode2TextModeCode["hide"]=8;
 Term__textMode2TextModeCode["cross"]=9;
 
 Term__resetColorData() {  
-    Term__text_fgcolor=${_pal["normal"]}
+    Term__text_fgcolor=""
     Term__text_bgcolor=""
 }
 
 Term__resetColor() {  
-    Term__text_fgcolor=${_pal["normal"]}
+    Term__text_fgcolor=""
     Term__text_bgcolor=""
     echo -n -e "${Term__reset_color}" 
 }
@@ -132,7 +132,8 @@ Term__setBgColorOn()
 
 :<<'EOF'
 Sets either the foreground or the background color
-To change the background color, 'true' must be passed as second argument
+To change the background color, 'true' must be passed as second argument.
+@return this sets Term__text_fgcolor and Term__text_bgcolor, and sets Term__text_color from these latter values
 EOF
 Term__setColor()
 {
@@ -192,7 +193,6 @@ Term__setColor()
         Term__text_fgcolor="${_text_color}"
     fi
     Term__text_color="${Term__text_bgcolor}${Term__text_fgcolor}"
-    #printf "%s" ${Term__text_color}
 }
 
 :<<'EOF'
@@ -212,14 +212,27 @@ Term__buildPalette()
     for col in "${allcolNames[@]}" ; do
         local txtmode
         for txtmode in "${alltextModes[@]}" ; do
+            # Add entry which is only the text mode, assuming 
+            # names are unique across color names and text modes
+            local textModeEntry="${Term__colorFormatString}"
+            local textModeNumVal="${Term__textMode2TextModeCode["$txtmode"]}"
+            textModeEntry="${textModeEntry//%s1/$textModeNumVal}"
+            textModeEntry="${textModeEntry//%s2/}"
+            _pal["${txtmode}"]="$textModeEntry"
+            #printf "%s %s\n" "$txtmode" "$textModeEntry" # DEBUG
+
+            # Add foreground color palette entry
             Term__setColor "$col" false "$txtmode"
             _pal["${col}_${txtmode}"]="${Term__text_fgcolor}"
+            # When mode is normal, also add an entry which is just the color itself
             if [ "$txtmode" = "normal" ] ; then
                 _pal["${col}"]="${Term__text_fgcolor}"
             fi
 
+            # Add background color palette entry
             Term__setColor "$col" true
             _pal["bg_${col}_${txtmode}"]="${Term__text_bgcolor}"
+            # When mode is normal, also add an entry which is just the color itself
             if [ "$txtmode" = "normal" ] ; then
                 _pal["bg_${col}"]="${Term__text_bgcolor}"
             fi
@@ -281,10 +294,10 @@ EOF
 _colorText() {
     local __outText=""
     if [ $# -ge 2 ] ; then
-        __outText="${__outText}${_pal["$2"]}"
+        __outText="${_pal["$2"]}${__outText}"
     fi
     if [ $# -ge 3 ] ; then
-        __outText="${__outText}${_pal["bg_$3"]}"
+        __outText="${_pal["bg_$3"]}${__outText}"
     fi
     if [ $# -ge 1 ] ; then
         __outText="${__outText}$1"
@@ -307,18 +320,17 @@ _setColored() {
     local -n __inoutText=$1
     local __inText="${__inoutText}"
     __inoutText=""
-    if [ $# -ge 1 ] ; then
-        __inoutText="${__inoutText}${_pal["$2"]}"
-    fi
     if [ $# -ge 2 ] ; then
-        __inoutText="${__inoutText}${_pal["bg_$3"]}"
+        __inoutText="${_pal["$2"]}${__inoutText}"
+    fi
+    if [ $# -ge 3 ] ; then
+        __inoutText="${_pal["bg_$3"]}${__inoutText}"
     fi
     __inoutText="${__inoutText}${__inText}"
     if [ $# -ge 2 ] ; then
         __inoutText="${__inoutText}${Term__reset_color}"
     fi
 }
-
 
 #Term__testColors
 Term__buildPalette
@@ -376,9 +388,7 @@ _loadm='read _load_mod &&
 '
 
 _loada='read _load_app &&
-    appName="${__SHELL_CURRENT_APPNAME__}" &&
-    Str__toUpper appName &&
-    appDirVar="\${${appName}__VARS[\"MYDIR\"]}" &&
+    appDirVar="\${${__SHELL_CURRENT_UPCASE_APPNAME__}__VARS[\"MYDIR\"]}" &&
     eval source "${appDirVar}/${_load_app}" 
 '
 
@@ -997,8 +1007,7 @@ _parseArgs() {
 
     # Handle the default app options if any
     local appName="${__SHELL_CURRENT_APPNAME__}"
-    local upperAppName="$appName"
-    Str__toUpper upperAppName
+    local upperAppName="${__SHELL_CURRENT_UPCASE_APPNAME__}"
 
     local globVar="\${${upperAppName}__VARS[\"DEFAULT_APP_OPTIONS\"]}"
     local dfltAppOptions="$(eval echo "$globVar")"
@@ -1049,14 +1058,16 @@ _parseFromArgToVars() {
 
             if [ -z "$optWithValueStart" ] ; then
                     local optName=${__arg%%=*}  # Get head till first '=' met
-                    local optVal=${__arg##*=}   # Get tail till first '=' met
+                    local optVal=${__arg#*=}   # Get tail till first '=' met
+
                     __argv+=("$optName")       
                         #_log_dbg "2dash arg: ${optName}"
                     if [ "$__arg" != "$optVal" ] ; then
                         if [ -z "$optVal" ] ; then
                             _susage "A empty value is passed for option '$optName'"
                         fi
-
+                        # When value starts itself with an hyphen, escape it
+                        if [ ${optVal:0:1} = "-" ] ; then optVal="\\${optVal}" ; fi
                         # If a value is supplied, add the value as well
                         __argv+=("$optVal")
                         #_log_dbg "2dash arg value: ${optVal}"
@@ -1365,6 +1376,8 @@ _initShellApi() {
     # <appname>__main <args>
     if [[ ! -v __SHELL_CURRENT_APPNAME__ ]] || [[ -z ${__SHELL_CURRENT_APPNAME__} ]] ; then
             __SHELL_CURRENT_APPNAME__="${__CALLER_APP__}"
+            __SHELL_CURRENT_UPCASE_APPNAME__="${__CALLER_APP__^^}"
+            __SHELL_CURRENT_LOCASE_APPNAME__="${__CALLER_APP__,,}"
     fi
     __SHELL_SRC_NAME__="$(basename $0)"
 
@@ -1477,11 +1490,8 @@ EOF
 
 _readRecentList() {
     local appName="${__SHELL_CURRENT_APPNAME__}"
-    local lowerAppName="$appName"
-    local upperAppName="$appName"
-
-    Str__toLower lowerAppName
-    Str__toUpper upperAppName
+    local lowerAppName="${__SHELL_CURRENT_LOCASE_APPNAME__}"
+    local upperAppName="${__SHELL_CURRENT_UPCASE_APPNAME__}"
     
     _getRecentListFilePath configPath
 
@@ -1527,12 +1537,9 @@ __getRecentListFilePath()
 
 _saveRecentList() {
     local appName="${__SHELL_CURRENT_APPNAME__}"
-    local lowerAppName="$appName"
-    local upperAppName="$appName"
+    local lowerAppName="${__SHELL_CURRENT_LOCASE_APPNAME__}"
+    local upperAppName="${__SHELL_CURRENT_UPCASE_APPNAME__}"
     local configDirPath=""
-
-    Str__toLower lowerAppName
-    Str__toUpper upperAppName
     
     if ! _getConfigDir configDirPath ; then
         return 2
@@ -1578,12 +1585,9 @@ _lockedFileGetAbsPath() {
 
 _lockedFileRead() {
     local appName="${__SHELL_CURRENT_APPNAME__}"
-    local lowerAppName="$appName"
-    local upperAppName="$appName"
+    local lowerAppName="${__SHELL_CURRENT_LOCASE_APPNAME__}"
+    local upperAppName="${__SHELL_CURRENT_UPCASE_APPNAME__}"
     local configDirPath=""
-
-    Str__toLower lowerAppName
-    Str__toUpper upperAppName
     
     if ! _getConfigDir configDirPath ; then
         return 2
@@ -1610,12 +1614,9 @@ _lockedFileRead() {
 
 _lockedFileWrite() {
     local appName="${__SHELL_CURRENT_APPNAME__}"
-    local lowerAppName="$appName"
-    local upperAppName="$appName"
+    local lowerAppName="${__SHELL_CURRENT_LOCASE_APPNAME__}"
+    local upperAppName="${__SHELL_CURRENT_UPCASE_APPNAME__}"
     local configDirPath=""
-
-    Str__toLower lowerAppName
-    Str__toUpper upperAppName
     
     if ! _getConfigDir configDirPath ; then
         return 2
@@ -1647,8 +1648,7 @@ Returns the log folder path, ensuring parent dirs are created
 EOF
 _getLogDir() {
     local appName="${__SHELL_CURRENT_APPNAME__}"
-    local lowerAppName="$appName"
-    Str__toLower lowerAppName
+    local lowerAppName="${__SHELL_CURRENT_LOCASE_APPNAME__}"
 
     local -n out_logDir=$1
     out_logDir="$HOME/.local/${lowerAppName}"
@@ -1736,11 +1736,9 @@ EOF
 _getConfigFilePath() {
     local -n out_cfgFilePath=$1
     local appName="${__SHELL_CURRENT_APPNAME__}"
-    local lowerAppName="$appName"
-    local upperAppName="$appName"
+    local lowerAppName="${__SHELL_CURRENT_LOCASE_APPNAME__}"
+    local upperAppName="${__SHELL_CURRENT_UPCASE_APPNAME__}"
     local configDirPath
-    Str__toLower lowerAppName
-    Str__toUpper upperAppName
     
     if ! _getConfigDir configDirPath ; then
         return 2
@@ -1775,11 +1773,9 @@ _readConfig() {
     #__LOG_DEBUG__=0 # for dev
 
     local appName="${__SHELL_CURRENT_APPNAME__}"
-    local lowerAppName="$appName"
-    local upperAppName="$appName"
+    local lowerAppName="${__SHELL_CURRENT_LOCASE_APPNAME__}"
+    local upperAppName="${__SHELL_CURRENT_UPCASE_APPNAME__}"
     local configDirPath
-    Str__toLower lowerAppName
-    Str__toUpper upperAppName
 
     if ! _getConfigDir configDirPath ; then
         return 2
@@ -1843,11 +1839,9 @@ _appendConfig() {
     local paramname="$1"
     local paramvalue="$2"
     local appName="${__SHELL_CURRENT_APPNAME__}"
-    local lowerAppName="$appName"
-    local upperAppName="$appName"
+    local lowerAppName="${__SHELL_CURRENT_LOCASE_APPNAME__}"
+    local upperAppName="${__SHELL_CURRENT_UPCASE_APPNAME__}"
     local configDirPath
-    Str__toLower lowerAppName
-    Str__toUpper upperAppName
     
     if ! _getConfigDir configDirPath ; then
         return 2
@@ -1925,6 +1919,145 @@ _resetDependenciesCache()
     fi
 }
 
+:<<'EOF'
+Iterates through an array and executes the action passed as second argument
+@param[1] ref to var containing the array
+@param[2] either a function or a code block. In case a 
+@param[n] argument passed on to the called function
+code block is passed then the iteration variable is the name of the array extended with 'Item'
+EOF
+
+_foreach() {
+    local -n __inArray=$1
+    local __fnOrCode="$2"
+
+    # Remaining args are passed on to called function
+    shift 2
+
+    eval local "${!__inArray}Item"=""
+    eval local "${!__inArray}Args=()"
+    while [ $# -gt 0 ] ; do
+        eval "${!__inArray}Args+=(\"$1\")"
+        shift
+    done
+
+    local __i=0
+    while [ ${__i} -lt ${#__inArray[@]} ] ; do
+        if Env__fn_exists "${__fnOrCode}" ; then
+            local fnArgs=()
+            eval "fnArgs+=(\"\${${!__inArray}Args[@]}\")"
+            "${__fnOrCode}" "${__i}" "${__inArray[${__i}]}" "${fnArgs[@]}"
+        else
+            local evalCmd="
+${!__inArray}Item='${__inArray[${__i}]}'
+${__fnOrCode}
+"
+            eval "${evalCmd}"
+        fi
+        __i=$(( ${__i} + 1))
+    done
+}
+
+
+:<<'EOF'
+Same as _foreach, but iterates over 2 arrays which have both the same size
+@param[1] ref to var containing the array
+@param[2] ref to var containing the second array
+@param[3] either a function or a code block. In case a 
+@param[n] argument passed on to the called function
+EOF
+
+_foreach2() {
+    local -n __inArray=$1
+    local -n __inArray2=$2
+    local __fnOrCode="$3"
+
+    # Remaining args are passed on to called function
+    shift 3
+
+    eval local "${!__inArray}Item"=""
+    eval local "${!__inArray2}Item"=""    
+    eval local "${!__inArray}Args=()"
+    while [ $# -gt 0 ] ; do
+        eval "${!__inArray}Args+=(\"$1\")"
+        shift
+    done
+
+    local __i=0
+    while [ ${__i} -lt ${#__inArray[@]} ] ; do
+        if Env__fn_exists "${__fnOrCode}" ; then
+            local fnArgs=()
+            eval "fnArgs+=(\"\${${!__inArray}Args[@]}\")"
+            "${__fnOrCode}" "${__i}" "${__inArray[${__i}]}"  "${__inArray2[${__i}]}" "${fnArgs[@]}"
+        else
+            local val1="${__inArray[${__i}]}"
+            local val2="${__inArray2[${__i}]}"
+            #val1="${val1//\"/\\\"}
+            #val2="${val2//\"/\\\"}
+            local evalCmd="
+${!__inArray}Item='${val1}'
+${!__inArray2}Item='${val2}'
+${__fnOrCode}
+"
+            #_log_vars evalCmd >&2
+            eval "${evalCmd}"
+        fi
+        __i=$(( ${__i} + 1))
+    done
+}
+
+
+:<<'EOF'
+Same as _foreach, but iterates over 3 arrays which have both the same size
+@param[1] ref to var containing the array
+@param[2] ref to var containing the second array
+@param[3] ref to var containing the 3rd array
+@param[4] either a function or a code block. In case a 
+@param[n] argument passed on to the called function
+EOF
+
+_foreach3() {
+    local -n __inArray=$1
+    local -n __inArray2=$2
+    local -n __inArray3=$3
+    local __fnOrCode="$4"
+
+    # Remaining args are passed on to called function
+    shift 4
+
+    eval local "${!__inArray}Item"=""
+    eval local "${!__inArray2}Item"=""    
+    eval local "${!__inArray3}Item"=""    
+    eval local "${!__inArray}Args=()"
+    while [ $# -gt 0 ] ; do
+        eval "${!__inArray}Args+=(\"$1\")"
+        shift
+    done
+
+    local __i=0
+    while [ ${__i} -lt ${#__inArray[@]} ] ; do
+        if Env__fn_exists "${__fnOrCode}" ; then
+            local fnArgs=()
+            eval "fnArgs+=(\"\${${!__inArray}Args[@]}\")"
+            "${__fnOrCode}" "${__i}" "${__inArray[${__i}]}"  "${__inArray2[${__i}]}"  "${__inArray3[${__i}]}" "${fnArgs[@]}"
+        else
+            local val1="${__inArray[${__i}]}"
+            local val2="${__inArray2[${__i}]}"
+            local val3="${__inArray3[${__i}]}"
+            #val1="${val1//\"/\\\"}
+            #val2="${val2//\"/\\\"}
+            local evalCmd="
+${!__inArray}Item='${val1}'
+${!__inArray2}Item='${val2}'
+${!__inArray3}Item='${val3}'
+${__fnOrCode}
+"
+            #_log_vars evalCmd >&2
+            eval "${evalCmd}"
+        fi
+        __i=$(( ${__i} + 1))
+    done
+}
 
 # --------------------------------------------------------------------------------------
 # Log API
@@ -2311,7 +2444,7 @@ Creates each component of the specified dir path (mkdir -p) if the
 dir path does not exit. Redirects errors in the error log files.
 EOF
 
-makeDir()
+_makeDir()
 {
     if ! Args__checkMinCount "${FUNCNAME[0]}" 1 "$#" "usage: <dir path>"; then _exit -1 ; fi
     local dir="$1"
@@ -2357,7 +2490,7 @@ EOF
 
 Env__fn_exists() {
   # appended double quote is an ugly trick to make sure we do get a string -- if $1 is not a known command, type does not output anything
-  [ `type -t $1`"" == 'function' ]
+  [ `type -t "$1"`"" == 'function' ]
 }
 
 :<<'EOF'
@@ -2523,6 +2656,104 @@ Str__diff()
     echo "$2" > "$tmp2"
     diff "$tmp1" "$tmp2"
     rm "$tmp1" "$tmp2" &>/dev/null
+}
+
+:<<'EOF'
+Performs a 'brutal' line-by-line diff of 2 multiline strings and returns an array containing the lines differences.
+This function is primarly designed to extract differences between two blocks which are expected to be the same with only few differences.
+@param [1] input string 1
+@param [2] input string 2
+@param [3] ref of var used to store the line numbers as an array
+@param [4] ref of var used to store the lines of input string 1 that differ at the line numbers stored in above array
+@param [5] ref of var used to store the lines of input string 2 that differ at the line numbers stored in above array
+@param [6] in optional bool telling whether to ignore leading and trailing whitespaces for each compared line (false by default)
+EOF
+Str__getDiffLines()
+{
+    local -n __outDiffLinesNum=$3
+    local -n __outDiffLines1=$4
+    local -n __outDiffLines2=$5
+    local __inIgnWS=false
+    if [ $# -ge 6 ] ; then 
+        __inIgnWS=$6
+    fi
+
+    local allLines1=()
+    local allLines2=()
+    Str__linesToArray "$1" allLines1
+    Str__linesToArray "$2" allLines2
+
+    __outDiffLinesNum=()
+    __outDiffLines1=()
+    __outDiffLines2=()
+
+    local iter=0
+    local iterMin=0
+    local iterMax=0
+    Int__min ${#allLines1[@]} ${#allLines2[@]} iterMin
+    Int__max ${#allLines1[@]} ${#allLines2[@]} iterMax
+    #_log_vars iter iterMax iterMin >&2 # DEBUG
+
+    local __inStartLineNo=0
+    if [ $# -ge 7 ] ; then __inStartLineNo=$(( $7 - 1 )) ; fi
+    local __inEndLineNo=$iterMax
+    if [ $# -ge 8 ] ; then __inEndLineNo=$(( $8 - 1 )) ; fi
+    local __inIgnLineNo=()
+    if [ $# -ge 9 ] ; then
+        local rawLineNo=($9)
+        local rawLN
+        for rawLN in "${rawLineNo[@]}" ; do
+            __inIgnLineNo+=( $(( $rawLN - 1 )) )
+        done
+    fi
+    #_log_vars __inStartLineNo __inEndLineNo __inIgnLineNo
+    while [ $iter -lt $iterMin ] && [ $iter -le ${__inEndLineNo} ] ; do
+        if [ $iter -lt ${__inStartLineNo} ] ; then iter=$(( ${iter} + 1)); continue; fi
+        if Array__contains __inIgnLineNo $iter ;  then iter=$(( ${iter} + 1)); continue; fi
+
+        local line1="${allLines1[$iter]}"
+        local line2="${allLines2[$iter]}"
+        if $__inIgnWS ; then
+            Str__trim "${line1}" line1
+            Str__trim "${line2}" line2
+        fi
+        if [ "$line1" != "$line2" ] ; then
+            __outDiffLinesNum+=( $(( $iter + 1 )) )
+            __outDiffLines1+=("$line1")
+            __outDiffLines2+=("$line2")
+        fi
+        iter=$(( ${iter} + 1))
+    done
+
+    if [ ${#allLines1[@]} -gt $iter ] ; then
+        while [ $iter -lt $iterMax ]  && [ $iter -le ${__inEndLineNo} ] ; do
+            if [ $iter -lt ${__inStartLineNo} ] ; then iter=$(( ${iter} + 1)); continue; fi
+            if Array__contains __inIgnLineNo $iter ;  then iter=$(( ${iter} + 1)); continue; fi
+
+            local line1="${allLines1[$iter]}"
+            if $__inIgnWS ; then
+                Str__trim "${line1}" line1
+            fi
+            __outDiffLinesNum+=( $(( $iter + 1 )) )
+            __outDiffLines1+=("$line1")
+            __outDiffLines2+=("")
+            iter=$(( ${iter} + 1))
+        done
+    elif [ ${#allLines2[@]} -gt $iter ]  && [ $iter -le ${__inEndLineNo} ]  ; then
+        while [ $iter -lt $iterMax ] ; do
+            if [ $iter -lt ${__inStartLineNo} ] ; then iter=$(( ${iter} + 1)); continue; fi
+            if Array__contains __inIgnLineNo $iter ;  then iter=$(( ${iter} + 1)); continue; fi
+
+            local line2="${allLines2[$iter]}"
+            if $__inIgnWS ; then
+                Str__trim "${line2}" line2
+            fi
+            __outDiffLinesNum+=( $(( $iter + 1 )) )
+            __outDiffLines1+=("")
+            __outDiffLines2+=("$line2")
+            iter=$(( ${iter} + 1))
+        done
+    fi
 }
 
 :<<'EOF'
@@ -3008,7 +3239,31 @@ Str__escapeChar() {
 }
 
 :<<'EOF'
+Escapes special XML chars to make them usable as a value in an element.
+inserting a backslash
+@param [1] in/out input string to be escaped
+@return 0
+EOF
+
+Str__escapeXML() {
+    local -n out_escape=$1
+    out_escape="${out_escape//&/&amp;}"
+    out_escape="${out_escape//</&lt;}"
+    out_escape="${out_escape//>/&gt;}"
+    return 0
+}
+
+:<<'EOF'
 Trims the passed string of the specified char on both of its ends
+
+IMPORTANT UPDATE:
+ in#$c is not efficient for big string, because it scans from the end till the beginning till to find a starting 'c'
+ till to find the 
+    in="${in#$c}"
+    in="${in%$c}"
+ in%$c is either for the same reasons.
+
+
 @param [1] string to be trimmed
 @param [2] output variable
 @param [3] char to be removed, is [[:space:]] by default
@@ -3018,24 +3273,60 @@ EOF
 
 Str__trim() {
     local in="$1"
-    local -n res_out=$2
+    local -n __outTrimResOut=$2
     local c="[[:space:]]"
     if [ $# -ge 3 ] ; then
-        c=$3
+        c="$3"
+        c="${c//\"/\\\"}"
     fi
-    local init=""
-    while [ "$init" != "$in" ] ; do
-        init="$in"
-        in="${in#$c}"
-        in="${in%$c}"
-    done
-    res_out="$in"
+
+:<<'EOF'
+Perf test Str__trim
+
+real	0m4,093s
+user	0m4,090s
+sys	0m0,000s
+
+    in="${in#"${in%%[![:space:]]*}"}"
+    in="${in%"${in##*[![:space:]]}"}"   
+EOF
+
+:<<'EOF'
+Perf test Str__trim
+
+real	0m2,405s
+user	0m2,391s
+sys	0m0,012s
+EOF
+    local hs=""
+    local ts=""
+
+    if [ $# -ge 3 ] ; then
+        [[ "$in" =~ ^("$c"*) ]] && hs="${BASH_REMATCH[1]}"
+    else
+        [[ "$in" =~ ^($c*) ]] && hs="${BASH_REMATCH[1]}"
+    fi    
+    in="${in:${#hs}}"
+
+    if [ $# -ge 3 ] ; then
+        [[ "$in" =~ ("$c"*)$ ]] && ts="${BASH_REMATCH[1]}"
+    else
+        [[ "$in" =~ ($c*)$ ]] && ts="${BASH_REMATCH[1]}"
+    fi
+
+    local tsl=${#ts}
+    [ $tsl -ne 0 ] && in="${in:0:-${#ts}}"
+
+    __outTrimResOut="$in"
+
+    #_log "trim: in='$1', out='$__outTrimResOut', c='$c'" >&2
 }
 
 :<<'EOF'
 Same as Str__trim but attempts to remove only 1 occurrence with a very simple
 implementation. Written for the sake of performance, since the regular variant
 reveals to be much slower.
+
 @param [1] string to be trimmed
 @param [2] output variable
 @param [3] char to be removed, is [[:space:]] by default
@@ -3048,10 +3339,24 @@ Str__trimOnce() {
     local c="[[:space:]]"
     if [ $# -ge 3 ] ; then
         c=$3
+        c="${c//\"/\\\"}"
     fi
-    in="${in#$c}"
-    in="${in%$c}"
+
+    if [ $# -ge 3 ] ; then
+        [[ "${in:0:1}" = "$c" ]] && in="${in:1}"
+    else
+        [[ "${in:0:1}" = $c ]] && in="${in:1}"
+    fi
+
+    local i=$(( ${#in} - 1 ))
+    if [ $# -ge 3 ] ; then
+        [[ "${in:$i:1}" = "$c" ]] && in="${in:0:-1}"
+    else
+        [[ "${in:$i:1}" = $c ]] && in="${in:0:-1}"
+    fi
+
     res_out="$in"
+    #_log "in='$1', out='$res_out', c='$c'" >&2
 }
 
 :<<'EOF'
@@ -3068,14 +3373,24 @@ Str__trimStart() {
     local -n res_out=$2
     local c="[[:space:]]"
     if [ $# -ge 3 ] ; then
-        c=$3
+        c="$3"
+        c="${c//\"/\\\"}"
     fi
     local init=""
     while [ "$init" != "$in" ] ; do
         init="$in"
         in="${in#$c}"
     done
+
+    local hs=""
+    if [ $# -ge 3 ] ; then
+        [[ "$in" =~ ^("$c"*) ]] && hs="${BASH_REMATCH[1]}"
+    else
+        [[ "$in" =~ ^($c*) ]] && hs="${BASH_REMATCH[1]}"
+    fi
+    in="${in:${#hs}}"
     res_out="$in"
+    #_log "trimStart: in='$1', out='$res_out', c='$c'" >&2
 }
 
 
@@ -3117,14 +3432,20 @@ Str__trimEnd() {
     local -n res_out=$2
     local c="[[:space:]]"
     if [ $# -ge 3 ] ; then
-        c=$3
+        c="$3"
+        c="${c//\"/\\\"}"
     fi
-    local init=""
-    while [ "$init" != "$in" ] ; do
-        init="$in"
-        in="${in%$c}"
-    done
+
+    local ts=""
+    if [ $# -ge 3 ] ; then
+        [[ "$in" =~ ("$c"*)$ ]] && ts="${BASH_REMATCH[1]}"
+    else
+        [[ "$in" =~ ($c*)$ ]] && ts="${BASH_REMATCH[1]}"
+    fi
+    local tsl=${#ts}
+    [ $tsl -ne 0 ] && in="${in:0:-${#ts}}"
     res_out="$in"
+    #_log "trimEnd: in='$1', out='$res_out', c='$c'" >&2
 }
 
 :<<'EOF'
@@ -3376,7 +3697,6 @@ Str__linesToArray() {
     # "
     readarray -t __outArray <<< "${__inStr}"
 }
-
 
 :<<'EOF'
 If the passed string size exceeds a maximum size (maxlen) , it is truncated at right and 
@@ -3693,7 +4013,16 @@ Int__isInt() {
     if [ -z "$1" ]  ; then
         return 1
     fi
-    local intres="${1%%.*}"
+    
+    # Remove any leading minus sign
+    local intval="$1"
+    if [ ${intval:0:1} = "-" ] ; then
+        intval="${intval:1}"
+    fi
+
+    # Get the part before any dot
+    # Numbers starting with '.' are not valid int
+    local intres="${intval%%.*}"
     if [ -z "$intres" ] ; then
         return 1
     fi
@@ -3771,6 +4100,24 @@ Int__series() {
         printf ""
     else
         eval "$cmd"
+    fi
+}
+
+:<<'EOF'
+Returns the minimum of the two passed integers
+@param [1] first int
+@param [2] second int
+@param [3] ref to var for storing maximum values
+EOF
+Int__min()
+{
+    local leftOp=$1
+    local rightOp=$2
+    local -n out_min=$3
+    if [ $leftOp -lt $rightOp ] ; then
+            out_min=$leftOp 
+    else
+            out_min=$rightOp 
     fi
 }
 
@@ -4092,6 +4439,35 @@ Args__checkMinCount() {
 # --------------------------------------------------------------------------------------
 
 :<<'EOF'
+Prints the values
+@param[1] Array to print
+@param[2] Array items separator
+EOF
+Array__print()
+{
+    local -n __inArray=$1
+    local __inSep="$2"
+    local printArray=""
+    Array__toString "${!__inArray}" "${__inSep}" printArray
+    printf "%s"  "${printArray}"
+}
+
+:<<'EOF'
+Concatenates 2 arrays
+@param[1] Array to which will be appended the items of the second array
+@param[1] Array that will be appended to the first passed array ref
+EOF
+Array__concat()
+{
+    local -n __inoutArray1=$1
+    local -n __inArray2=$2
+    local __val=""
+    for _val in "${__inArray2[@]}" ; do
+        __inoutArray1+=("${_val}")
+    done
+}
+
+:<<'EOF'
 Sorts an array of spaceless values. 
 Note this does not work if an value contains any space, because this output array
 is rebuilt from a sorted string
@@ -4174,6 +4550,7 @@ Update: this replaces Array__fromStringOLD, because it is possible to detect cha
 @param[2] separator
 @param[3] ref to the variable that will be assigned the created array
 @param[4] in optional bool telling with not to interpret \ as an escape char
+@param[5] in optional bool whether trim fields (true by dflt). When not required, this can improve performance
 EOF
 Array__fromString() {
     local __inString="$1"
@@ -4186,14 +4563,21 @@ Array__fromString() {
     if [ $# -ge 4 ] ; then    
         if $4 ; then opt="-r" ; fi
     fi
+    local doTrim=true
+    if [ $# -ge 5 ] ; then    
+        doTrim=$5
+    fi
 
-    while IFS='' read $opt -d "${__inSep}" __field; do 
-        Str__trim "${__field}" __field
+    # Using IFS=new line avoids having an ending newline at the end
+    while IFS='
+' read $opt -d "${__inSep}" __field; do 
+        if $doTrim ; then Str__trim "${__field}" __field ; fi
         __outFieldArray+=("${__field}")
     done <<< "${__inString}"
+    
     # Read fails when no other field was read, bit __field yet contains
     # remaining value till the end
-    Str__trim "${__field}" __field
+    if $doTrim ; then Str__trim "${__field}" __field ; fi
     __outFieldArray+=("${__field}")
 }
 
@@ -4267,15 +4651,15 @@ Option third parameter enables to pass an alternate table of records to use expl
 EOF
 Array__toTextTable()
 {
-    local __inCVSLines="$1"
+    local __inCSVLines="$1"
     local __inSep=";"
-    local __inCVSLinesForColWidth="$1"
+    local __inCSVLinesForColWidth="$1"
     if [ $# -ge 2 ] ; then
         __inSep="$2"
     fi
 
     if [ $# -ge 3 ] ; then
-         __inCVSLinesForColWidth="$3"
+         __inCSVLinesForColWidth="$3"
     fi
 
     local doNotInterpretEscapeBackslash=false
@@ -4294,19 +4678,25 @@ Array__toTextTable()
         local csvField=""
         while [ $csvIndex -lt ${#csvFields[@]} ]  ; do
             csvField="${csvFields[$csvIndex]}"
+            # If the field starts with **, it means it will span over all remaining cols 
+            # and its width shall be disgarded
+            if [ "${csvField:0:2}" = "**" ] ; then
+                csvIndex=$(($csvIndex + 1))
+                continue
+            fi
             local curMax=${maxColWidth[$csvIndex]}
             if [ -z "$curMax" ] ; then curMax=0; fi
             Int__max ${#csvField} ${curMax} curMax
             maxColWidth[$csvIndex]=$curMax            
             csvIndex=$(($csvIndex + 1))
         done
-    done <<< "${__inCVSLinesForColWidth}"
+    done <<< "${__inCSVLinesForColWidth}"
     
     local allLines=()
     local allLinesForColWidth=()
-    readarray -t allLines <<< "${__inCVSLines}"
+    readarray -t allLines <<< "${__inCSVLines}"
     if [ $# -ge 3 ] ; then
-        readarray -t allLinesForColWidth <<< "${__inCVSLinesForColWidth}"
+        readarray -t allLinesForColWidth <<< "${__inCSVLinesForColWidth}"
     fi
     local lineCnt=0
     
@@ -4330,6 +4720,10 @@ Array__toTextTable()
 
         while [ $csvIndex -lt ${#csvFields[@]} ]  ; do
             csvField="${csvFields[$csvIndex]}"
+            if [ "${csvField:0:2}" = "**" ] ; then
+                csvField="${csvField:2}"
+            fi
+
             if [ $# -ge 3 ] ; then
                 csvFieldForColWidth="${csvFieldsForColWidths[$csvIndex]}"
             else
@@ -4347,7 +4741,7 @@ Array__toTextTable()
     done
 
 :<<'EOF'
-    # THIS WAS THE IMPLEMENTATION PRIOR TO INTRODUCING __inCVSLinesForColWidth
+    # THIS WAS THE IMPLEMENTATION PRIOR TO INTRODUCING __inCSVLinesForColWidth
     while IFS='' read -r line ; do
         local csvFields=()
         Array__fromString "${line}" "${__inSep}" csvFields
@@ -4363,7 +4757,7 @@ Array__toTextTable()
             csvIndex=$(($csvIndex + 1))
         done
         printf "\n"
-    done <<< "${__inCVSLines}"
+    done <<< "${__inCSVLines}"
 EOF
 }
 
@@ -4404,11 +4798,15 @@ Input__testYesForcedInput()
     local __forcedInput=""
     Input__getForcedInput __forcedInput
     Str__toLower __forcedInput
-
     case "${__forcedInput}" in
-        y|yes) return 0 ;;
-        *) return 1 ;; 
+        "y"|"yes") 
+            return 0
+            ;;
+        *) 
+            return 1
+            ;; 
     esac
+    return 1
 }
 
 Input__testForcedInput()
@@ -4449,6 +4847,11 @@ Input__popForcedInput()
 Input__clearForcedInput()
 {
     Input____forced_input=()
+}
+
+Input__pressToContinue() {
+    local userKey
+    read -n 1 -p "Press any key to continue" userKey 
 }
 
 Input__timeoutKeystroke() {
@@ -4918,6 +5321,8 @@ input is performed.
 @param [6] Optional, list of coma separated additional key actions and their id of the form <char>:<id>
 @param [7] List of index to ignore for selection
 @param [8] time out callbacks
+@param [9] normally, the selected index is the return value. But, because return value range is limited to 255, the 9th param enables to return the correct value through a variable reference when needed
+
 EOF
 
 #Input__cursorSelect_pageStep=5
@@ -4957,13 +5362,34 @@ Input__cursorSelect() {
         fi
     fi
 
+    local termRowReduction=0
     if [ $# -ge 5 ] ; then
         if [ ! -z "$5" ] ; then 
-            if [ ${5:0:1} = "+" ] ; then
-                local extPrompt=(${5:1})
-                prompt+=($extPrompt)
-            else
-                prompt=($5)
+            local promptArg="$5"
+            # First handle the number of row reduction
+            # Format: -<nb digits><number>
+            # At the moment it is only betwee
+            if [ ${5:0:1} = "-" ] && Int__isInt ${5:1:1} ; then
+                local nbDigits=${5:1:1}
+                termRowReduction=${5:2:${nbDigits}}
+                if ! Int__isInt "${termRowReduction}" ; then
+                    _log_warn "Invalid term row reduction specified."
+                    _log_warn "expected format: -<nb digits><number>"
+                    termRowReduction=0
+                fi
+                local promptArgShift=$(( 2 + ${nbDigits}))
+                promptArg=${5:$promptArgShift}
+            fi
+
+            # Arrived here, there may be no prompt
+            # if any a term row reduction was specified
+            if [ ! -z "$promptArg" ] ; then 
+                if [ ${promptArg:0:1} = "+" ] ; then
+                    local extPrompt=(${promptArg:1})
+                    prompt+=($extPrompt)
+                else
+                    prompt=(${promptArg})
+                fi
             fi
         fi
     fi
@@ -5026,15 +5452,21 @@ Input__cursorSelect() {
 
     local termNbRows
     Term__rows termNbRows
-    termNbRows=$(($termNbRows - 3 )) # Reserve a line for the menu prompt
+    termNbRows=$(($termNbRows - 3 - ${termRowReduction})) # Reserve a line for the menu prompt
     local nbPages=$(( $nbItems / $termNbRows ))
     if [ $(( ($nbItems % $termNbRows) )) -ne 0 ] ; then
         nbPages=$(( $nbPages + 1))
     fi
+    local lastPageLastItemIndex=$(( $nbItems % $termNbRows ))
+
     currentPageIndex=$(( ($currentSelectIndex-1) / $termNbRows )) # counts from 0
     local nbItemsPerPage=$nbItems
     if [ $nbPages -gt 1 ] ; then nbItemsPerPage=$termNbRows; fi
 
+    # From here on, currentSelectIndex must now be with in 
+    # range [1;termNbRows] for the current page
+    currentSelectIndex=$(( 1 + ($currentSelectIndex - 1) % $termNbRows ))
+    #_log_vars currentPageIndex termNbRows currentSelectIndex >&2
 
     local termNbCols
     Term__cols termNbCols
@@ -5055,15 +5487,36 @@ Input__cursorSelect() {
                     line="${line:0:$termNbColsMin} ..."
                 fi
 
-                local testIndex
-                testIndex=$(( ${currentPageIndex}*${termNbRows} + $currentSelectIndex ))
                 if [ $cnt -gt $(( ${currentPageIndex}*${termNbRows} )) ]  && 
                     [ $cnt -le $(( ${currentPageIndex}*${termNbRows} + $termNbRows)) ]  ; then
                     Term__eraseCurrentLine                       
                     Str__trimOnce "$line" line "'"
-                    #line="${line#\'}"
-                    #line="${line%\'}"
-                    if [ $(( $cnt - ( ${currentPageIndex}*${termNbRows}) )) -eq $currentSelectIndex ] ; then
+
+                    local currentPageItemIndex=$(( $cnt - ( ${currentPageIndex}*${termNbRows}) )) 
+                    local isCurrentSelection=false
+                    if  [ $currentPageItemIndex -eq $currentSelectIndex ] ; then
+                        isCurrentSelection=true
+                    fi
+
+                    local upTriangle=false
+                    local downTriangle=false
+                    if  [ $currentPageItemIndex -eq 1 ] && [ $currentPageIndex -gt 0 ]; then
+                        upTriangle=true
+                    elif [ $currentPageItemIndex -eq $termNbRows ]  && [ $currentPageIndex -lt  $(( $nbPages - 1 )) ] ; then
+                        downTriangle=true
+                    fi
+
+                    if [ $nbPages -gt 1 ] ; then
+                        if $upTriangle ; then
+                            printf "\\U23F6 "
+                        elif $downTriangle ; then
+                            printf "\\U23F7 "
+                        else
+                            printf "  "
+                        fi
+                    fi
+
+                    if $isCurrentSelection ; then
                         printf '\033[7m'
                         printf "${line}\033[0m\n"
                     else
@@ -5072,6 +5525,7 @@ Input__cursorSelect() {
                 fi
                 cnt=$((cnt + 1))
             done <<< "$menuLines"
+
             # Clear remaining lines on the last pages
             if [ $nbPages -gt 1 ] && [ $currentPageIndex -eq $((nbPages -1 )) ] ; then
                 local nbItemLastPage=$(( ${nbItems} % ${termNbRows} ))
@@ -5100,9 +5554,18 @@ Input__cursorSelect() {
                 answer="${__forcedInput}"
                 Input__popForcedInput
             else
+                printf "\033[0m"
                 if [ -z "$displayFunction" ] ; then
+                    if [ $nbPages -gt 1 ] ; then
+                        local nbDigits=${#nbPages}
+                        printf "%${nbDigits}s/%s" "$(($currentPageIndex + 1))" "$nbPages"
+                        printf " "
+                    fi
                     local p
-                    for p in "${prompt[@]}" ; do printf $p ; printf " " ; done
+                    for p in "${prompt[@]}" ; do 
+                        printf $p 
+                        printf " "
+                    done
                 fi
                 if [ -z "${timeoutCallback}" ] ; then
                     read -n1 -r answer
@@ -5161,7 +5624,13 @@ Input__cursorSelect() {
             # Next index
             '[B') printf '\033[u' ; 
                 if [ $currentSelectIndex -lt $nbItemsPerPage ] ; then 
-                    currentSelectIndex=$(($currentSelectIndex+1)) ; 
+                    if [ $currentPageIndex -lt $(($nbPages-1)) ] ; then
+                        currentSelectIndex=$(($currentSelectIndex+1)) ; 
+                    else
+                        if [ $currentSelectIndex -lt $lastPageLastItemIndex ] || [ $lastPageLastItemIndex -eq 0 ] ; then 
+                            currentSelectIndex=$(($currentSelectIndex+1)) ; 
+                        fi
+                    fi
                 elif [ $currentPageIndex -lt $(($nbPages-1)) ] ; then
                     currentPageIndex=$(($currentPageIndex + 1))
                     currentSelectIndex=1
@@ -5479,6 +5948,103 @@ File__noext() {
     return 0
 }
 
+:<<'EOF'
+Returns the realpath of a file 
+@param [1] in filename
+@param [2] out ref of var used to store returned absolute path
+@param [3] in bool telling whether to resolve links (true by default)
+@param [3] in bool telling whether to check existence (false by default)
+EOF
+
+File__realpath() {
+    local __inFile="$1"
+    local -n __outAbsPath=$2
+    local linkResolve=true
+    local checkExist=false    
+    
+    if [ $# -ge 3 ] ; then
+        linkResolve=$3
+    fi
+
+    if [ $# -ge 4 ] ; then
+        checkExist=$4
+    fi
+    
+    if [ ${#__inFile} -eq 0 ] ; then
+        return 1
+    fi
+
+    local __abspath=""
+    # If it already starsts with /, it is already an absolute path
+    if [ "${__inFile:0:1}" = "/" ] ; then
+        __abspath="${__inFile}"
+    else
+        __abspath="$PWD/${__inFile}"
+
+        if $checkExist ; then
+            if ! File__fileExists "${__abspath}" ; then
+                return 1
+            fi
+        fi
+    fi
+    
+    if [ "${__abspath}" = "/" ] ; then
+        __outAbsPath="${__abspath}"
+        return 0
+    fi
+
+    # Now resolve . and ..
+    local __originalComponents=()
+    local __newComponents=()
+    local __newPath=""
+    local __newPathPrev=""
+    local __component=""
+    Array__fromString "${__abspath}" "/" __originalComponents true false
+    for __component in "${__originalComponents[@]}" ; do 
+#_log_vars __prevComponent __component
+
+        if [ -z "${__component}" ] ; then
+            continue
+        fi
+
+        if [ "${__component}" = "." ] ; then
+            continue
+        fi
+
+        if [ "${__component}" = ".." ] ; then
+            if [ ${#__newComponents[@]} -gt 0 ] ; then
+                unset __newComponents[-1]
+                __newPath="${__newPathPrev}"
+            fi
+            continue
+        fi
+
+        __newComponents+=("${__component}") 
+        __newPathPrev="${__newPath}"
+        __newPath="${__newPath}/${__component}"
+
+        # Check if intermediate path is a link
+        if $linkResolve; then
+            if [ -L "${__newPath}" ] ; then
+                if $checkExist ; then
+                    __newPath="$(readlink -e "${__newPath}")"
+                    if [ $? -ne 0 ] ; then return 1; fi
+                else
+                    __newPath="$(readlink -m "${__newPath}")"
+                    if [ $? -ne 0 ] ; then return 1; fi
+                fi
+                __newComponents=()
+                Array__fromString "${__newPath}" "/" __newComponents true false
+                File__dirname "${__newPath}" __newPathPrev
+            fi
+        fi
+    done
+
+    __outAbsPath="${__newPath}"
+    return 0
+}
+
+
 File__cwd() { 
     local -n __outCwd=$1
     __outCwd=${PWD} # More efficient than $(pwd)
@@ -5512,7 +6078,7 @@ a consistent and deterministic ls content on any machine regardless of:
 @param[1] in directory for which to compute the SHA256 fingerprint
 @param[2] out ref to variable that will be assigned the fingerprint value
 @param[3] in optional list of --ignore options for file patterns to be excluded from the computing Examples: --ignore="*.mp4" --ignore="*.jpg" --ignore=".nfs*" --ignore=".swp*"
-
+@param[4] out optional the source data from which the fingerprint was computed
 EOF
 File__dirSHA256() { 
     _loadDep "tzdata"
@@ -5563,15 +6129,91 @@ File__dirSHA256() {
         # alphabetically. However, default alphabetic sorting had not the same behavior in previous test
         # in particular in containers
         #
-        local lsForSha256Cmd="ls -gGRA -p ${__inLSIgnoreOptions} --time-style=+'%s' -X '.'"
+        
+        local lsForSha256Cmd=""
+
+        # NEW
+        # Sorting by extension is not used anymore (-X)
+        # Instead, the timestamp and size will be printed first and entries sorted numerically
+        # Additionally, the filename is always replaced with the full path
+         lsForSha256Cmd="ls -gGRA -p ${__inLSIgnoreOptions} --time-style=+'%s' -Q"
+
+        if [ $# -ge 5 ] ; then
+            local -n __inExplicitFiles=$5
+            local explFile=""
+            for explFile in "${__inExplicitFiles[@]}" ; do
+                lsForSha256Cmd+=" '${explFile}'"
+            done
+        else
+            lsForSha256Cmd+=" '.'"
+        fi
+
+        # LEGACY:
+        #lsForSha256Cmd="ls -gGRA -p ${__inLSIgnoreOptions} --time-style=+'%s' -X '.'"
         #_log_vars lsForSha256Cmd >&2 # DEBUG
-        lsForSha256=$(eval "${lsForSha256Cmd}" | awk '/\/$/ { for (i=1;i<=NF;i++) { if (i==4) printf "na " ; else printf "%s ",$i; }  printf "\n"; }  /[^\/]$/ { print $0 } ')
+
+
+        # LEGACY:
+        #lsForSha256=$(eval "${lsForSha256Cmd}" | awk '/\/$/ { for (i=1;i<=NF;i++) { if (i==4) printf "na " ; else printf "%s ",$i; }  printf "\n"; }  /[^\/]$/ { print $0 } ')
+
+        # NEW
+        lsForSha256=$(eval "${lsForSha256Cmd}" | awk '
+function startsWith(s,starts) { pat="^"starts; if (length(starts)==0) return 0 ; else return (match(s,pat)!=0); }
+BEGIN {
+  # Was used for a trial keeping dir entries for sorting numerically, see comment below 
+  # filerank=0 
+  curdir=""
+}
+/":$/ { 
+  curdir=substr($0,0,length($0)-1); 
+  next
+} 
+/\/$/ { 
+    next
+    # INVALIDATED IMPLEMENTATION:
+    # Here, the same block as below should normally apply for directory entries, but it came out 
+    # that the item may not be in the same order depending on the machine and system
+    # with out without filerank.
+    # Moreover, an attempt was made to put the full path at first and sort alphabetically
+    # but the result was even worse because of the ",. and / chars
+    # So the best is to fully ignore just the dir entries, because those now always preprend 
+    # the file
+}
+/[^\/]$/ {  
+    if (startsWith($0,"total")) {
+        next
+    }   
+
+    if (NF < 5) { printf("ERROR '%s'",$0) ; exit(0) }
+    printf("%s ",$4); # UTC timestamp
+    printf("%s ",$3); # Size
+    #printf("%d ",filerank) 
+    printf("%s ",$1); # Perm
+    printf("%s ",$2); # inode
+    if (length(curdir) > 0)
+        printf("%s/%s ",curdir,$5); # Fullpath
+    else
+        printf("%s ",$5); # Fullpath
+    printf("\n"); 
+
+    #filerank++; # Was used for a trial keeping dir entries for sorting numerically, see comment above 
+} 
+' | sort -n)
+
         #lsForSha256=$(ls -gGRA -p --time-style=+'%s' -X ".")
         #lsForSha256=$(ls -gGRA -p --time-style=+'%s' -X "." | grep -E -v ^.*/$)
         #lsForSha256=$(ls -gGRA -p --time-style=+'%s' --sort=time "." | grep -E -v ^.*/$)
         popd &>/dev/null
         #_log_vars lsForSha256 >&2 # DEBUG
-        __outDirSHA=$(echo "$lsForSha256"|sha256sum|awk -F' ' '{print $1}')
+        #_log_vars __inLSIgnoreOptions >&2 # DEBUG
+        #__outDirSHA=$(echo "$lsForSha256"|sha256sum|awk -F' ' '{print $1}')
+        __outDirSHA=$(echo "$lsForSha256"|sha256sum)
+        __outDirSHA="${__outDirSHA%% *}"
+
+        if [ $# -ge 4 ] ; then
+            local -n __outHashData=$4
+            __outHashData="$lsForSha256"
+        fi
     else
         __outDirSHA=""
         _log_warn "File__dirSHA256: failed to cd to ${__inFolder}"
@@ -5583,7 +6225,6 @@ File__dirSHA256() {
     #_log_vars LANG LC_ALL TZ  >&2
 
 }
-
 
 :<<'EOF'
 Creates in the current working directory subdirectories which names are given as array to this function
@@ -6072,6 +6713,62 @@ File__createFromZTemplate()
     echo "$content" > "${__inDst}"
 }
 
+:<<'EOF'
+Lists the files of the passed folder path and stores their basename in the passed array var ref
+@param [1] folder path
+@param [2] ref to var where to store filenames as an array
+EOF
+File__list()
+{
+    local __inDir="$1"
+    local -n __outNames=$2
+    local filename=""
+
+    if ! File__dirExists "${__inDir}" ; then
+        _log_error "${FUNCNAME[0]}: ${__inDir} is not a valid directory"
+        return 1
+    fi
+
+    while IFS='' read -r filename ; do
+        __outNames+=("$filename")
+    done< <(ls -1 "${__inDir}")
+}
+
+:<<'EOF'
+Iterates through the files contained in the passed directory and  and executes the action passed as second argument
+@param [1] folder path
+@param[2] either a function or a code block. In case a code block is passed then the iteration variable is the 'fileItem'
+EOF
+
+File__foreach() {
+    local __inDir="$1"
+    local __fnOrCode="$2"
+
+    local files=()
+    File__list "${__inDir}" files
+
+    _foreach files "${__fnOrCode}"
+}
+
+:<<'EOF'
+Appends some content to a file. Uses the printf function. 
+Third parameter tells whether to add a new line (true by default).
+@param[1] ref to var containing the file path
+@param[2] var containing the data to write
+EOF
+
+File__append() {
+    local __inFile="$1"
+    local __inData="$2"
+    local addNewline=true
+    if [ $# -ge 3 ] ; then addNewline=$3 ; fi
+    if $addNewline ; then
+        printf "%s\n" "${__inData}" >> "${__inFile}"
+    else    
+        printf "%s" "${__inData}" >> "${__inFile}"
+    fi
+}
+
 # --------------------------------------------------------------------------------------
 # Date API
 # --------------------------------------------------------------------------------------
@@ -6431,7 +7128,12 @@ Term__updateProgressBar() {
 
 Term__clear()
 {
-    clear -x
+    if [ $# -eq 0 ] ; then
+        clear -x
+    else
+        Term__moveTo $1 0
+        tput ed
+    fi
 #    tput cup 0 0 
 #    tput ed
 }
@@ -6513,6 +7215,12 @@ Term__cursorMoveLeft() {
     fi
 }
 
+Term__moveTo() {
+    local __inRow=$1
+    local __inCol=$2
+    printf "\33[%d;%dH" ${__inRow} ${__inCol}
+}
+
 Term__moveCursorUp() {
     if ! Args__checkCount ${FUNCNAME[0]} 1 "$#" "Usage: <number of lines to move up>"; then return 1; fi
     local nbLines=$1
@@ -6524,6 +7232,23 @@ Term__moveCursorUp() {
     while [ $i -lt $nbLines ] 
     do
         printf '\033[A'
+        i=$(($i + 1))
+    done
+    return 0
+}
+
+
+Term__moveCursorDown() {
+    if ! Args__checkCount ${FUNCNAME[0]} 1 "$#" "Usage: <number of lines to move down>"; then return 1; fi
+    local nbLines=$1
+    local i=0
+    if ! Int__isInt "$1" ; then
+        return 1
+    fi
+
+    while [ $i -lt $nbLines ] 
+    do
+        printf '\033[B'
         i=$(($i + 1))
     done
     return 0
@@ -7192,21 +7917,6 @@ Test__assertCleanupDir()
 }
 
 :<<'EOF'
-    This checks the first output line resulting from passed command execution
-EOF
-Test__assertCmd()
-{
-    local res
-    res="$(eval "$1")"
-    if [ $? -eq 0 ] ; then
-        read firstLine <<<"${res}"
-        [ "$firstLine" = "$2" ] || _exit -1 "Wrong output of command '$1' : '$firstLine' != '$2'"
-    else
-         _exit -1 "Execution of command '$1' failed"
-    fi
-}
-
-:<<'EOF'
 This checks the exit code of the passed command execution against
 the passed reference value
 @param[1] expected exit code
@@ -7222,6 +7932,99 @@ Test__assertCmdExit()
     [ $res -eq ${__inExpectedExitCode} ] && echo "OK: $res returned by '$2'" || _exit -1 "Unexpected exit code $res returned by command '$2'"
 }
 
+:<<'EOF'
+This checks the exit code of the passed command execution is different of the passed reference value
+@param[1] expected exit code
+@param[2] command to execute
+EOF
+Test__assertCmdNotExit()
+{
+    local __inExpectedExitCode="$1"
+    local res
+
+    eval "$2"
+    res=$?
+    [ $res -ne ${__inExpectedExitCode} ] && echo "OK: $res returned by '$2' , is != of ${__inExpectedExitCode}" || _exit -1 "exit code $res should not have been returned by command '$2'"
+}
+
+
+:<<'EOF'
+This checks the first output line resulting from passed command execution
+@param[1] command to execute
+@param[2] expected output string
+EOF
+Test__assertCmd()
+{
+    local res
+    res="$(eval "$1")"
+    if [ $? -eq 0 ] ; then
+        read firstLine <<<"${res}"
+        [ "$firstLine" = "$2" ] &&  echo "OK: output of '$1' is correct" || _exit -1 "Wrong output of command '$1' : '$firstLine' != '$2'"
+    else
+         _exit -1 "Execution of command '$1' failed"
+    fi
+}
+
+:<<'EOF'
+This checks that the output of command matches that of a reference file content.
+3rd parameters tells whether to ignore whitespaces at the beginning and end of each content lines to compare
+@param[1] reference file which content gives the expected output
+@param[2] command to execute
+@param[3] in bool tells whether to ignore whitespaces at the beginning and end of each content lines
+@param[4] optional start line from which to check content 
+@param[5] optional end line (included) no till which to check content 
+@param[6] optional space-separated line no-s to be ignored 
+EOF
+Test__assertCmdOutput()
+{
+    local _inRefFile="$1"
+    local res
+
+    if ! File__fileExists "${_inRefFile}" ; then 
+         _exit -1 "Reference file '${_inRefFile}' does not exist or is of invalid type"
+    fi
+
+    local refFileContent="$(echo -e "$(cat "${_inRefFile}")")"
+    Str__trim "$refFileContent" refFileContent
+    local cmdOutput=""
+    cmdOutput="$(eval "$2")"    
+    res=$?
+    Str__trim "$cmdOutput" cmdOutput
+    cmdOutput="$(echo -E "$cmdOutput")"
+#echo -E "$refFileContent"
+#echo "==="
+#echo -E "$cmdOutput"
+    local __inStartCheckLineNo=""
+    if [ $# -ge 4 ] ; then __inStartCheckLineNo="$4" ; fi
+    local __inEndCheckLineNo=""
+    if [ $# -ge 5 ] ; then __inEndCheckLineNo="$5" ; fi
+    local __inIgnCheckLineNo=""
+    if [ $# -ge 6 ] ; then __inIgnCheckLineNo="$6" ; fi
+
+    local diffLinesNum=()
+    local diffLines1=()
+    local diffLines2=()
+    Str__getDiffLines "$refFileContent" "$cmdOutput" diffLinesNum diffLines1 diffLines2 $3 ${__inStartCheckLineNo} ${__inEndCheckLineNo} "${__inIgnCheckLineNo}"
+
+    if [ ${#diffLinesNum} -eq 0 ] ;  then
+        echo "OK: '$2' output is correct" 
+    else
+        _log_err "Wrong output of command '$2' here are the differences line by line:"
+        _foreach3 diffLinesNum diffLines1 diffLines2 Test__assertCmdOutput_handleLineDiffs
+
+        echo "Command output: " >&2
+        echo "'${cmdOutput}'" >&2
+        _exit -1 "Test failed!"
+    fi
+}
+Test__assertCmdOutput_handleLineDiffs()
+{
+    local idx="$1"
+    local diffLineNo="$2"
+    local diffLines1Item="$3"
+    local diffLines2Item="$4"
+    _log "$diffLineNo: EXPECTED '$diffLines1Item', GOT '$diffLines2Item'"
+}
 
 Test__assertSymlinkPath()
 {

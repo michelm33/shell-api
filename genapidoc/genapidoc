@@ -1,0 +1,328 @@
+#!/bin/bash
+###############################################################################
+#
+# Genapidoc
+#
+# Copyright (c) 2026 Michel MEHL. All rights reserved.
+#
+# ------------------------------------------------------------------------------
+#
+# This file implements the Genapidoc to generate shell script app skeletons
+# using the shell-api library. 
+#
+# It includes a sub-skeleton file for managing options, as well as one including
+# help functions to enable packaging with dpkg.
+#
+# ------------------------------------------------------------------------------
+#
+# Report bugs to michel.mehl@slashetc.fr
+#
+###############################################################################
+
+# GENAPIDOC__VARS is aimed at storing variables specific to this app
+# to avoid conflicts with other vars should this file be included elsewhere
+declare -A GENAPIDOC__VARS
+
+GENAPIDOC__VARS["SRC_DIRNAME"]="${BASH_SOURCE[0]%/*}" # "$(dirname ${BASH_SOURCE[0]})"
+GENAPIDOC__VARS["MYDIR"]="$(readlink -f "${GENAPIDOC__VARS["SRC_DIRNAME"]}")"
+GENAPIDOC__VARS["SHELLAPI_DIR"]="../../../../../../../Data/admin/linux/shell-api"
+#GENPAGE__VARS["configFile"]=""     # Could be used if app requires a yaml configuration file as argument
+
+source "${GENAPIDOC__VARS["MYDIR"]}/shell-api/shell-api-core.sh" "Genapidoc"
+
+:<<'EOF'
+# If necessary include of these modules
+eval $_loadm<<<'shell-api-sys'          # process control functions
+eval $_loadm<<<'shell-api-dev'          # device access functions
+eval $_loadm<<<'shell-api-net'          # network related functions
+EOF
+
+eval $_loadm<<<'shell-api-packing'      # package management functions (loading)
+eval $_loadm<<<'shell-api-yaml'         # YAML read/write functions, mandatory core has a dependency on it
+
+source "${GENAPIDOC__VARS["MYDIR"]}/genapidoc__vars.sh" 
+source "${GENAPIDOC__VARS["MYDIR"]}/genapidoc__options.sh" 
+source "${GENAPIDOC__VARS["MYDIR"]}/genapidoc__help.sh" 
+
+
+Genapidoc__isSilent() { if ${GENAPIDOC__VARS["silent"]}; then return 0; else return 1; fi }
+
+:<<'EOF'
+Framework callback for getting the default configuration file path if none is defined
+in user space below .config/<appname>.
+@param [1] A reference to the variable where the path shall be stored
+EOF
+
+Genapidoc__getDefaultConfigFile()
+{
+        local -n out_ConfileFilePath=$1
+        out_ConfileFilePath="${GENAPIDOC__VARS["MYDIR"]}/genapidoc.yml"
+        return 0
+}
+
+Genapidoc__loadDep() 
+{
+    if ! Args__checkCount ${FUNCNAME[0]} 1 "$#" "Usage: <dependency name>"; then return 1; fi
+
+    # By default, attempts to install an APT package of the passed name
+    Pkg__install "$1" "" apt 
+}
+
+Genapidoc__parseArgsHandleOptionLessArg() {
+        local rank=$1
+        shift
+        local value="$@"
+:<<'EOF'
+        # Handle here optionless arguments which are not provided with - or -- 
+        # 'rank' givens the rank of the arguments as it is read from left to right 
+        # on command line
+        #
+        # Here below a valid sample if app requires a yaml configuration file as argument
+        case ${rank} in
+                0) 
+                    GENAPIDOC__VARS["configFile"]="${value}" ;                 
+                    return 0 
+                    ;; 
+                *) return 1 
+                ;;
+        esac        
+EOF
+        return 1 
+}
+
+Genapidoc__parseArgs() {
+    local argc=0
+    local arg_cnt=0
+
+    _log_dbg "Genapidoc__parseArgs"
+
+    _parseFromArgToVars GENAPIDOC__OPTION_LIST_DESC GENAPIDOC__OPTION_LIST_ARGS GENAPIDOC__OPTION_LIST_ACTI GENAPIDOC__OPTION_LIST_VALS argc arg_cnt "$@"
+
+:<<'EOF'
+    # Handle here specific cases e.g. 
+    # - raise an error when no arguments at all is supplied
+    # - or set up a specific handling with defaults params
+    if [ $argc -eq 0 ] ; then
+        _susage "missing arguments"
+    fi
+EOF
+    _log_dbg "Genapidoc__parseArgs argc='$argc' arg_cnt='$arg_cnt'"
+}
+
+:<<'EOF'
+Callback called for cleaning up app upon signal arising
+
+@param [1] the code with which the app will exit, i.e. the initially caught exit code
+
+EOF
+
+Genapidoc__cleanup()
+{
+:<<EOF
+    local appName="${__SHELL_CURRENT_APPNAME__}"
+    _log "${appName} cleaning up"
+EOF
+}
+
+declare -A docSectionMap
+docSectionMap["core"]="Core framework functions"
+docSectionMap["multimedia"]="Multimedia file manipulation functions"
+docSectionMap["net"]="Networking functions"
+docSectionMap["dev"]="System devices and low-level file system"
+docSectionMap["packing"]="Packaging functions"
+docSectionMap["sys"]="System functions"
+docSectionMap["xslt"]="XML transformation functions"
+docSectionMap["yaml"]="YAML file handling functions"
+docSectionMap["selftest"]="Framework self-test functions"
+
+docSectionMap["Args"]="Shell function argument handling"
+docSectionMap["Array"]="Arrays"
+docSectionMap["Date"]="Date, time and timers"
+docSectionMap["Env"]="Shell and Linux Environment"
+docSectionMap["File"]="File and directories"
+docSectionMap["Float"]="Floating numbers"
+docSectionMap["Int"]="Integer numbers"
+docSectionMap["Input"]="User input functions"
+docSectionMap["Math"]="Math functions"
+docSectionMap["Str"]="Strings handling"
+docSectionMap["Term"]="Terminal settings"
+docSectionMap["Test"]=""
+docSectionMap["User"]="System user-related settings"
+docSectionMap["Adb"]="ADB-related functions"
+docSectionMap["Dev"]="System devices and low-level file system settings"
+docSectionMap["Vera"]="VERA-related functions"
+docSectionMap["Image"]="Image manipulation functions"
+docSectionMap["SVG"]="SVG manipulation functions"
+docSectionMap["Net"]="Networking functions"
+docSectionMap["APT"]="APT package handling functions"
+docSectionMap["DPKG"]="dpkg package handling functions"
+docSectionMap["GEM"]="GEM package handling functions"
+docSectionMap["OPAM"]="OPAM package handling functions"
+docSectionMap["Pkg"]="High-level package handling functions"
+docSectionMap["SNAP"]="SNAP package handling functions"
+docSectionMap["CPU"]="CPU information functions"
+docSectionMap["Desktop"]="Desktop settings"
+docSectionMap["gnome"]="GNOME settings"
+docSectionMap["Screen"]="Screen settings"
+docSectionMap["Sys"]="System process control functions"
+docSectionMap["XSLT"]="XML Transformations"
+docSectionMap["YAML"]="YAML file handling functions"
+
+
+
+Genapidoc__generateApiDocLine_prevScope=""
+Genapidoc__generateApiDocLine_scope="" #____dummy_scope_to_for_very_first_table____"
+
+Genapidoc__generateApiDocLine_nbTableLines=0
+Genapidoc__generateApiDocLine_closeTable() {
+    local adocOut="$1"   
+    if [ ! -z "${Genapidoc__generateApiDocLine_prevScope}" ] ; then
+        if [ $((Genapidoc__generateApiDocLine_nbTableLines%2)) -ne 0 ] ; then
+            File__append "$adocOut" "            
+|
+"
+        fi   
+        File__append "$adocOut" "            
+|===
+"
+    fi
+
+    Genapidoc__generateApiDocLine_nbTableLines=0
+}
+
+Genapidoc__generateApiDocLine()
+{
+    local __rank="$1"
+    local __inFunction="$2"
+    local __inFile="$3"   
+    #_log_vars __inFunction
+    if [[ "${__inFunction}" =~ ^([a-zA-Z]+)_ ]] || [[ "${__inFunction}" =~ ^(_) ]] ; then
+
+        Genapidoc__generateApiDocLine_scope="${BASH_REMATCH[1]}"
+
+        #_log_vars Genapidoc__generateApiDocLine_scope
+
+        # Start a new table if the function scope name changed
+        #
+        if [ "${Genapidoc__generateApiDocLine_scope}" != "${Genapidoc__generateApiDocLine_prevScope}" ] ; then
+
+            # Close previous table if any
+            Genapidoc__generateApiDocLine_closeTable "${__inFile}"           
+
+            # Open new table
+            local title="${Genapidoc__generateApiDocLine_scope}"
+            if [ "$title" = "_" ] ; then title="Global scope" ; fi
+            
+            if [ ! -z "${docSectionMap["${title}"]}" ] ; then
+                title="${title} - ${docSectionMap["${title}"]}"
+            fi
+
+            File__append "$adocOut" "            
+=== ${title}
+
+[cols=\"2*\",frame=none, grid=none]
+|===            
+"
+
+            Genapidoc__generateApiDocLine_prevScope="${Genapidoc__generateApiDocLine_scope}"
+        fi
+
+        #_log_vars __rank __inContent __inFile
+        Genapidoc__generateApiDocLine_nbTableLines=$((${Genapidoc__generateApiDocLine_nbTableLines}+1))
+        File__append "${__inFile}" "| ${__inFunction}"
+
+    elif [ ! -z "${__inFunction}" ] ; then
+        _log_warn "Rejected: '${__inFunction}'"
+    fi
+
+}
+
+Genapidoc__handleSource_prevRank=""
+Genapidoc__handleSource()
+{
+    #echo "$_absPath ${GENAPIDOC__VARS["MYDIR"]}/.."
+    local __rank="$1"
+    local _filePath="$2"
+    local _absPath="${GENAPIDOC__VARS["MYDIR"]}/../${_filePath}"
+    local adocOut="${GENAPIDOC__VARS["onlinedoc-file"]}"
+
+    if [[ "${_filePath}" =~ ^shell\-api\-([a-z]+)\.sh$ ]] ; then
+_log_vars __rank _filePath
+
+        # Close last table of previous file and reset Genapidoc__generateApiDocLine_prevScope
+        if [ ! -z "$Genapidoc__handleSource_prevRank" ] ; then
+            Genapidoc__generateApiDocLine_closeTable "$adocOut"          
+
+            Genapidoc__generateApiDocLine_prevScope=""
+        fi
+        Genapidoc__handleSource_prevRank="${__rank}"
+        
+
+        local title="${BASH_REMATCH[1]}"
+        local content="$(cat "${_absPath}"|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sort )"
+        
+        local globalScopeContent="$(echo "$content"|grep -E ^_)"
+        local scopedContent="$(echo "$content"|grep -v -E ^_)"
+        content="$globalScopeContent
+$scopedContent"
+
+        if [ ! -z "${adocOut}" ] ; then
+        #_log_vars _filePath
+        #return 0
+
+            if [ ! -z "${docSectionMap["${title}"]}" ] ; then
+                title="${docSectionMap["${title}"]}"
+            fi
+
+            File__append "$adocOut" "            
+== ${title}
+"            
+            File__append "$adocOut" "
+[.text-center]
+--
+[big]#File: ${_filePath}#
+--
+"
+
+
+            local allLines
+            Str__linesToArray "${content}" allLines
+            _foreach allLines Genapidoc__generateApiDocLine "$adocOut"
+            #File__append "$adocOut" "${content}"
+        fi
+    fi
+}
+
+Genapidoc__main() {
+    local allargs=("$@")
+
+    if ! _parseArgs "${allargs[@]}" ; then
+            _exit -1 "Failed to parse arguments"
+    fi
+
+	_initLogs
+
+    File__foreach "${GENAPIDOC__VARS["MYDIR"]}"/.. Genapidoc__handleSource
+    local adocOut="${GENAPIDOC__VARS["onlinedoc-file"]}"
+    Genapidoc__generateApiDocLine_closeTable "$adocOut"
+}
+
+Genapidoc__test() {
+    :
+}
+
+allArgs=("$@")
+if _main "${allArgs[@]}" ; then
+
+        if ${GENAPIDOC__VARS["verbose"]} ; then
+            _quit "${__SHELL_CURRENT_APPNAME__} has finished."
+        else
+            _quit ""
+        fi
+
+else
+        _exit -1 "${__SHELL_CURRENT_APPNAME__} ended with a failure. Please check above messages."
+fi
+
+
+

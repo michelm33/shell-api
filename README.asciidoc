@@ -470,6 +470,8 @@ License terms written down in file LICENSE.txt
 | _debugging() 
 | _exit() 
 | _foreach() 
+| _foreach2() 
+| _foreach3() 
 | _getConfigDir()
 | _getConfigFilePath() 
 | _getDependenciesCacheFile()
@@ -632,9 +634,13 @@ License terms written down in file LICENSE.txt
 | File__noext() 
 | File__readYAMLLikeFile() 
 | File__readYAMLLikeLine()
+| File__realpath() 
 | File__setProgressFileTotalSteps() 
 | File___writeJobProgressFile() 
 | File__writeJobProgressFile() 
+            
+|
+
             
 |===
 
@@ -689,13 +695,11 @@ License terms written down in file LICENSE.txt
 | Int__Int_r() 
 | Int__isInt() 
 | Int__max()
+| Int__min()
 | Int__percentage()
 | Int__readVersion()
 | Int__series() 
 | Int__withinRange() 
-            
-|
-
             
 |===
 
@@ -724,7 +728,9 @@ License terms written down in file LICENSE.txt
 | Str__eraseCommonTail() 
 | Str__escape() 
 | Str__escapeChar() 
+| Str__escapeXML() 
 | Str__fitToLineWidth() 
+| Str__getDiffLines()
 | Str__getField() 
 | Str__grep() 
 | Str__grepAndGetField() 
@@ -833,6 +839,9 @@ License terms written down in file LICENSE.txt
 | Test__assertCleanupDir()
 | Test__assertCmd()
 | Test__assertCmdExit()
+| Test__assertCmdNotExit()
+| Test__assertCmdOutput()
+| Test__assertCmdOutput_handleLineDiffs()
 | Test__assertDirsShouldExist() 
 | Test__assertFileContainsLine() 
 | Test__assertFileContent() 
@@ -844,6 +853,9 @@ License terms written down in file LICENSE.txt
 | Test__assertSameFiles()
 | Test__assertSymlinkPath()
 | Test__assertTwoCommandsSameOutput()
+            
+|
+
             
 |===
 
