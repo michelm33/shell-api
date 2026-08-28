@@ -10,10 +10,10 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-yaml.sh
-# Release file date: 2026-08-28 22:38
+# Release file date: 2026-08-28 22:55
 # App version: 1.1.2
-# App source revision: 165
-# App source signature: 20261f8617f7da40ec34c73d386294f6ed4cc9e6eb77d09c6cea0ef336a87f2f
+# App source revision: 166
+# App source signature: 1cb24f4d9da0c9d5bb2f26e633d69828b91851d5747a1ee96a001462a1865df1
 # Source file last modification: 2026-08-16 13:48:49.932243580 +0200
 #
 # This header was generated. Do not modify.
