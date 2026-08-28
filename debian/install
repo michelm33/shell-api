@@ -8,6 +8,8 @@ genapp__help.sh /usr/bin/shell-api-1.1-2
 genapp__options.sh /usr/bin/shell-api-1.1-2
 genapp__vars.sh /usr/bin/shell-api-1.1-2
 GITHUB.txt /usr/bin/shell-api-1.1-2
+GPL-3.0.txt /usr/bin/shell-api-1.1-2
+LGPL-3.0.txt /usr/bin/shell-api-1.1-2
 LICENSE.txt /usr/bin/shell-api-1.1-2
 Makefile /usr/bin/shell-api-1.1-2
 MANPAGE.txt /usr/bin/shell-api-1.1-2

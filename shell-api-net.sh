@@ -10,10 +10,10 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-net.sh
-# Release file date: 2026-08-27 17:40
+# Release file date: 2026-08-28 22:28
 # App version: 1.1.2
-# App source revision: 162
-# App source signature: ba5b642a92066a4177dcd891c19a03c235a837a604312a0801a4aeea7c8929a4
+# App source revision: 164
+# App source signature: 1ad8400e0a2b0cf347d44004ce453df1f47764c2e4bb010152bfc79c7eacb0e7
 # Source file last modification: 2026-07-06 16:34:40.287414192 +0200
 #
 # This header was generated. Do not modify.

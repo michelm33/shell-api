@@ -83,7 +83,7 @@ release: required_tools man release_no_man_internal
 	@echo SUCCESS
 
 .PHONY: release_no_man_internal
-release_no_man_internal: doc check_uptodate create_package web ftp
+release_no_man_internal: doc check_uptodate create_package web_download ftp
 	@echo SUCCESS
 
 .PHONY: pub
@@ -195,15 +195,22 @@ build_package_cleanup:
 	@echo 
 	@cd $(VERS_REL_DIR)/debian && rm -r .debhelper && rm -rf $(PRODUCT) && rm debhelper* && rm files && rm rules && echo || echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
 
+.PHONY: web_download
+web_download:
+	@echo 
+	@echo 
+	@echo "UPDATING DOWNLOAD PAGE"
+	@echo 
+	@tools/update-web-download-page.sh "$(WEBSITE_DIR)/developertoolsforlinux/pages/shellapi/shellapi_1_overview.adoc" "$(PRODUCT)" "$(VERSION_DEB)" "$(VERSION_DEB_FOR_ZIP)"  && echo && echo '>>>>>>>>>>>>>>> SUCCESS <<<<<<<<<<<<<<<<<<<<' ||  echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
+
 .PHONY: web
 web:
 	@echo 
 	@echo 
-	@echo "UPDATING DOWNLOAD PAGE"
-	@echo "WARNING YOU MAY HAVE TO RUN MAKE RELEASE TWICE IF ./README.ASCIIDOC IS UPDATED"
+	@echo "UPDATING REVISION LOG WEB PAGES"
 	@echo 
-	@tools/update-web-download-page.sh "$(WEBSITE_DIR)/developertoolsforlinux/pages/shellapi/shellapi_1_overview.adoc" "$(PRODUCT)" "$(VERSION_DEB)" "$(VERSION_DEB_FOR_ZIP)"  && echo && echo '>>>>>>>>>>>>>>> SUCCESS <<<<<<<<<<<<<<<<<<<<' ||  echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
-	@echo 
+	av log --fmt=adoc --to=0 > "$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-cm-full-log.adoc"
+	av rel --fmt=adoc > "$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-cm-release-log.adoc"
 
 .PHONY: ftp
 ftp:
