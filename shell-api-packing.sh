@@ -10,10 +10,10 @@
 # Les termes de la licence sont détaillés dans le fichier LICENSE.txt
 # 
 # Release file path: shell-api-packing.sh
-# Release file date: 2026-08-28 22:55
+# Release file date: 2026-08-28 23:24
 # App version: 1.1.2
-# App source revision: 166
-# App source signature: 1cb24f4d9da0c9d5bb2f26e633d69828b91851d5747a1ee96a001462a1865df1
+# App source revision: 168
+# App source signature: 2cb38a49c6a4d3204e894b9f7a78fd5b8ddfa41e6677f43c6cfa254e5433ca9f
 # Source file last modification: 2026-06-07 23:01:10.265430016 +0200
 #
 # This header was generated. Do not modify.

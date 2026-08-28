@@ -204,8 +204,11 @@ web_download:
 	@tools/update-web-download-page.sh "$(WEBSITE_DIR)/developertoolsforlinux/pages/shellapi/shellapi_1_overview.adoc" "$(PRODUCT)" "$(VERSION_DEB)" "$(VERSION_DEB_FOR_ZIP)"  && echo && echo '>>>>>>>>>>>>>>> SUCCESS <<<<<<<<<<<<<<<<<<<<' ||  echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
 
 .PHONY: web
-web:
+web: #shell-api-core.sh shell-api-dev.sh shell-api-multimedia.sh shell-api-net.sh shell-api-packing.sh shell-api-sys.sh shell-api-yaml.sh shell-api-xslt.sh
 	@echo 
+	@echo Generating online doc for shell api modules and functions
+	@echo 
+	@genapidoc/genapidoc --doc="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions.adoc"
 	@echo 
 	@echo "UPDATING REVISION LOG WEB PAGES"
 	@echo 
@@ -220,10 +223,4 @@ ftp:
 	@echo 
 	@sf -F -y && echo && echo '>>>>>>>>>>>>>>> SUCCESS <<<<<<<<<<<<<<<<<<<<' ||  echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
 	@echo 
-
-doc: shell-api-core.sh shell-api-dev.sh shell-api-multimedia.sh shell-api-net.sh shell-api-packing.sh shell-api-sys.sh shell-api-yaml.sh shell-api-xslt.sh
-	@echo Generating online doc for shell api modules and functions
-	@genapidoc/genapidoc --doc="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions.adoc"
-	@tools/update-README.sh
-	@if which arcv >/dev/null 2>/dev/null; then av diff --fmt=plain >/dev/null ; if [ $$? -eq 0 ] ; then av -y co README.asciidoc >/dev/null; fi ; fi
 
