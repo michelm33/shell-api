@@ -1,22 +1,7 @@
 #!/bin/bash
 ###############################################################################
-# HUMAN-READABLE "BSA BASH SHELL API" and genapp bash app generator
-# 
-# Copyright (c) 2024-2026 Michel Mehl.
-# All rights reserved. 
-# Tous droits réservés (France).
-# 
-# License terms written down in file LICENSE.txt
-# Les termes de la licence sont détaillés dans le fichier LICENSE.txt
-# 
-# Release file path: shell-api-core.sh
-# Release file date: 2026-08-28 23:24
-# App version: 1.1.2
-# App source revision: 168
-# App source signature: 2cb38a49c6a4d3204e894b9f7a78fd5b8ddfa41e6677f43c6cfa254e5433ca9f
-# Source file last modification: 2026-08-27 17:36:48.470090442 +0200
 #
-# This header was generated. Do not modify.
+# Copyright (c) 2024 Michel Mehl. All rights reserved.
 #
 # -----------------------------------------------------------------------------
 #
@@ -25,16 +10,9 @@
 # shell applications (BASH).
 #
 # -----------------------------------------------------------------------------
-# 
-# Report bugs and suggestions: 
-#     assistance@slashetc.fr
-# 
-# Specific or corporate requirements or extensions: 
-#     info@slashetc.fr
-# 
-# The author is overall not required to provide maintenance or support 
-# outside specific commercial terms agreed.
-# 
+#
+# Report bugs to michel.mehl@slashetc.fr
+#
 ###############################################################################
 
 __SHELL_API_CORE_DIR__=$(readlink -f $(dirname ${BASH_SOURCE[0]}))

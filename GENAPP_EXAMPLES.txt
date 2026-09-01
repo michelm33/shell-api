@@ -1,0 +1,12 @@
+Generating a test app
+
+  # An app named 'TestApp" is generated. The root output folder for any app release is '..', relatively to the app source dir. The home page URL for the app will be https://github/michelm33/testapp
+   genapp TestApp -y --author="George Washington" --email="george.washington@whitehouse.org" --desc="A test application" --github-id="michelm33" --root-release-dir=".."
+
+  # Same as previous example, but the home page URL for the app is explicitely defind as 'https://slashetc/testapp'
+   genapp TestApp -y --author="George Washington" --email="george.washington@whitehouse.org" --desc="A test application" --http="https://slashetc/testapp" --root-release-dir=".."
+
+Generating a debian package
+
+  # Assuming the TestApp was created as above, the generates a release file tree and a debian package
+   cd testapp && make release
