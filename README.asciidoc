@@ -40,47 +40,41 @@ shell-api
 Human-readable Bash Shell API
 ////
 
+NOTE: Official and up-to-date documentation at https://slashetc.fr/en/developertoolsforlinux/shellapi.
+
 == In a nutshell
 
-`shell-api` provides the following:
+`shell-api` is:
 
-- a human-readable set of bash shell function library organized as independent modules
+- a library of human-readable bash functions organized as standalone modules
 - a framework for building efficient, scalable, distributable bash apps (Debian package)
 - *Genapp*, a tool for generating ready-to-go bash app skeletons 
-- weak system dependencies
+- weak system dependencies (standard linux tools)
 
-=== Documentation
+*Disclaimer*
 
-The API documentation is mainly available inline, inside the function headers. The modules are described in section <<Bash modules>> and the lists of functions per module given at the end of this page. Please consider also the disclaimer below.
+The shell-api developped along with other projects that built progressively upon it, like link:https://slashetc.fr/en/products/mountpilot/index.html[sumo] and link:https://slashetc.fr/en/developertoolsforlinux/arcv/[arcv]. At this stage, the documentation may not be complete. Use cases and examples may also to be found in the source code of the aforementionned tools. 
 
-=== Disclaimer
+== Release history
 
-Except inline function headers and comments, there's no formal online documentation available yet. All functions may also not feature a header.
-
-Please consider that this is not an official, lead project at the moment, but rather a subproduct that emerged along with other projects that built progressively upon it. 
-
-Yet, it has been proven in use in those projects, among which MountPilot, SyncFull, Arcv. There are many contextualized use cases of this API to be found in the source script files, which are often more meaningful that a bunch of abstract specification.
-
-Moreover, despite the significant effort behind this, it did not benefit of any sponsorship and is made freely available to the public. 
+https://slashetc.fr/en/developertoolsforlinux/shellapi/#_release_history
 
 == Installation
 
 [source,bash,title="As Debian system package (requires root rights)"]
 ----
-wget https://slashetc.fr/download/shell-api_1.0-0_amd64.deb 
-sudo dpkg -i shell-api_1.0-0_amd64.deb
+wget https://slashetc.fr/download/shell-api_1.1-3_amd64.deb 
+sudo dpkg -i shell-api_1.1-3_amd64.deb
 ----
 
 [source,bash,title="As free installation"]
 ----
 # Sample, select the target installation folder and desired version
-wget https://slashetc.fr/download/shell-api_1.0-0.zip 
-unzip shell-api_1.0-0.zip 
+wget https://slashetc.fr/download/shell-api_1.1-3.zip 
+unzip shell-api_1.1-3.zip 
 ----
 
-The exhaustive list of all available versions along with their download links can be reached here on the official page:
-
-https://slashetc.fr/en/developertoolsforlinux/shellapi/
+The exhaustive list of all available versions along with their download links can be reached here on the official page: https://slashetc.fr/en/developertoolsforlinux/shellapi/#_installation
 
 == Bash modules
 
@@ -88,7 +82,8 @@ The co-related functionalities are grouped into __modules__ , i.e separate, inde
 
 [%autowidth]
 |===
-| module file | Macro function
+| Module file | Macro function
+
 | shell-api-core.sh a| 
 - Base framework API
 - Basic type manipulation : String, Integer, Arrays, Date
@@ -121,9 +116,15 @@ The co-related functionalities are grouped into __modules__ , i.e separate, inde
 - Framework self-tests
 |===
 
-=== Including a module
+=== Practical learning through examples
 
-a module is loaded using the following syntax, e.g. here loading module `shell-api-dev.sh`:
+The following section documents some few typical framework features supplied by the library. There's also an API documentation. However, some parts of it are still lacking.
+
+As complement, it might be useful to check actual implementations relying on it, for example, the tools `sumo`, `arc` and `shotplan`, which are readable bash scripts. 
+
+=== Loading a module (sourcing)
+
+A module is loaded (sourced) using the following syntax, e.g. here loading module `shell-api-dev.sh`:
 
 `eval $_loadm<<<'shell-api-dev.sh'` 
 
@@ -131,6 +132,16 @@ Basically it "sources" the script into the current one, additionally:
 
 - it ensures the file is not sourced multiple times 
 - sets internal variable `__SHELL_SRC_NAME__` to the loaded file for all the timespan the module is being sourced.
+
+=== Loading a source file of the same app project (sourcing)
+
+Any other source script part of the app project, i.e. located below the source directory, can be loaded (sourced) using the following syntax, e.g. here the loading of source file `arcv__vars.sh` of the sumo project can be loaded as follows:
+
+`eval $_loada<<<'arcv__vars.sh'`
+
+This is the equivalent of the following which is less convenient to use:
+
+`source "${ARCV__VARS["MYDIR"]}/arcv__vars.sh"`
 
 === Dependencies
 
@@ -189,11 +200,12 @@ By default, a configuration file is at the app's disposal, located in the `.conf
 
 If this file does not exist, a default one is created from the default configuration file generated along with the app (`.yml` extension) upon first launch.
 
-At startup, the library automatically loads the configuration data and stores it in the bash map named `<APPNAME>__VARS[]`, declared at the start of the main app file. 
+At startup, the library automatically loads the configuration data and stores it in the bash map named `<APPNAME>__VARS[]`.
 
 The bash map key is the uppercased YAML key where spaces are replaced with underscores. The following examples shows how the read data are mapped:
 
 The configuration line will result in the execution of the following during app initialization:
+
 [%autowidth]
 |===
 | Configuration file line in <appname>.yml | Code executed at loading
@@ -201,7 +213,7 @@ The configuration line will result in the execution of the following during app 
 | `a sample parameter: parameter value`  | `<APPNAME>__VARS["A_SAMPLE_PARAMETER"]="parameter value"` 
 |===
 
-IMPORTANT: The accepted format is a very restricted subset version of YAML. Only basic pairs `key: value` are accepted. If a more complex configuration is required and may have to be put under configuration management, a rule of thumb is to define a configuration parameter in `$HOME/.config/<Appname>/<appname>.yml` giving the path to the actual app configuration, which may then be YAML or any other format required by the specific app. 
+IMPORTANT: The accepted format is here specifically a very restricted subset YAML syntax. Only basic pairs `key: value` are accepted. If a more complex configuration is required and may have to be put under configuration management, a rule of thumb is to define a configuration parameter in `$HOME/.config/<Appname>/<appname>.yml` giving the path to the actual app configuration, which may then be YAML or any other format required by the specific app. 
 
 === Logging
 
@@ -445,7 +457,11 @@ https://slashetc.fr/en/developertoolsforlinux/shellapi/shellapi_API.html
 
 === Configuration management
 
-The configuration management of the original software is managed on a non-disclosed server with arcv. 
+The configuration management of the original software was originally managed on a non-disclosed server with arcv. The original revision log of arcv can be tracked on this page: link:shellapi_fullrevisionlog.html[Full revision log page, window=_blank].
+
+Since version 1.1.2, the full original source code is available on GitHub under LGPL license. Therefore, it will be used as the main source reference for the public version. 
+
+Release history: https://slashetc.fr/en/developertoolsforlinux/shellapi/#_release_history
 
 The clean release packages and the release source code files are available on GitHub at https://github.com/michelm33/shell-api
 
@@ -463,9 +479,13 @@ Reported bugs are tracked via the GitHub page https://github.com/michelm33/shell
 | PayPal | https://www.paypal.com/donate/?hosted_button_id=G2QSV9ZD4EB4A
 |===
 
-== Donating and gifts
+== LGPL License
 
-How you can support this work and how to claim your gifts is reported on this page: link:https://slashetc.fr/en/products/mountpilot/mountpilot_donate&Gifts.html[Donate & Gifts online page].
+The library is under LGPL-3 license.
+
+== Supporting this work
+
+You can contribute by enriching yourself the library. You can also support the original author via its donation page link:https://slashetc.fr/en/products/mountpilot/mountpilot_donate&Gifts.html[Donate & Gifts online page].
 
 == Thanks
 
@@ -474,6 +494,7 @@ How you can support this work and how to claim your gifts is reported on this pa
 * link:https://www.gnu.org/software/help2man/[help2man] an utility to generate man pages
 * 'meld' tool
 * link:https://asciidoctor.org[The AsciiDoctor project]
+* Google Translate
 
 Probably this list may be completed over time, sorry if I missed anyone!
 

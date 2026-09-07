@@ -1,15 +1,13 @@
 #!/bin/bash
 ###############################################################################
 #
-# MountPilot and SUMO backend control script
+# Copyright (c) 2026 Michel Mehl. All rights reserved.
 #
-# Copyright (c) 2024-2026 Michel Mehl. All rights reserved.
+# -----------------------------------------------------------------------------
 #
-# ------------------------------------------------------------------------------
+# Internal tool for updating web download page for  Shell API 
 #
-# This updates the web download page for a new release
-#
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # Report bugs to michel.mehl@slashetc.fr
 #
@@ -46,7 +44,7 @@ newline="
 "
 read uploadTime < <(date +"%F %T %:::z %Z")
 if [ -f "$1" ] ; then
-echo $uploadTime
+    echo $uploadTime
     cat "$1"| grep -F -v "${2}_${3}" | sed -E "s/\/\/@insert_new_balise/\/\/@insert_new_balise\n| Linux | link:https:\/\/slashetc.fr\/download\/${2}_${3}_amd64.deb\[${2}_${3}_amd64.deb\] | link:https:\/\/slashetc.fr\/download\/${2}_${4}.zip\[${2}_${4}.zip\] | ${uploadTime}/g" > "$1.tmp"
     mv "$1.tmp" "$1"
     echo "File '$1' was updated"

@@ -156,14 +156,26 @@ fi
 
 
 
-GENAPIDOC__OPTION_LIST_SDESC["--doc"]="Specifies the output file for the generated online documentation"
-GENAPIDOC__OPTION_LIST_DESC["--doc"]="
-Specifies the output file for the generated online documentation
+GENAPIDOC__OPTION_LIST_SDESC["--api-index"]="Specifies the output file for the API index"
+GENAPIDOC__OPTION_LIST_DESC["--api-index"]="
+Specifies the output file for the API index, sorted by module file and category
 "
-GENAPIDOC__OPTION_LIST_ARGS["--doc"]="0"
-GENAPIDOC__OPTION_LIST_ARGS_TYPE["--doc"]="FILE"
-GENAPIDOC__OPTION_LIST_ACTI["--doc"]=''
-GENAPIDOC__OPTION_LIST_VALS["--doc"]='
-GENAPIDOC__VARS["onlinedoc-file"]="${__myarg}"
+GENAPIDOC__OPTION_LIST_ARGS["--api-index"]="0"
+GENAPIDOC__OPTION_LIST_ARGS_TYPE["--api-index"]="FILE"
+GENAPIDOC__OPTION_LIST_ACTI["--api-index"]=''
+GENAPIDOC__OPTION_LIST_VALS["--api-index"]='
+GENAPIDOC__VARS["api-index"]="${__myarg}"
+echo > "${__myarg}"
+'
+
+GENAPIDOC__OPTION_LIST_SDESC["--api-doc"]="Specifies the output file for the API documentation"
+GENAPIDOC__OPTION_LIST_DESC["--api-doc"]="
+Specifies the output file for the API documentation
+"
+GENAPIDOC__OPTION_LIST_ARGS["--api-doc"]="0"
+GENAPIDOC__OPTION_LIST_ARGS_TYPE["--api-doc"]="FILE"
+GENAPIDOC__OPTION_LIST_ACTI["--api-doc"]=''
+GENAPIDOC__OPTION_LIST_VALS["--api-doc"]='
+GENAPIDOC__VARS["api-doc"]="${__myarg}"
 echo > "${__myarg}"
 '

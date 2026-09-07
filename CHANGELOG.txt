@@ -1,3 +1,9 @@
+* Release 1.1.3
+    - GenApidoc tool for generating AsciiDoctor files for the online doc
+    - Makefile fixes
+    - Minor change in API doc
+    - Some very few more functions in core
+    - Changed man section from 8 to 1
 * Release 1.1.2
     - Please check the full revision log till revision 108: 
         https://slashetc.fr/en/developertoolsforlinux/shellapi/shellapi_fullrevisionlog.html

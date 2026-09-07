@@ -5,6 +5,6 @@ Report bugs and suggestions:
 Specific or corporate requirements or extensions: 
     info@slashetc.fr
 
-The author is overall not required to provide maintenance or support 
+The author is overall not required to provide maintenance or support  
 outside specific commercial terms agreed.
 

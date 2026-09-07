@@ -1,0 +1,98 @@
+/********************************************************
+    Table related to API doc index
+*/
+.css-shellapi-api-index > tbody > tr > td:nth-of-type(odd) {
+    backdrop-filter: brightness(1.2);
+}
+
+/********************************************************
+    Tables related to API doc details
+*/
+.css-shellapi-api-table > tbody > tr:nth-of-type(odd) {
+    backdrop-filter: brightness(1.2);
+}
+
+/* 
+    This is needed to adjust the position when navigating to the anchor preceding the table.
+    121px matches the bottom position of the context navigation menu on the screen (relatively to body).
+    Reason is unknown.
+    If needed, a solution to generalize it could be the following:
+    article div {
+        scroll-margin-top:121px;
+    }
+*/
+.css-shellapi-api-table td div {
+    scroll-margin-top:121px;
+}
+
+/*
+    Tables related to function arguments: no border and reduced margin
+*/
+
+table.css-shellapi-api-arg-table, 
+table.css-shellapi-api-example-table 
+{
+    margin-left: 0px;
+    margin-top: 0.2em;
+    margin-bottom: 0.5em;
+    background-color: inherit;
+    border-width: 0px;
+}
+
+/*
+    Function name in 1st col in bold
+*/
+table.css-shellapi-api-table  > tbody > tr > td:nth-child(1)  {
+    font-weight:bold;
+}
+
+/*
+    Argument table border
+*/
+table.css-shellapi-api-arg-table  {
+    border-top: solid 1px grey;
+    border-bottom: solid 1px grey;
+    border-left: solid 1px grey;
+    border-right: solid 1px grey;
+}
+
+/*    
+    Argument name in 1st col of argument tablein bold
+*/
+.css-shellapi-api-arg-table td:nth-child(1) {
+    font-weight:bold;
+}
+
+/*
+    Argument and example tables cell padding (reduced)
+*/
+
+.css-shellapi-api-arg-table td,
+.css-shellapi-api-example-table td
+{
+    border: none;
+    padding: 0.2em 0.5em;
+}
+/*
+.css-shellapi-api-arg-table td {
+    border-top: solid 1px grey;
+    border-left: solid 1px grey;
+    border-right: solid 1px grey;
+    border-bottom: solid 1px grey;
+}
+    */
+
+/*    
+    Argument and example tables no grid
+*/
+/* This seems not to be useful
+.css-shellapi-api-arg-table tr {
+    border-style: none;
+}
+*/
+/* No return table at the moment
+.css-shellapi-api-return-table {
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+}
+    */

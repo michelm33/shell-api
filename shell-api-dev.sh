@@ -486,10 +486,9 @@ Dev__getFileType() {
 }
 
 :<<'EOF'
-Retrieves the block device size
+Retrieves and prints on stdout the block device size
 @param [1] device path
 @return 0 
-@output echoes the size on stdout
 EOF
 
 Dev__getBlockDeviceParent() {
@@ -505,10 +504,9 @@ Dev__getBlockDeviceParent() {
 }
 
 :<<'EOF'
-Retrieves the block device size
+Retrieves and prints on stdout the block device size
 @param [1] device path
 @return 0 
-@output echoes the size on stdout
 EOF
 
 Dev__blockDeviceSize() {
@@ -668,7 +666,7 @@ For that purpose, the output of 'parted' is analysed for
 search for the first partition id '1:' and the 'boot' keyward
 Requires root priviledges.
 @param [1] block device path
-@returns true (0) when device is bootable, false (1) when not, <0 on usage error.
+@returns 0 when device is bootable, false (1) when not, <0 on usage error.
 EOF
 
 Dev__isBootable()

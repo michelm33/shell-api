@@ -16,7 +16,7 @@
 # //////////////////////////////////////////////////////////////////////////////////////////
 #
 ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
-TARGET=/usr/share/man/man8/
+TARGET=/usr/share/man/man1/
 VERSION=$(shell cat VERSION.txt)
 VERSION_DEB=$(shell awk -F'.' '{ printf("%s.%s-%s" ,$$1,$$2,$$3);}' VERSION.txt)
 VERSION_DEB_FOR_TARXV=$(shell awk -F'.' '{ printf("%s.%s_%s" ,$$1,$$2,$$3);}' VERSION.txt)
@@ -35,7 +35,7 @@ WEBSITE_DIR=$(shell echo ~/riffian/Data/Documents/professionnel/SlashEtc/siteweb
 all:
 
 .PHONY: man
-man: shellapi.8 man_install
+man: shellapi.1 man_install
 	@echo 
 	@echo "#################################"
 	@echo "Creating MANPAGE.txt from man pages"
@@ -44,25 +44,25 @@ man: shellapi.8 man_install
 	# width, because paging done by man is dependent of it
 	gnome-terminal --geometry 80x50+0+0 --title="shellapi"  --wait -- bash -c 'man shellapi > MANPAGE.txt'
 	#man shellapi > MANPAGE.txt
-	@if which arcv >/dev/null 2>/dev/null; then av diff >/dev/null ; if [ $$? -eq 0 ] ; then av -y co MANPAGE.txt >/dev/null; fi ; fi
+	@if which arcv >/dev/null 2>/dev/null; then av diff --fmt=plain >/dev/null ; if [ $$? -eq 0 ] ; then av -y co MANPAGE.txt >/dev/null; fi ; fi
 
 
 .PHONY: man_install
-man_install: shellapi.8
+man_install: shellapi.1
 	@echo 
 	@echo "#################################"
 	@echo "Installing man pages and building gzip for $(TARGET)/$<"
 	@echo 
-	@if which arcv >/dev/null 2>/dev/null; then av diff >/dev/null ; if [ $$? -eq 0 ] ; then av -y co $< >/dev/null; fi ; fi
+	@if which arcv >/dev/null 2>/dev/null; then av diff --fmt=plain  >/dev/null ; if [ $$? -eq 0 ] ; then av -y co $< >/dev/null; fi ; fi
 	sudo install -g 0 -o 0 -m 0644 $< $(TARGET)
 	sudo gzip -f $(TARGET)/$<
 
-shellapi.8: required_help2man FORCE
+shellapi.1: required_help2man FORCE
 	@echo 
 	@echo "#################################"
 	@echo "Creating manpage with help2man"
 	@echo 
-	export TZ="US/Pacific" && export LC_ALL="C.UTF-8" && export LANG="EN.US.UTF-8" && help2man -L en_EN@euro --no-info --section 8 --name "shell-api" --help-option="--man" --output=$@ ./genapp
+	export TZ="US/Pacific" && export LC_ALL="C.UTF-8" && export LANG="EN.US.UTF-8" && help2man -L en_EN@euro --no-info --section 1 --name "shell-api" --help-option="--man" --output=$@ ./genapp
 # --manual="System Administration Utilities"
 
 .PHONY: required_help2man
@@ -159,8 +159,8 @@ build_release:  required_tools  CHANGELOG.txt COPYRIGHT.txt VERSION.txt
 	@cd $(VERS_REL_DIR) && ls -1|grep -v debian|awk -v pkg=$(PKG) '{ print $$1,"/usr/bin/" pkg }' > debian/install
 	@#
 	@#echo "----- DEBIAN MANPAGE FILE"
-	@#cp shell-api.8 $(VERS_REL_DIR)/debian/$(PRODUCT).8
-	@#echo "debian/shell-api.8" > $(VERS_REL_DIR)/debian/$(PRODUCT).manpages
+	@#cp shell-api.1 $(VERS_REL_DIR)/debian/$(PRODUCT).1
+	@#echo "debian/shell-api.1" > $(VERS_REL_DIR)/debian/$(PRODUCT).manpages
 	@#
 	@echo "----- CLEANUP EXAMPLE FILES"
 	@rm -rf $(VERS_REL_DIR)/debian/*.ex 2>/dev/null || echo  # example folders
@@ -204,16 +204,21 @@ web_download:
 	@tools/update-web-download-page.sh "$(WEBSITE_DIR)/developertoolsforlinux/pages/shellapi/shellapi_1_overview.adoc" "$(PRODUCT)" "$(VERSION_DEB)" "$(VERSION_DEB_FOR_ZIP)"  && echo && echo '>>>>>>>>>>>>>>> SUCCESS <<<<<<<<<<<<<<<<<<<<' ||  echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
 
 .PHONY: web
-web: #shell-api-core.sh shell-api-dev.sh shell-api-multimedia.sh shell-api-net.sh shell-api-packing.sh shell-api-sys.sh shell-api-yaml.sh shell-api-xslt.sh
-	@echo 
-	@echo Generating online doc for shell api modules and functions
-	@echo 
-	@genapidoc/genapidoc --doc="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions.adoc"
+web: webapi #shell-api-core.sh shell-api-dev.sh shell-api-multimedia.sh shell-api-net.sh shell-api-packing.sh shell-api-sys.sh shell-api-yaml.sh shell-api-xslt.sh
 	@echo 
 	@echo "UPDATING REVISION LOG WEB PAGES"
 	@echo 
-	av log --fmt=adoc --to=0 > "$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-cm-full-log.adoc"
+	cp shellapi.css  "$(WEBSITE_DIR)/products/pages/"
+	av log --fmt=adoc --from=$(shell av repo latest-release-rev) --to=0 > "$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-cm-full-log.adoc"
 	av rel --fmt=adoc > "$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-cm-release-log.adoc"
+
+webapi:
+	@echo 
+	@echo Generating online doc for shell api modules and functions
+	@echo 
+	cp shellapi.css "$(WEBSITE_DIR)/products/pages/"
+	@# NOTE: it is not necessary to copy .css file into templates.release, because the above copied files will be copied there from gensite.sh
+	@genapidoc/genapidoc --api-index="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions.adoc" --api-doc="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions-doc.adoc"
 
 .PHONY: ftp
 ftp:

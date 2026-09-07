@@ -30,10 +30,17 @@ YAML__YQ_NO_JQ_WRAP=$?
 #exit 0
 
 :<<EOF
-Sets the currently processed YAML file passed as 1st argument.
+Sets the currently processed YAML file passed as 1st argument (sets variable YAML__FILE)
+OR 
+reads the YAML file all at once and stores the values in the global map YAML_DATA.
+
+The function YAML__read*, YAML__write*, YAML__keys* will access the file using yq each time.
+
+The function YAML__readAll, YAML__get*, YAML__getKeys*, YAML__writeAll, YAML__isUndefined, YAML__normalize, YAML__dumpAll will use the values stored in the global data map.
+
 @param [1] YAML file
 @param [2] OPTIONAL(false) bool telling whether to read all YAML file content and make it accessible via the global YAML_DATA map 
-@returns 0
+@returns 0 on success, any other value otherwise
 EOF
 
 YAML__setFile() {
@@ -59,7 +66,7 @@ YAML__closeFile() {
 Retrieves the keys defined below a given data path.
 @param [1] in field path of form '.this.is.my.data.path'
 @param [2] out the array of keys 
-@returns true or false
+@returns 0 on success, any other value on  error
 EOF
 
 YAML__getKeys()
@@ -93,7 +100,7 @@ YAML__getKeys()
 :<<EOF
 Checks whether the field path exists in the global YAML_DATA map holding all data
 @param [1] in field path of form '.this.is.my.data.path'
-@returns true or false
+@returns 0 on success, any other value on  error
 EOF
 
 YAML__checkExists()
@@ -151,6 +158,10 @@ EOF
     fi
 }
 
+:<<EOF
+Tells whether the passed value is not a 'void' YAML value, ie. it is neither 'null' nor ''.
+@param value to test
+EOF
 YAML__isntVoid()
 {
     local -n __in_val=$1

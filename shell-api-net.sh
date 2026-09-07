@@ -35,6 +35,11 @@ Net__servicePortMap["ssh"]=22
 Net__servicePortMap["ftp"]=21
 
 :<<'EOF'
+Tests whether a given port is open on a given host on the network using nmap
+@param[1] service name, the relevant port number will be resolved from the name. 
+Recognized values:
+- nfs, ssh, ftp    
+@param[2] service host
 EOF
 Net__checkOpenPort()
 {
@@ -54,11 +59,11 @@ Net__checkOpenPort()
 Tells whether the passed argument looks like an HTTM URL, i.e.
 of the basic form [http[s]://]xxx(.yyy)+
 
-Safe characters	Alphanumeric [0-9a-zA-Z], special characters $-_.+!*'(),	No
-Reserved characters	which are not allowed. / ? : @ = &	
+Safe characters: Alphanumeric [0-9a-zA-Z], special characters $-_.+!*'(),	No
+Reserved characters	which are not allowed: / ? : @ = &	
 
 @param [1] URL
-@return true (0) when valid URL, false (1) when not, <0 on arg error
+@return 0 when valid URL, false (1) when not, <0 on arg error
 
 EOF
 
@@ -113,7 +118,7 @@ Net__decodeHTTP()
 Tells whether the passed argument looks like an URL, i.e.
 of the basic form xxxxx://yyyyy
 @param [1] URL
-@return true (0) when valid URL, false (1) when not
+@return 0 when valid URL, false (1) when not
 EOF
 
 Net__isURL()
@@ -130,7 +135,7 @@ Net__isURL()
 Tells whether the passed argument looks like an IP4 address, i.e.
 of the basic form <number>.<number>.<number>.<number>
 @param [1] IP
-@return true (0) when valid IP, false (1) when not, <0 on arg error
+@return 0 when valid IP, false (1) when not, <0 on arg error
 EOF
 
 Net__isIP()
@@ -147,7 +152,7 @@ Net__isIP()
 Tells whether the passed argument looks like a UNC path 
 (universal naming convention) of the basic form //server/sharename[/path]
 @param [1] URL
-@return true (0) when valid UNC, false (1) when not, <0 on arg error
+@return 0 when valid UNC, false (1) when not, <0 on arg error
 EOF
 
 Net__isUNC()
@@ -162,8 +167,8 @@ Net__isUNC()
 
 :<<'EOF'
 Extracts hostname/ip, share from passed UNC
-examples of valid netlogin
-//192.168.0.40/MyShareName
+
+Example of valid netlogin: //192.168.0.40/MyShareName
 @param [1] UNC
 EOF
 Net__decodeUNC()
@@ -204,9 +209,10 @@ Net__isLogin()
 
 :<<'EOF'
 Extracts hostname/ip and user from passed netlogin <user>@<host>[:path]
-examples of valid netlogin
-albert@192.168.0.40
-mikky@truesite.org:some/path
+
+examples of valid netlogin:
+- albert@192.168.0.40
+- mikky@truesite.org:some/path
 
 @param [1] Netlogin
 EOF
@@ -445,9 +451,11 @@ Net__isSMBURL()
 Extracts hostname/ip, user and share (shared folder name) from the passed URL.
 Expected URL format is the following:
 smb://<hostname or IP>[/<user>[:password][/<share>]]
-examples of valid URL
-smb://192.168.0.40/MyDataShare
-smb://192.168.0.40/
+
+Examples of valid URL:
+
+- smb://192.168.0.40/MyDataShare
+- smb://192.168.0.40/
 
 @param [1] SAMBA URL
 EOF

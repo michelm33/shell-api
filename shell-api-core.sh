@@ -450,6 +450,7 @@ When not loaded yet, it defines a global variable which existence means script f
 sourced yet before.
 
 Typical use:
+
   if _loaded "${BASH_SOURCE[0]}"  ; then
    return 0
   fi
@@ -492,7 +493,7 @@ Standard/generic end-user wrapper for handling usage errors by doing the followi
 - exit process with code - 1 
  
 Optionally displays an error message if second argument is specified
- @param [1] optional error message to be displayed
+@param [1] optional error message to be displayed
 EOF
 
 _usage() {
@@ -1179,19 +1180,18 @@ _parseFromArgToVars() {
 }
 
 :<<'EOF'
-Parse arguments callback:
-- Processes argument which are not options (not starting with a dash).
-- Processes option values by evaluating SUMO__OPTION_LIST_VALS[<option>], in which case
-the option is given by second argumet.
+Internal callback which performs either of the following depending on the 3rd argument value:
+- processes option values by evaluating <APPNAME>__OPTION_LIST_VALS[<option>], in which case the option value is given by 2nd argument.
+- otherwise, processes argument values which are not options (not starting with a dash).
 
-The arguments processed is tracked by a counter passed on by ref. 
-The 1st argument is interpreted as device/file
-The 2nd argument is interpreted as mount point
+When the 3rd argument is empty, it means the 2nd arg (arg value) is not an option value and the user callback of the same name is called passing on the argument count so far and the argument value (<Appname>___parseArgsProcessDashLessArg).
 
-@param [1] List giving the actions to perform for options with values
+The amount of dashless arguments processed is tracked by a counter passed on by ref. 
+
+@param [1] inout List giving the actions to perform for options with values. Passed by ref since it's a map, but is not aimed to be modified
 @param [2] argument value (which can be an option value)
-@param [3] previous argument (reference). It should be empty since 'arg'' is not supposed to be an option.
-@param [4] arg counter name (reference)
+@param [3] previous argument (reference). 
+@param [4] out arg counter name (reference)
 @returns incremented counter 
 EOF
 
@@ -1228,11 +1228,11 @@ _parseArgsProcessDashLessArg()
 :<<'EOF'
 App shell quitting.
 
-Ensures a fault-less quitting of the shell.
-By default it deactivates the trap for EXIT SIGHUP SIGINT SIGTERM SIGQUIT SIGABRT
-and calls _exit function.
-User may override default behavior by defining
-a callback function of the form "<appname>__quit"
+Ensures a fault-less quitting of the shell (return value 0).
+
+User may override default behavior by defining a callback function of the form "<appname>__quit"
+
+In absence of user callback, it calls __quit
 EOF
 
 _quit() {
@@ -1259,7 +1259,8 @@ __quit() {
 }
 
 :<<'EOF'
-Exits the shell bailing out with an error message
+Exits the shell bailing out with an error message if exit code is not 0.
+At the end, it calls the _cleanup callback.
 
 @param [1] exit code
 @param [2] error message to be displayed
@@ -1330,12 +1331,11 @@ _cleanup() {
 
 :<<'EOF'
 Initializes this shell API framework.
+
 Following global variables are set:
-__SHELL_CURRENT_APPNAME__: 
-  it is the argument passed while sourcing this core shell api. It gives
+- __SHELL_CURRENT_APPNAME__: it is the argument passed while sourcing this core shell api. It gives
   the logical name of the application script
-__SHELL_SRC_NAME__:
-  Source file name of the first application script which sources this core shell api.
+- __SHELL_SRC_NAME__: Source file name of the first application script which sources this core shell api.
 EOF
 
 _initShellApi() {
@@ -1371,12 +1371,12 @@ _setJobId()
 :<<EOF
 Initializes only the variables related to the message, warning, errors log files, in particular
 with regard to the log file names and the number of messages:
-__LOG_FILE__
-__LOG_WARN_FILE__
-__LOG_ERR_FILE__
-__NB_LOG__
-__NB_WARNING_LOG__
-__NB_ERR_LOG__
+- __LOG_FILE__
+- __LOG_WARN_FILE__
+- __LOG_ERR_FILE__
+- __NB_LOG__
+- __NB_WARNING_LOG__
+- __NB_ERR_LOG__
 EOF
 
 _initLogVars() {
@@ -1411,8 +1411,8 @@ which is defined as <user home dir>/.config/<app name>/.
 
 @param [1] reference to the variable where to store the configuration folder path
 @returns 0 when a valid configuration folder exists (and was possibly created by this function), otherwise:
-         1 when failing to create config dir, 
-         2 when invalid config dir 
+- 1 when failing to create config dir, 
+- 2 when invalid config dir 
 EOF
 _getConfigDir()
 {
@@ -1622,7 +1622,7 @@ _lockedFileWrite() {
 
 :<<EOF
 Returns the log folder path, ensuring parent dirs are created
-@param [1] the reference of the variable where to store the path
+@param [1] out the reference of the variable where to store the path
 EOF
 _getLogDir() {
     local appName="${__SHELL_CURRENT_APPNAME__}"
@@ -1636,7 +1636,7 @@ _getLogDir() {
 :<<EOF
 Returns the user's log file path, ensuring parent dirs are created
 If any parameter is specified, the log file is truncated and the __LOG_NB__ is reset to 0
-@param [1] the reference of the variable where to store the path
+@param [1] out the reference of the variable where to store the path
 EOF
 _getLogPath() {
     local logDir
@@ -1659,7 +1659,7 @@ _getLogPath() {
 :<<EOF
 Returns the user's warning log file path, ensuring parent dirs are created
 If any parameter is specified, the log file is truncated and the __LOG_NB_WARN__ is reset to 0
-@param [1] the reference of the variable where to store the path
+@param [1] out the reference of the variable where to store the path
 EOF
 _getLogWarnPath() {
     local logDir
@@ -1684,7 +1684,7 @@ _getLogWarnPath() {
 :<<EOF
 Returns the user's error log file path, ensuring parent dirs are created.
 If any parameter is specified, the log file is truncated and the __LOG_NB_ERR__ is reset to 0
-@param [1] the reference of the variable where to store the path
+@param [1] out the reference of the variable where to store the path
 EOF
 _getLogErrPath() {
     local logDir
@@ -1898,6 +1898,46 @@ _resetDependenciesCache()
 }
 
 :<<'EOF'
+Iterates through the lines 
+@param[1] String containing lines
+@param[2] either a function or a code block. In case a 
+@param[n] argument passed on to the called function
+code block is passed then the iteration variable is the name of the array extended with 'Item'
+EOF
+
+_foreachLine() {
+    local __inStr="$1"
+    local __fnOrCode="$2"
+
+    # Remaining args are passed on to called function
+    shift 2
+
+    eval local "lineArgs=()"
+    while [ $# -gt 0 ] ; do
+        eval "lineArgs+=(\"$1\")"
+        shift
+    done
+
+    local __i=0
+    local __line
+    while IFS='' read -r __line
+    do    
+        if Env__fn_exists "${__fnOrCode}" ; then
+            local fnArgs=()
+            eval "fnArgs+=(\"\${lineArgs[@]}\")"
+            "${__fnOrCode}" "${__i}" "${__line}" "${fnArgs[@]}"
+        else
+            local evalCmd="
+${__fnOrCode}
+"
+            eval "${evalCmd}"
+        fi
+        __i=$(( ${__i} + 1))
+    done <<< "${__inStr}"
+
+}
+
+:<<'EOF'
 Iterates through an array and executes the action passed as second argument
 @param[1] ref to var containing the array
 @param[2] either a function or a code block. In case a 
@@ -1930,6 +1970,7 @@ _foreach() {
 ${!__inArray}Item='${__inArray[${__i}]}'
 ${__fnOrCode}
 "
+#_log_vars evalCmd >&2
             eval "${evalCmd}"
         fi
         __i=$(( ${__i} + 1))
@@ -2145,7 +2186,7 @@ EOF
 Displays the passed argument string as a warning on the standard error output
 and inserts it in the warning log file.
 The default behavior can be overriden by a user-defined function of the form
-<appname>___log_warb
+<appname>___log_warn
 where <appname> the argument passed while sourcing this core shell api. 
 By default, the line is prefixed with [warning].
 EOF
@@ -2985,7 +3026,7 @@ Str__endsWith() {
 }
 
 :<<'EOF'
-Greps all lines matching exactly the input string and retrieves the field values of the matching lines according to the passed separator and index
+Retrieves the field values of all lines containing a certain substring  according to the passed separator and index
 @param [1] input string
 @param [2] substring to search for
 @param[3] field separator
@@ -3018,10 +3059,10 @@ Str__grepAndGetField() {
 }
 
 :<<'EOF'
-Greps all lines matching exactly the input string 
+A simple grep to capture all lines containing a substring 
 @param [1] input string
 @param [2] substring to search for
-@param [3] out ref to var storing the lines that matached
+@param [3] out ref to var storing the lines that matched
 EOF
 
 Str__grep() {
@@ -3552,7 +3593,7 @@ The first occurrence of the separator from the left is considered.
 @param [3] in separator
 @param [4] out resulting right part. If no separator found, the right is an empty string
 @param [5] Optional (0 dflt): "1" or "0": indicates which string shall be empty in case no separator is found (0:left, 1:right part shall be empty): <0 erroneous arguments.
-@return true (0) if the string could be split into 2 parts, false (1) otherwise (namely no separator found)
+@return 0 if the string could be split into 2 parts, false (1) otherwise (namely no separator found)
 EOF
 
 Str__split() {
@@ -4611,7 +4652,10 @@ Array__toString() {
     for __item in "${__inArray[@]}" ; do
         __outStr="${__outStr}${__inSep}${__item}"
     done
-    Str__trimStart "${__outStr}" __outStr ${__inSep}
+    # Remove the separator added at first iteration above
+     if [ "${#__inArray[@]}" -gt 0 ] ; then
+       __outStr="${__outStr:${#__inSep}}"
+     fi
 }
 
 :<<'EOF'
@@ -4942,13 +4986,13 @@ Input__confirm() {
 Prompts for a memory size among the following : xG, xM, xK
 respectively x Gibibytes (GiB), x Mebibytes (MiB), x kibibytes (KiB)
 Default prompt 'int followed by G/M/K or a to abort' is automatically appended to the question by default.
+Question is asked until a valid answer is given except if param 4 is specified
+
 @param [1] question sentence
 @param [2] result size is stored in this parameter
 @param [3] unit of the returned memsize
 @param [4] bool telling whether to abort an invalid memory size input
 @return 0 upon positive entry,
-@output memsize in octets except if param 4 is specified
-Question is asked until a valid answer is given.
 EOF
 
 Input__memsize() {
@@ -5038,14 +5082,12 @@ Input__memsize() {
 }
 
 :<<'EOF'
-Prompts for a file system path. If it does not 
+Prompts for a file system path. Question is asked until a valid answer is given.
 @param [1] question sentence
 @param [2] default proposed path
 @param [3] flag telling to create folder if does not exist. 0: do create but confirm, 1: do create but no confirm, do not create otherwise
 @param [4] path is stored in this parameter
 @return 0 upon positive entry,
-@output valid file path 
-Question is asked until a valid answer is given.
 EOF
 
 Input__dirpath() {
@@ -5187,14 +5229,12 @@ Input__sentence() {
 
 
 :<<'EOF'
-Prompts for a word, i.e. a sequence of alphanumeric letter plus other chars like _,- and .
+Prompts for a word, i.e. a sequence of alphanumeric letter plus other chars like _,- and . Question is asked until a valid answer is given. 
 @param [1] question sentence
 @param [2] default value
 @param [3] word is stored in this parameter
 @param [4] option Accepted input pattern
 @return 0 upon positive entry,
-@output valid word
-Question is asked until a valid answer is given.
 EOF
 
 Input__Word() {
@@ -6045,8 +6085,41 @@ File__linkExists() {
 }
 
 :<<'EOF'
-Computes a signature for a directory based on the ls -gRA command ensuring 
-a consistent and deterministic ls content on any machine regardless of:
+Return the size of the passed file or directory in bytes
+@param[1] file path
+@param[2] ref to variable where to store size
+EOF
+
+File__getSize()
+{
+    if ! Args__checkCount ${FUNCNAME[0]} 2 "$#" "Usage: <filepath> <ref to var for storing size>"; then 
+        return 1
+    fi
+
+    local filePath="$1"
+    local -n __out_size="$2"
+    local ret=1
+    if [ -f "${filePath}" ] ; then
+        read __out_size < <(stat -c "%s" "$filePath") # &>/dev/null)
+        ret=$?
+    elif [ -d "${filePath}" ] ; then
+        # By default du returns size of 1K (1024). Note using block-size=1KB would be 1000 bytes
+        read __out_size < <(du -sSc --block-size=1 "$filePath"|tail -n1|awk -F" " '{print $1}')
+        ret=$?
+    else
+        _log_err "${filePath} either does not exist or is neither a regular file nor a folder."
+        ret=1
+    fi
+
+    if [ $ret -ne 0 ] ; then
+        _log_dbg "${FUNCNAME[0]}: '${__out_size}'"
+        _log_warn "${FUNCNAME[0]}: invalid file path $filePath."
+    fi
+    return $ret
+}
+
+:<<'EOF'
+Computes a signature for a directory based on the ls -gRA command ensuring a consistent and deterministic ls content on any machine regardless of:
 
 - Time zone
 - System language
@@ -6167,7 +6240,7 @@ BEGIN {
     printf("%s ",$3); # Size
     #printf("%d ",filerank) 
     printf("%s ",$1); # Perm
-    printf("%s ",$2); # inode
+    printf("%s ",$2); # number of hardlinks
     if (length(curdir) > 0)
         printf("%s/%s ",curdir,$5); # Fullpath
     else
@@ -6203,6 +6276,37 @@ BEGIN {
     #_log_vars LANG LC_ALL TZ  >&2
 
 }
+
+:<<'EOF'
+Returns a universal, consistent and deterministic 'ls' signature for the specified file or folder across any system, regardless of :
+
+- Time zone
+- System language
+- owner and group
+
+The format is the following:
+<UTC timestamp> <size in bytes> <permissions/file mode bits> <number of hardlinks> <quoted path>
+
+@param[1] valid file or dir path
+@return echoes the signature and standard output
+EOF
+File__lsSignature()
+{
+    local lsSignCommand="ls -gGA -d -p --time-style=+'%s' -Q $1"
+    #_log_vars lsSignCommand >&2
+    eval "${lsSignCommand}" | awk '
+{  
+    if (NF < 5) { printf("Error: File__lsSignature got less than 5 fields from ls command : '%s' ",$0); exit(0); }
+    printf("%s ",$4); # UTC timestamp
+    printf("%s ",$3); # Size
+    printf("%s ",$1); # Perm
+    printf("%s ",$2); # number of hardlinks
+    printf("%s ",$5); # Fullpath
+    printf("\n");
+} 
+'
+}
+
 
 :<<'EOF'
 Creates in the current working directory subdirectories which names are given as array to this function
@@ -7350,18 +7454,19 @@ Backup of AppData (Application Data) of distant Windows system
 Please check system is running and reachable over network !
 "
 
-Term__printBanner "\$text" "|" " " "-" 1
+    Term__printBanner "\$text" "|" " " "-" 1
 
 results in:
- ________________________________________________________________
-|                                                                 
-| disk                                                            
-|---------------------------------------------------------------- 
-|                                                                 
-| Backup of AppData (Application Data) of distant Windows system  
-|                                                                 
-| Please check system is running and reachable over network !     
-|________________________________________________________________ 
+
+    ________________________________________________________________
+    |                                                                 
+    | disk                                                            
+    |---------------------------------------------------------------- 
+    |                                                                 
+    | Backup of AppData (Application Data) of distant Windows system  
+    |                                                                 
+    | Please check system is running and reachable over network !     
+    |________________________________________________________________ 
 EOF
 
 Term__printBanner() {
@@ -7763,11 +7868,11 @@ _testAll()
 :<<'EOF'
 Examples of usage:
 
-test__perf 5000  'var=$(dirname ${BASH_SOURCE[0]})'
-#test__perf 5000  'var=${BASH_SOURCE[0]%/*}'
+    test__perf 5000  'var=$(dirname ${BASH_SOURCE[0]})'
+    #test__perf 5000  'var=${BASH_SOURCE[0]%/*}'
 
-#test__perf 5000  'GENAPP__VARS["MYDIR"]="$(readlink -f "${Genapp__sourcedirname}")"'
-test__perf 5000  'read Genapp__sourcedirname< <(readlink -f "${Genapp__sourcedirname}")'
+    #test__perf 5000  'GENAPP__VARS["MYDIR"]="$(readlink -f "${Genapp__sourcedirname}")"'
+    test__perf 5000  'read Genapp__sourcedirname< <(readlink -f "${Genapp__sourcedirname}")'
 
 EOF
 test__perf()

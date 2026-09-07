@@ -19,4 +19,5 @@
 GENAPIDOC__VARS["verbose"]=false
 GENAPIDOC__VARS["silent"]=false
 
-GENAPIDOC__VARS["onlinedoc-file"]=""
+GENAPIDOC__VARS["api-index"]=""
+GENAPIDOC__VARS["api-doc"]=""

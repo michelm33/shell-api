@@ -5,7 +5,7 @@
 #
 # -----------------------------------------------------------------------------
 #
-# A shell API intended for managing of package installation.
+# A shell API intended for managing package installation.
 #
 # -----------------------------------------------------------------------------
 #
@@ -28,11 +28,11 @@ fi
 :<<'EOF'
 Installs the named packages according to the specified method. The URL can contain 
 the following placeholders which will be replaced with actual values:
-%%name%%:       package name as specified by 1st argument
-%%version%%:    version as specified by 2nd argument
-%%arch%%:       machine archicture as return by 'uname -m'. amd64 is returned for x86_64
-%%distroname%%: linux distribution name as returned by 'lsb_release -is'
-%%distrover%%:  distribution version
+- %%name%%:       package name as specified by 1st argument
+- %%version%%:    version as specified by 2nd argument
+- %%arch%%:       machine archicture as return by 'uname -m'. amd64 is returned for x86_64
+- %%distroname%%: linux distribution name as returned by 'lsb_release -is'
+- %%distrover%%:  distribution version
 
 @param [1] package name
 @param [2] package version. 

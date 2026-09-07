@@ -41,8 +41,8 @@ PHOTO_HEIGHT_MM=100
 
 :<<'EOF'
 Enables the get the actual dimension of an image as returned by exiftool
-param[1] Image file path 
-param[2] A reference to the variable where to store the dimension in the form of a string "<width> <height>"
+@param[1] Image file path 
+@param[2] A reference to the variable where to store the dimension in the form of a string "<width> <height>"
 EOF
 Image__getDimension()
 {
@@ -387,7 +387,7 @@ Image__autoOrient()
 @param image file with extension
 @param target image file with extension
 @param boolean (0/1) telling whether to overwrite existing (false by default)
-@param return 0 if a change was done , 1 otherwise. Prints new width, height and orientation as returned by exiftool
+@return 0 if a change was done , 1 otherwise.
 EOF
 Image__normalizeOrientation() {
     local f="$1"
@@ -402,6 +402,7 @@ Image__normalizeOrientation() {
             #mogrify -define preserve-timestamp=true -auto-orient "$t" 
             convert "$f" -define preserve-timestamp=true -auto-orient "$t" # TEST / WHY THE ABOVE LINES??
         else
+            #TODO : OPTIMIZE CHECK EXTENSION AND NOT CALL CONVERT??
             # Files may have different extensions
             convert "$f" "$t"
             #File__mirrorCopy "$f" "$t"

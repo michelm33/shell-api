@@ -20,46 +20,12 @@ if _loaded "${BASH_SOURCE[0]}"  ; then
 	return 0
 fi
 
-:<<'EOF'
-Return the size of the passed file or directory in bytes
-@param[1] file path
-@param[2] ref to variable where to store size
-EOF
-
-File__getSize()
-{
-    if ! Args__checkCount ${FUNCNAME[0]} 2 "$#" "Usage: <filepath> <ref to var for storing size>"; then 
-        return 1
-    fi
-
-    local filePath="$1"
-    local -n __out_size="$2"
-    local ret=1
-    if [ -f "${filePath}" ] ; then
-        read __out_size < <(stat -c "%s" "$filePath") # &>/dev/null)
-        ret=$?
-    elif [ -d "${filePath}" ] ; then
-        # By default du returns size of 1K (1024). Note using block-size=1KB would be 1000 bytes
-        read __out_size < <(du -sSc --block-size=1 "$filePath"|tail -n1|awk -F" " '{print $1}')
-        ret=$?
-    else
-        _log_err "${filePath} either does not exist or is neither a regular file nor a folder."
-        ret=1
-    fi
-
-    if [ $ret -ne 0 ] ; then
-        _log_dbg "${FUNCNAME[0]}: '${__out_size}'"
-        _log_warn "${FUNCNAME[0]}: invalid file path $filePath."
-    fi
-    return $ret
-}
-
 
 :<<'EOF'
 Returns PID of current running script
 Beware not to call this from a subshell (e.g with notation $(...)), otherwise
 the PID of the temporary subshell is returned!
-@param [1] reference of the variable where to store the PID
+@param [1] out reference of the variable where to store the PID
 EOF
 
 Sys__getPID()
@@ -74,7 +40,7 @@ Sys__getPID()
 
 :<<'EOF'
 Waits for the process of the given PID to end. If input PID is 0, nothing is done.
-@param [1] ref to the variable containing the PID. If process ended, variable value is reset to 0
+@param [1] inout ref to the variable containing the PID. If process ended, variable value is reset to 0
 @returns return value of low level 'wait', that is the exit code of the process normally.
 If input PID is 0, nothing is done and 0 is returned.
 EOF
@@ -99,7 +65,7 @@ Sys__wait()
 
 :<<'EOF'
 Spawns a process in background and stores the PID in passed var.
-@param [1] ref to the variable that will contain the PID of launched process. 
+@param [1] out ref to the variable that will contain the PID of launched process. 
 @param [2] the command to launch and all its arguments
 NOTE: spawn now executes directly the passed arguments with calling eval. However, this latter option might still be useful e.g. there would be some arguments to interpret
 @returns return 0 on success only.

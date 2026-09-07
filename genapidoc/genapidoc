@@ -177,10 +177,15 @@ Genapidoc__generateApiDocLine_nbTableLines=0
 Genapidoc__generateApiDocLine_closeTable() {
     local adocOut="$1"   
     if [ ! -z "${Genapidoc__generateApiDocLine_prevScope}" ] ; then
-        if [ $((Genapidoc__generateApiDocLine_nbTableLines%2)) -ne 0 ] ; then
-            File__append "$adocOut" "            
+        local left=$((Genapidoc__generateApiDocLine_nbTableLines%4))
+        if [ $left -ne 0 ] ; then
+            local i=0
+            while [ $i -lt $left ] ; do
+                File__append "$adocOut" "            
 |
 "
+            i=$(( $i + 1))
+            done
         fi   
         File__append "$adocOut" "            
 |===
@@ -220,7 +225,7 @@ Genapidoc__generateApiDocLine()
             File__append "$adocOut" "            
 === ${title}
 
-[cols=\"2*\",frame=none, grid=none]
+[cols=\"4*\",frame=none, grid=none,role=\"css-shellapi-api-index\"]
 |===            
 "
 
@@ -229,7 +234,11 @@ Genapidoc__generateApiDocLine()
 
         #_log_vars __rank __inContent __inFile
         Genapidoc__generateApiDocLine_nbTableLines=$((${Genapidoc__generateApiDocLine_nbTableLines}+1))
-        File__append "${__inFile}" "| ${__inFunction}"
+
+        # Append the function signature
+        local fnLink="${__inFunction}"
+        fnLink="${fnLink//_/}"
+        File__append "${__inFile}" "| link:#${fnLink}[${__inFunction}]"
 
     elif [ ! -z "${__inFunction}" ] ; then
         _log_warn "Rejected: '${__inFunction}'"
@@ -244,10 +253,18 @@ Genapidoc__handleSource()
     local __rank="$1"
     local _filePath="$2"
     local _absPath="${GENAPIDOC__VARS["MYDIR"]}/../${_filePath}"
-    local adocOut="${GENAPIDOC__VARS["onlinedoc-file"]}"
+    local adocOut="${GENAPIDOC__VARS["api-index"]}"
 
     if [[ "${_filePath}" =~ ^shell\-api\-([a-z]+)\.sh$ ]] ; then
 _log_vars __rank _filePath
+
+        
+        ################################################################################
+        #
+        # This part extracts all function  signatures using a grep based command
+        # There's a section per file and a subsection per function namespace
+        #
+        #
 
         # Close last table of previous file and reset Genapidoc__generateApiDocLine_prevScope
         if [ ! -z "$Genapidoc__handleSource_prevRank" ] ; then
@@ -257,9 +274,13 @@ _log_vars __rank _filePath
         fi
         Genapidoc__handleSource_prevRank="${__rank}"
         
-
+        #
+        # Extract all function signatures and put it in 'content',
+        # which lines will be processed by Genapidoc__generateApiDocLine
+        #
         local title="${BASH_REMATCH[1]}"
-        local content="$(cat "${_absPath}"|grep -E '^[^ =]+\(\)([ {]*)$' | sed 's/{//g' | sort )"
+        local moduleFilename="$title"
+        local content="$(cat "${_absPath}"|grep -E '^[^ =]+\(\)([ {]*)$' | sed -E 's/[[:space:]]*\([[:space:]]*\)[[:space:]]*\{?[[:space:]]*$//g' | sort )"
         
         local globalScopeContent="$(echo "$content"|grep -E ^_)"
         local scopedContent="$(echo "$content"|grep -v -E ^_)"
@@ -271,7 +292,7 @@ $scopedContent"
         #return 0
 
             if [ ! -z "${docSectionMap["${title}"]}" ] ; then
-                title="${docSectionMap["${title}"]}"
+                title="${docSectionMap["${title}"]} index"
             fi
 
             File__append "$adocOut" "            
@@ -290,7 +311,428 @@ $scopedContent"
             _foreach allLines Genapidoc__generateApiDocLine "$adocOut"
             #File__append "$adocOut" "${content}"
         fi
+
+        ################################################################################
+        #
+        # This part extracts the documentation from each function header
+        #
+        #
+
+        local allModDocLines="$(Genapidoc__generateModuleApiDoc "${_absPath}")"
+        local globalScopeModDocLines="$(echo "$allModDocLines"|grep -E ^_)"
+        local scopedModDocLines="$(echo "$allModDocLines"|grep -v -E ^_)"
+        allModDocLines="$globalScopeModDocLines
+$scopedModDocLines"
+
+        local adocOutApi=""
+        File__dirname "$adocOut" adocOutApi
+        adocOutApi="${adocOutApi}/api-doc-${moduleFilename}.adoc"
+        echo > "${adocOutApi}"
+            File__append "$adocOutApi" "            
+== ${title}
+"            
+            File__append "$adocOutApi" "
+[.text-center]
+--
+[big]#File: ${_filePath}#
+--
+
+[%autowidth,frame=none, grid=none,role=\"css-shellapi-api-table\"]
+|===        
+a| Function a| Documentation
+
+"
+        while IFS='' read -r modDocLine ; do
+            # There may be no global scope functions, whereby
+            # the above code will insert an empty new line
+            if Str__isEmpty "${modDocLine}" ; then continue; fi
+        #_log_vars modDocLine 
+        #printf "%s" "$modDocLine"
+            # Do not use Array__fromString, because the function doc
+            # may of course contain ';' chars
+            local fnName=""
+            local nbArgs=""
+            local nbRet=""
+            local fnDoc=""
+            Str__split "$modDocLine" fnName ";" fnDoc 1
+            Str__split "$fnDoc" nbArgs ";" fnDoc 1
+            Str__split "$fnDoc" nbRet ";" fnDoc 1
+
+            local originalFnName="$fnName"
+            Str__shrinkToMid fnName 40 "..."
+            Str__replace fnName '_' '&#x005F;'
+            #Str__replace fnDoc '_' '&#x005F;'
+            Str__replace fnDoc '|' '\|'
+            Str__replace fnDoc "\\\n" "
+"
+
+#_log_vars fnDoc
+            local nowordbreak=false
+            local prototype="${fnName}"
+            if Str__isEmpty "$nbArgs" ; then 
+                if [ ${originalFnName} -lt 35  ] ; then
+                    nowordbreak=true
+                fi
+            elif [ "$nbArgs" -eq 0 ] ; then 
+                if [ ${#originalFnName} -lt 35  ] ; then
+                    nowordbreak=true
+                fi
+            else
+                local iter=1
+                while [ $iter -le $nbArgs ]; do 
+                    if [ $nbArgs -le 3 ] && [ ${#originalFnName} -lt 20  ] ; then
+                        #prototype+="{nbsp}[small]#<__arg${iter}__>#"
+                        nowordbreak=true
+                    fi
+                    if [ $nbArgs -le 2 ] && [ ${#originalFnName} -lt 25  ] ; then
+                        nowordbreak=true
+                    fi
+                    if [ $nbArgs -eq 0 ] && [ ${#originalFnName} -lt 35  ] ; then
+                        nowordbreak=true
+                    fi
+                    prototype+=" [small]#<__arg${iter}__>#"
+                    iter=$(( $iter + 1))
+                done
+            fi
+            if $nowordbreak ; then
+                prototype="[role=\"css-no-word-break\"]
+--
+$prototype
+--
+"
+            fi
+            local anchor="${originalFnName}"
+            anchor="${anchor//_/}"
+            prototype="[#${anchor}]
+${prototype}"
+
+            File__append "$adocOutApi" "
+a| $prototype
+a|
+[%hardbreaks]
+"
+
+        local adocFnDoc=""  # Adoc formatted content that will be written to file
+        local fullFnDoc=""
+        local fnDocLine=""
+        local fnDocLineTrimmed=""
+        local paramIter=1
+        while IFS='' read -r fnDocLine ; do
+            fnDocLineTrimmed="${fnDocLine}"
+:<<'EOF'
+                Str__trim "${fnDocLine}" fnDocLineTrimmed
+
+                # Preserve empty lines to keep original text formatting
+                if Str__isEmpty "$fnDocLineTrimmed" ; then
+                    fnDocLineTrimmed="${fnDocLine}"
+                elif Str__startsWith "${fnDocLine}" " " ; then
+                    fnDocLineTrimmed="${fnDocLine}"
+                fi
+EOF
+                # Underscore and double underscores have a specific 
+                # meaning in asciidoc
+                if ! Str__startsWith "$fnDocLineTrimmed" " " ; then
+                    Str__replace fnDocLineTrimmed '_' '&#x005F;'
+                fi
+
+                # For adoc, ensure at least one empty line appears after
+                # a sentence ending with ':', meaning there's
+                # a list of item
+                if Str__endsWith "$fnDocLineTrimmed" ":" ; then
+                    fnDocLineTrimmed="${fnDocLineTrimmed}
+"
+                fi
+
+                # Do not add new line if first line
+                if ! Str__isEmpty "$adocFnDoc" ; then
+                    adocFnDoc+="
+"
+                fi
+
+                # Handle example balise
+                # Use the original line without underscore escaping
+                # or other asciidoc processing because examples are 
+                # shown verbatime
+                #
+                if [[ "${fnDocLine}" =~ ^"@example"[s]?[[:space:]]+(.+)$  ]] ; then
+                    local exDesc="${BASH_REMATCH[1]}"
+                    #,title=\"$originalFnName return value\"
+                    adocFnDoc+="
+[%autowidth,cols=2,role=\"css-shellapi-api-example-table\"]
+!===
+a! 
+[role="css-no-word-break"]
+--
+[small]#__example__# 
+--
+a! 
+[source=bash]
+----
+${exDesc}
+----
+!===
+"
+
+                # Handle return value balise               
+                elif [[ "${fnDocLineTrimmed}" =~ ^"@return"[s]?[[:space:]]+(.+)$  ]] ; then
+                    local retDesc="${BASH_REMATCH[1]}"
+                    adocFnDoc+="Returns ${retDesc}"
+
+                    #,title=\"$originalFnName return value\"
+:<<'EOF'
+                    adocFnDoc+="
+[%autowidth,width=50%,role=\"css-shellapi-api-return-table\"]
+!===
+a! Returns ${retDesc}
+!===
+"
+EOF
+                # Handle parameters
+                # They should be defined one after the other 
+                # in sequence
+                elif [[ "${fnDocLineTrimmed}" =~ ^"@param"[[:space:]]*(\[[[:space:]]*[a-zA-Z0-9]+[[:space:]]*\])?[[:space:]]*(.+)$ ]] ; then
+                #if Str__startsWith "$fnDocLineTrimmed" "@param" ; then
+                    local argDesc="${BASH_REMATCH[2]}"
+                    local argName="arg${paramIter}"
+
+                    if [[ "${argDesc}" =~ ^("output"|"out"|"inout"|"in/out")[[:space:]]+(.+)$ ]] ; then                    
+                        argDesc="${BASH_REMATCH[2]}"
+                        argName="${argName}{nbsp}&"
+                    elif [[ "${argDesc}" =~ ^("input"|"in")[[:space:]]+(.+)$ ]] ; then                    
+                        argDesc="${BASH_REMATCH[2]}"
+                    fi
+
+                    if [ $paramIter -eq 1 ] ; then
+                        #,title=\"$originalFnName arguments\"
+                        adocFnDoc+="[%autowidth,cols=2, role=\"css-shellapi-api-arg-table\"]
+!===
+"
+                    fi
+                    
+                    # Add current arg entry
+                    adocFnDoc+="a!
+[role="css-no-word-break"]
+--
+[small]#__${argName}__#
+--
+a! ${argDesc}
+"
+                    # If last arg close table
+                    if [ $paramIter -eq $nbArgs ] ; then
+                        adocFnDoc+="!===
+"
+                    fi
+                    paramIter=$(($paramIter + 1))
+                else
+                    adocFnDoc+="${fnDocLineTrimmed}"
+                fi
+        done <<< "${fnDoc}"
+
+        if Str__isEmpty "${adocFnDoc}" ; then
+            adocFnDoc="
+[.text-center]
+--
+[small]#__not documented__#
+--
+"
+        fi
+
+        File__append "$adocOutApi" " 
+${adocFnDoc}
+"
+
+        done <<< "${allModDocLines}"
+
+        File__append "$adocOutApi" "
+
+|===
+
+"
+
     fi
+}
+
+Genapidoc__generateModuleApiDoc() {
+
+cat "$1" | awk '
+function trimAnyLeft(s,c) { pat="^[" c "]+"; gsub(pat, "", s); return s; }
+function trimAnySingleLeft(s,c) { pat="^" c "+"; gsub(pat, "", s); return s; }
+function trimAnyRight(s,c) { pat="[" c "]+$" ; gsub(pat, "", s); return s; }
+function trimLeft(s) { gsub(/^[ \t\r\n]+/, "", s); return s; }
+function trimRight(s) { gsub(/[ \t\r\n]+$/, "", s); return s; }
+function trim(s) { return trimRight(trimLeft(s));}
+function trimAny(s,c) { return trimAnyRight(trimAnyLeft(s,c),c);}
+function startsWith(s,starts) { pat="^"starts; if (length(starts)==0) return 0 ; else return (match(s,pat)!=0); }
+function endsWith(s,ends) { pat=ends"$"; if (length(ends)==0) return 0 ; else return (match(s,pat)!=0); }
+
+function log_warn(msg) { print "[warning]:",msg|"cat 1>&2"}
+
+BEGIN {
+  commentStartMet=1;
+  commentStartMetNoQuote=1;
+  commentEndMet=1;
+  nbArgs=0
+  nbRet=0
+  doc="";
+  line="";
+  lastLine="";
+  insideParam
+}
+
+/^:<<EOF/ {
+  commentStartMetNoQuote=0
+  commentStartMet=0;
+  commentEndMet=1;
+  next;
+}
+
+/^:<<'\''EOF'\''/ {
+  commentStartMet=0;
+  commentEndMet=1;
+  next;
+}
+
+/^EOF/ {
+  if (commentStartMet==0) {
+    commentEndMet=0;
+    next;
+  }
+}
+
+/^[[:space:]]*[a-zA-Z0-9_-]+[[:space:]]*\([[:space:]]*\)[[:space:]]*{?[[:space:]]*$/ {
+  if ( ((commentStartMet==0) && (commentEndMet==0)) || 
+       ((commentStartMet==1) && (commentEndMet==1)) )
+  {
+    s=$0;
+    s=trimAnyRight(s," ")
+    s=trimAnyRight(s,"{")
+    s=trimAnyRight(s," ")
+    s=trimAnyRight(s,")")
+    s=trimAnyRight(s,"(")
+    #if ((commentStartMet==0) && (commentEndMet==0)) {
+        if (commentStartMetNoQuote==0)
+        {
+            log_warn("Meet a comment starting with :<<EOF for function " s);
+        }
+
+        print s ";" nbArgs ";" nbRet ";" doc
+        #print doc
+        commentStartMet=1;
+        commentStartMetNoQuote=1;
+        commentEndMet=1;
+        nbArgs=0;
+        nbRet=0;
+        doc=""
+        line="";
+        lastLine="";
+
+        next
+    #}
+  }
+  else
+    next
+}
+
+/^[[:space:]]*$/ {
+  # skip empty lines except when inside a pending function
+  # header extraction, because there may be empty lines following 
+  # a function header, which would be then reset pending extraction
+  # in the next rule
+  if ( ! ((commentStartMet==0) && (commentEndMet==1)) ) {
+    next
+  }
+}
+
+{
+  if ((commentStartMet==0) && (commentEndMet==0)) {
+   # This is a standalone comment without function signature following
+   doc=""
+   line="";
+   lastLine="";
+   commentStartMet=1;
+   commentStartMetNoQuote=1;
+   commentEndMet=1;
+   nbArgs=0;
+   nbRet=0;
+  }
+  else if ((commentStartMet==0) && (commentEndMet==1)) {
+    line=trim($0);
+    if (length(doc)==0) {
+        #if (length(line)==0) {
+        #    doc="\\n" ; 
+        #} else if (endsWith(line,":") != 0) {        
+        #    doc=line "\\n" ; 
+        #} else {
+            doc=line;
+        #}
+        if (startsWith(line,"@param") != 0) {
+            nbArgs++;
+        } else if (startsWith(line,"@return") != 0) {
+            nbRet++;
+        }
+    } else {
+        if (length(line)==0) {
+            doc=doc "\\n\\n"; # Ends the previous line and add an empty one
+        } else if (startsWith(line,"@param") != 0) {
+           if (length(lastLine)>0) doc=doc "\\n";
+            doc=doc line
+            nbArgs++;
+        } else if (startsWith(line,"@example") != 0) {
+           if (length(lastLine)>0) doc=doc "\\n";
+            doc=doc line
+        } else if (startsWith(line,"@return") != 0) {
+            if (length(lastLine)>0)
+                doc=doc "\\n";
+            doc=doc line
+            nbRet++;
+        #} else if (endsWith(line,":") != 0) {
+        #    doc=doc line "\\n";
+        } else if (startsWith(line,"- ") != 0) {
+            if (length(lastLine)>0)
+                doc=doc "\\n";
+            doc=doc line
+        } else if (startsWith(line,"* ") != 0) {
+            if (length(lastLine)>0)
+                doc=doc "\\n"; 
+            doc=doc line
+        } else if (startsWith($0," ") != 0) {
+
+            # Space are preserved only if there is 
+            # a preceding newline or spaces were
+            # already preservedin last line 
+            if (length(lastLine)>0)  {
+               doc=doc "\\n"; 
+               if (startsWith(lastLine," ") != 0)
+                   line=$0
+            } else  {
+                line=$0
+            }
+            doc=doc line
+        } else {
+           if (length(lastLine)==0) {
+             doc=doc line
+           } else {
+             doc=doc " ";
+             doc=doc line
+           }
+        }
+    }
+    lastLine=line;
+  }
+  else
+  {
+   line="";
+   lastLine="";
+   doc=""
+   commentStartMet=1;
+   commentStartMetNoQuote=1;
+   commentEndMet=1;
+   nbArgs=0;
+   nbRet=0;
+  }
+
+}
+'
 }
 
 Genapidoc__main() {
@@ -303,7 +745,7 @@ Genapidoc__main() {
 	_initLogs
 
     File__foreach "${GENAPIDOC__VARS["MYDIR"]}"/.. Genapidoc__handleSource
-    local adocOut="${GENAPIDOC__VARS["onlinedoc-file"]}"
+    local adocOut="${GENAPIDOC__VARS["api-index"]}"
     Genapidoc__generateApiDocLine_closeTable "$adocOut"
 }
 
