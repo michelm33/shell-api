@@ -462,8 +462,6 @@ https://slashetc.fr/en/developertoolsforlinux/shellapi/shellapi_API.html
 
 === Configuration management
 
-The configuration management of the original software was originally managed on a non-disclosed server with arcv. The original revision log of arcv can be tracked on this page: link:shellapi_fullrevisionlog.html[Full revision log page, window=_blank].
-
 Since version 1.1.2, the full original source code is available on GitHub under LGPL license. Therefore, it will be used as the main source reference for the public version. 
 
 Release history: https://slashetc.fr/en/developertoolsforlinux/shellapi/#_release_history
