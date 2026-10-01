@@ -173,9 +173,13 @@ Genapp__susage() {
 cat << EOF
 $(Genapp__susage_without_options)
 
+COMMAND:
+
+$(_soptions GENAPP__OPTION_LIST_DESC GENAPP__OPTION_LIST_SDESC GENAPP__OPTION_LIST_ARGS GENAPP__OPTION_LIST_ARGS_TYPE GENAPP__OPTION_LIST_INTERN 0 $ctrlFlag)
+
 OPTIONS:
 
-$(_soptions GENAPP__OPTION_LIST_DESC GENAPP__OPTION_LIST_SDESC GENAPP__OPTION_LIST_ARGS GENAPP__OPTION_LIST_ARGS_TYPE GENAPP__OPTION_LIST_INTERN "" $ctrlFlag)
+$(_soptions GENAPP__OPTION_LIST_DESC GENAPP__OPTION_LIST_SDESC GENAPP__OPTION_LIST_ARGS GENAPP__OPTION_LIST_ARGS_TYPE GENAPP__OPTION_LIST_INTERN 1 $ctrlFlag)
 
 EOF
 }
@@ -195,9 +199,10 @@ Usage display callback
 EOF
 
 Genapp__usage() {
+# $(Genapp__usage_args): Obsolete, was removed 
+# See COMMAND in susage
 cat << EOF
 $(Genapp__susage)
-$(Genapp__usage_args)
 
 EOF
 }
@@ -210,11 +215,14 @@ Genapp__examples() {
 }
 
 Genapp__man() {
+
+# $(Genapp__usage_args): Obsolete, was removed 
+# See COMMAND in susage
+
 cat << EOF | less
 *SYNOPSIS*
 
 $(Genapp__susage_without_options)
-$(Genapp__usage_args)
 
 OPTIONS:
 

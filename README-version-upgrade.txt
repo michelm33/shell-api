@@ -6,13 +6,10 @@ Changes to apply when changing version:
 
 - Generate a release :
     make release'
+
   The following updates are done automatically:
-  * man page (man make target)
-  * via "update_vernum_in_files":
-    [x] install_arcv.sh: updated version numbers incl. dependencies
-    [x] pack/debian/control : update dependency version
-    [x] arcv_version.adoc in "developertoolsforlinux/pages/_topics/arcv/" of website
-  * updates download page (web_download make target)
+  * man page (man make target)  --> via Makefile rule
+  * updates download page (web_download make target) --> via ARCV HOOK
   
   NOTE: since some files may be updated:
     av -y
@@ -28,7 +25,8 @@ Changes to apply when changing version:
       [x] web site page are regenerated using make gensiten (release)
 
 - Export the release to GitHub, for example (change to the actual version number):
-    av export ../release/shellapi/shellapi-1.1-3
+  #av export ../release/shellapi/shellapi-1.1-3 # Old when not under LGPL
+  av export . # New for LGPL
 
 - Update GitHub: create the tag and related release packages manually
 

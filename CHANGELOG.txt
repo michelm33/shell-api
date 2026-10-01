@@ -1,3 +1,25 @@
+* Release 1.1.4
+    Release coming along latest bookmake 27/09/26
+
+    New features:
+    - New module 'dock' implementing wrapper functions for docker commands; 
+    - New module 'mongodb' implementing wrapper functions for mongodb; 
+    - net API: enhanced Net__checkOpenPort see API doc
+    - core API: new functions  _run_exit, _monitor , Map__toRecord , File__isAbsPath, Str__same, Int__inc
+    - log_status now with a blinking running status and can be used to update end
+    status, enabling to pass on a regular bash return code (0=success) as well
+    alternatively to an allowed predefined keyword (ok, nok...)
+    - Now commented Int functions
+    - completed generated app susage to display commands help    
+
+    Fixes:
+    - _coloredText not displaying a specified optional bg color (_colorText was correct)
+    - multimedia API: Fixed Image__watermark following last changes in sys API. 
+
+191 2026-09-14 01:23:26 documentation of the assertion macros in the 'Test' namespace (Test__*
+    functions)
+190 2026-09-07 17:06:08 Changed: README.asciidoc
+
 * Release 1.1.3
     - GenApidoc tool for generating AsciiDoctor files for the online doc
     - Makefile fixes

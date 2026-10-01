@@ -134,6 +134,8 @@ docSectionMap["sys"]="System functions"
 docSectionMap["xslt"]="XML transformation functions"
 docSectionMap["yaml"]="YAML file handling functions"
 docSectionMap["selftest"]="Framework self-test functions"
+docSectionMap["dock"]="Docker commands wrapper functions"
+docSectionMap["mongodb"]="MongoDB commands wrapper functions"
 
 docSectionMap["Args"]="Shell function argument handling"
 docSectionMap["Array"]="Arrays"

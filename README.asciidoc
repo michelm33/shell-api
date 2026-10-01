@@ -115,7 +115,9 @@ The co-related functionalities are grouped into __modules__ , i.e separate, inde
 | shell-api-yaml.sh a| 
 - YAML file manipulation
 | shell-api-xslt.sh a| 
-- XSLT transformation helpers
+- XSLT transformation helpers based on xsltproc
+| shell-api-dock.sh a| 
+- Wrapper functions for docker commands
 | shell-api-selftest.sh a| 
 - Framework self-tests
 |===

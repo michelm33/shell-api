@@ -600,7 +600,7 @@ Image__watermark()
         read width< <(exiftool -s3 -ImageWidth "$f")
         #_log_dbg "pool($threadPoolSize) convert \"$f\" \\( ${watermarkImage} -resize "${width}x" \\) -gravity center -composite \"${outputFile}\""
 
-        Sys__pool_spawn threadPool convert \"$f\" \\\( \"${watermarkImage}\" -resize \"${width}x\" \\\) -gravity center -composite \"${outputFile}\"
+        Sys__pool_spawn threadPool convert "$f" \( "${watermarkImage}" -resize "${width}x" \) -gravity center -composite "${outputFile}"
         __out_fileLists+=("${outputFilename}")
 
     done

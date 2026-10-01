@@ -1,9 +1,0 @@
-Put your test group description here. Respect all indentations, they are relevant
-
-  # Put your test case description here
-   $ ls -l
-
-Put your second test group description here. Respect all indentations, they are relevant
-
-  # Put your test case description here
-   $ ls -l

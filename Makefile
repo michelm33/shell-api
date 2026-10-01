@@ -208,16 +208,27 @@ web: webapi #shell-api-core.sh shell-api-dev.sh shell-api-multimedia.sh shell-ap
 	@echo 
 	@echo "UPDATING REVISION LOG WEB PAGES"
 	@echo 
-	cp shellapi.css  "$(WEBSITE_DIR)/products/pages/"
+	rsync -av shellapi.css  "$(WEBSITE_DIR)/products/pages/"
+	@echo 
+	@echo "Generating $(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-cm-full-log.adoc"
+	@echo 
 	av log --fmt=adoc --from=$(shell av repo latest-release-rev) --to=0 > "$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-cm-full-log.adoc"
+	@echo 
+	@echo "Generating $(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-cm-release-log.adoc"
+	@echo 
 	av rel --fmt=adoc > "$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-cm-release-log.adoc"
 
 webapi:
 	@echo 
 	@echo Generating online doc for shell api modules and functions
 	@echo 
-	cp shellapi.css "$(WEBSITE_DIR)/products/pages/"
+	rsync -av shellapi.css "$(WEBSITE_DIR)/products/pages/"
 	@# NOTE: it is not necessary to copy .css file into templates.release, because the above copied files will be copied there from gensite.sh
+	@echo 
+	@echo "Generating $(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions.adoc"
+	@echo 
+	@echo "Generating $(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions-doc.adoc"
+	@echo 
 	@genapidoc/genapidoc --api-index="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions.adoc" --api-doc="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions-doc.adoc"
 
 .PHONY: ftp

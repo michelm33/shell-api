@@ -1,7 +1,7 @@
 #!/bin/bash
 ###############################################################################
 #
-# Copyright (c) 2024 Michel Mehl. All rights reserved.
+# Copyright (c) 2024-2026 Michel Mehl. All rights reserved.
 #
 # -----------------------------------------------------------------------------
 #
@@ -275,8 +275,9 @@ _colorText() {
         __outText="${_pal["$2"]}${__outText}"
     fi
     if [ $# -ge 3 ] ; then
-        __outText="${_pal["bg_$3"]}${__outText}"
+        __outText="${__outText}${_pal["bg_$3"]}"
     fi
+
     if [ $# -ge 1 ] ; then
         __outText="${__outText}$1"
     fi
@@ -1279,6 +1280,23 @@ _exit() {
     fi
 
     _cleanup $1 #exit $1
+}
+
+:<<'EOF'
+Same as built-in 'eval', except that process will exit after with the evaluation return code. 
+EOF
+_run_exit() {
+    local __inCommand="$1"
+    shift
+    local cmdArgs=()
+    while [ $# -gt 0 ] ; do
+        cmdArgs+=("\"$1\"")
+        shift
+    done
+    local resEval=1
+    eval "${__inCommand}" "${cmdArgs[@]}"
+    resEval=$?
+    [ $resEval -eq 0 ] && _quit "" || _exit $resEval ""
 }
 
 :<<'EOF'
@@ -2366,10 +2384,53 @@ _log_n() {
 
 __SHELL_API_WORK_STATUS_TXT=""
 __SHELL_API_WORK_STATUS_HT=""
+
+:<<'EOF'
+This displays a status message with _log_status_message passing on all
+arguments.
+Additionnally, it displays the initial status 'running'
+
+If only one parameter is passed on, it is equivalent to calling _log_status_end passing first parameter value as status result.
+
+EOF
+
 _log_status() {
+#${_pal["bg_blue_blinking"]} 
+    if Int__eq $# 1 ; then
+        _log_status_end "$@"
+        return $?
+    else
+        _log_status_message "$@"
+        echo -e -n "[ ${_pal["white_blinking"]}RUNNING ${Term__reset_color}]"
+    fi
+}
+
+:<<'EOF'
+Displays a status message line for an upcoming task to be initiated that may take some time. 
+
+The message is prepended with 'task' and does not insert any newline.
+Once the task is finished, _log_status_end has to be called with a string
+giving the outcome (ok, nok). The message and priority are remembered 
+and used by _log_status_end.
+
+The first argument enables to control whether the above 'task' prefix 
+is displayed. At the moment, any other value than 'high' will disable 
+its display.
+
+@param[1] message priority if value is 'high', then preprend the message 
+with 'task' in purple background.
+@param[2] message. When not specified, _log_status_end is called passing first parameter value
+@example 
+    _log_status high "uploading file "
+    # some code uploading a file to internet
+    _log_status_end $?
+EOF
+
+_log_status_message() {
     local appName="${__SHELL_CURRENT_APPNAME__}"
     local callback="${FUNCNAME[0]}"
     local argv=("$@")
+
     local headerType="$1"
     shift
     __SHELL_API_WORK_STATUS_TXT="$@"
@@ -2388,24 +2449,92 @@ _log_status() {
     if Env__fn_exists "${appName}__${callback}" ; then
         _invokeCallback "${callback}" "${argv[@]}"
     elif [ -v __SHELL_API_LOGS_INITIALIZED__ ] ; then
-        echo -e -n " $@" | tee -a "${__LOG_FILE__}"
+        echo -e -n " $@ " | tee -a "${__LOG_FILE__}"
     else
-        echo -e -n " $@"
+        echo -e -n " $@ "
     fi
 }
+
+:<<'EOF'
+_log_status_end updates the status message displayed with _log_status
+with a result and adds a newline.
+
+@param[1] result either any of the string: ok, success, nope, nok, fail.
+result can also be a number, 0 meaning success, any other value a failure.
+@example 
+    _log_status high "uploading file "
+    # some code uploading a file to internet
+    _log_end ok
+EOF
+
 _log_status_end() {
     local res="$1"
     local resString=""
-    case "$res" in
-        ok|success) resString="[${_pal["black_bold"]}${_pal["bg_green"]} OK ${Term__reset_color}]";;
-        nope|nok|fail) resString="[${_pal["white_bold"]}${_pal["bg_red"]} FAIL ${Term__reset_color}]";;
-        *) ;;
-    esac
+    local resNum=1
+
+    if Int__isInt "$res" ; then
+        resNum=$res
+    else
+        Str__toLower res
+        case "$res" in
+            ok|success) resNum=0;;
+            nope|nok|fail) resNum=1;;
+            *) 
+                _log_warn "${FUNCNAME[0]}: Invalid status value '${res}'"
+                resNum=1;;
+        esac
+    fi
+
+    if Int__eq $resNum 0 ; then
+        resString="[${_pal["black_bold"]}${_pal["bg_green"]} OK ${Term__reset_color}]"
+    else
+        resString="[${_pal["white_bold"]}${_pal["bg_red"]} FAIL ${Term__reset_color}]"
+    fi
+
     Term__eraseCurrentLine
      #echo -e -n "${__SHELL_API_WORK_STATUS_TXT}"
-    _log_status "${__SHELL_API_WORK_STATUS_HT}" "${__SHELL_API_WORK_STATUS_TXT}"
+    _log_status_message "${__SHELL_API_WORK_STATUS_HT}" "${__SHELL_API_WORK_STATUS_TXT}"
     _log_n "$resString"
     _log ""
+}
+
+:<<'EOF'
+Monitors the execution of a command by displaying a status message just before execution using _log_status, then updating the status with the command return value when the task is finished.
+For the sake of implementing this function, all output of the executed 
+command is inhibited, i.e. redirected to /dev/null
+Returns the return value of executed command.
+Note that this does not spawn a new process, it only makes a script-eval
+@param[1] Status message 
+@param[n] 
+@return the return value of the executed command
+EOF
+_monitor() {
+    local statusMessage="$1"
+    shift
+    local cmdArgs=()
+    while [ $# -gt 0 ] ; do
+        cmdArgs+=("\"$1\"")
+        shift
+    done
+    _log_status high "$statusMessage"
+    local cmdEvalRes=1
+    local stdLog
+    local errLog
+    File__createTempFile stdLog
+    File__createTempFile errLog
+    eval "${cmdArgs[@]}" 1>"$stdLog" 2>"$errLog"
+    cmdEvalRes=$?
+    if _debugging ; then
+        cat "$stdLog"
+        cat "$errLog"
+    fi
+    _log_status $cmdEvalRes
+    if [ $cmdEvalRes -ne 0 ] ; then
+        _log_err "$(cat "$errLog")"
+        File__deleteTempFile "$stdLog"
+        File__deleteTempFile "$errLog"
+    fi
+    return $cmdEvalRes
 }
 
 _log_vars_exit()
@@ -2784,6 +2913,7 @@ Str__isEmpty() {
     [ ${#1} -eq 0 ]
 }
 
+
 :<<'EOF'
 Returns a series of spaces which length is given by first parameter.
 @param number of spaces
@@ -2985,6 +3115,17 @@ Str__toUpper() {
     inout_res="${inout_res^^}"
     return 0
 }
+
+:<<'EOF'
+Tests whether 2 string are equal
+@param [1] input string 
+@param [2] input string 
+EOF
+
+Str__same() {
+    [ "$1" = "$2" ]
+}
+
 
 :<<'EOF'
 Tells whether the passed string starts with another.
@@ -4048,7 +4189,9 @@ Int__isInt() {
     [[ "$intres" =~ ^[0-9]+$ ]]
 }
 
-# Convert a floating number to an integer
+:<<'EOF'
+Prints a floating number as an integer
+EOF
 Int__Int() {
     local intres="${1%%.*}"
     if [ -z "$intres" ] ; then
@@ -4057,6 +4200,11 @@ Int__Int() {
         echo -n "$intres"
     fi
 }
+
+:<<'EOF'
+Convert a floating number to an integer
+@param[1] inout the input floating number that will be converted to integer as result
+EOF
 
 Int__Int_r() {
     local -n __out_int_int_result="$1"
@@ -4067,6 +4215,38 @@ Int__Int_r() {
         __out_int_int_result="$intres"
     fi
 }
+
+:<<'EOF'
+Equivalent of [ .. -eq ... ]
+@param[1] int value 1
+@param[2] int value 2
+EOF
+Int__eq()
+{
+    [ $1 -eq $2 ]
+}
+
+:<<'EOF'
+Increments the passed variable by reference
+@param[1] inout value to increment
+EOF
+Int__inc()
+{
+    local -n __inVar=$1
+    __inVar=$(( ${__inVar} + 1 ))
+}
+
+:<<'EOF'
+Computes the percentage of a certain value passed as second argument. 
+The percentage value is passed via first parameter if this latter ends with '%'. 
+
+The result is stored in the first parameter itself, that means the following is done:
+returned value in variable 'percentage' = percentage * value
+
+When the first parameter does not end with '%', the first parameter value remains unchanged.
+@param[1] inout percentage
+@param[2] in number value
+EOF
 
 Int__percentage()
 {
@@ -4084,11 +4264,24 @@ Int__percentage()
     # else value is unchanged otherwise
 }
 
+:<<'EOF'
+Performs a mathematical computation based on an expression processed by 'bc'. Computing is originally done with a precision of 3
+The result is printed as an integer
+@param[1] math expression understood by 'bc' tool
+EOF
+
 Int__calc() {
     local precision=3
     local resFloat=$(echo "scale=$precision; $1"|bc)
 	Int__Int $resFloat
 }
+
+:<<'EOF'
+Performs a mathematical computation based on an expression processed by 'bc'. Computing is originally done with a precision of 3
+The result is stored in the second variable passed as ref,  as an integer
+@param[1] math expression understood by 'bc' tool
+@param[2] out ref to var storing the computation result as an int
+EOF
 
 Int__calc_r() {
     local -n __out_calc_result="$2"
@@ -4098,6 +4291,9 @@ Int__calc_r() {
 	Int__Int_r ${!__out_calc_result}    
 }
 
+:<<'EOF'
+Tells whether 2 integers are within a certain range (included boundary values)
+EOF
 
 Int__withinRange() {
     local checkValue=$1
@@ -4784,6 +4980,33 @@ EOF
 }
 
 # --------------------------------------------------------------------------------------
+# Map API
+# --------------------------------------------------------------------------------------
+
+:<<'EOF'
+Converts a map into record data , that means for each pair (key,val) a string is generated of the form <key><assign char><val><record sep>
+
+@param[1] in ref to map var
+@param[2] in assign operator 
+@param[3] line separator (by defaul new line when not specified)
+
+EOF
+Map__toRecord()
+{
+    local -n __inValMap=$1
+    local __inAssignChar="$2"
+    local __inRecordSep="
+"
+    if [ $# -ge 3 ] ; then
+        __inRecordSep="$3"
+    fi
+    local key
+    for key in "${!__inValMap[@]}" ; do
+        printf "%s%s%s%s" "$key" "${__inAssignChar}" "${__inValMap["$key"]}" "${__inRecordSep}"
+    done
+}
+
+# --------------------------------------------------------------------------------------
 # Input API
 # --------------------------------------------------------------------------------------
 
@@ -4976,6 +5199,7 @@ Input__confirm() {
         case "$answer" in
             y|yes) return 0;; 
             n|no) return 1;;
+            a|abort) return 2;;
             *) ;;
         esac
     done
@@ -4991,7 +5215,7 @@ Question is asked until a valid answer is given except if param 4 is specified
 @param [1] question sentence
 @param [2] result size is stored in this parameter
 @param [3] unit of the returned memsize
-@param [4] bool telling whether to abort an invalid memory size input
+@param [4] bool telling whether to abort on invalid memory size input
 @return 0 upon positive entry,
 EOF
 
@@ -5042,31 +5266,23 @@ Input__memsize() {
 
         case "$unit" in
             k|kib) 
-                if [ $# -eq 3 ] ; then
-                    __memsize=$(( $input_memsize * 1024 )); 
-                    __unit="O"
-                fi
+                __memsize=$(( $input_memsize * 1024 )); 
+                __unit="O"
                 return 0
                 ;;
             m|mib) 
-                if [ $# -eq 3 ] ; then
-                    __memsize=$(( $input_memsize * 1024 * 1024 )); 
-                    __unit="O"
-                fi
+                __memsize=$(( $input_memsize * 1024 * 1024 )); 
+                __unit="O"
                 return 0
                 ;;
             g|gib) 
-                if [ $# -eq 3 ] ; then
-                    __memsize=$(( $input_memsize * 1024 * 1024 * 1024 )); 
-                    __unit="O"
-                fi
+                __memsize=$(( $input_memsize * 1024 * 1024 * 1024 )); 
+                __unit="O"
                 return 0
                 ;; 
             t|tib) 
-                if [ $# -eq 3 ] ; then
-                    __memsize=$(( $input_memsize * 1024 * 1024 * 1024 * 1024 )); 
-                    __unit="O"
-                fi
+                __memsize=$(( $input_memsize * 1024 * 1024 * 1024 * 1024 )); 
+                __unit="O"
                 return 0
                 ;;
             *)
@@ -5883,6 +6099,16 @@ Input__cursorSelect_findFirstIgnoreIndexOnCurrentPage()
 # --------------------------------------------------------------------------------------
 
 :<<'EOF'
+Tells whether the passed path is an absolute path or not
+@param [1] A path
+@return 0 when it is an absolute path
+EOF
+
+File__isAbsPath() {
+    [ "${1:0:1}" = "/" ]
+}
+
+:<<'EOF'
 Returns the base file name (with its extension) of the passed file name
 @param [1] filename
 @param [2] out returned file basename
@@ -6330,7 +6556,7 @@ declare -A File__temporaryDirMap
 :<<'EOF'
 Creates a temporary folder in default system /tmp folder
 and inserts it in the global map for subsequent cleanup
-@param [1] out the name of the temporary dir
+@param [1] out the name of the created temporary dir
 EOF
 File__createTempDir() 
 {
@@ -6393,7 +6619,7 @@ declare -A File__temporaryFileMap
 :<<'EOF'
 Creates a temporary file in default system /tmp folder
 and inserts it in the global map for subsequent cleanup
-@param [1] out the name of the temporary dir
+@param [1] out the name of the created temporary file
 @param [2] in optional the extension of the temp file
 EOF
 File__createTempFile() 
@@ -7885,6 +8111,11 @@ test__perf()
 }
 
 
+:<<'EOF'
+Checks that the list of passed regular file paths are not valid (do NOT exist).
+Exits the current shell script (_exit -1 is called) when at least one file exists.
+@param[1] list of regular file paths
+EOF
 
 Test__assertFilesShouldNotExist() {
     local file
@@ -7893,6 +8124,12 @@ Test__assertFilesShouldNotExist() {
     done
 }
 
+:<<'EOF'
+Checks that the list of passed regular file paths are valid (exist).
+Otherwise, exits the current shell script (_exit -1 is called) when at least one file does not exist.
+@param[1] list of regular file paths
+EOF
+
 Test__assertFilesShouldExist() {
     local file
     for file in "$@" ; do
@@ -7900,12 +8137,26 @@ Test__assertFilesShouldExist() {
     done
 }
 
+:<<'EOF'
+Checks that the list of passed directory paths are valid (exist).
+Otherwise, exits the current shell script (_exit -1 is called) when at least one folder does not exist.
+@param[1] list of directory paths
+EOF
+
 Test__assertDirsShouldExist() {
     local file
     for file in "$@" ; do
         [ -d "$file" ] && echo "OK: '$file': present" || _exit -1 "Error: '$file' does not exist but should"
     done
 }
+
+:<<'EOF'
+Checks whether the last line of the passed file corresponds exactly to the string passed
+as second argument. Thus, char case is relevant.
+Exits the current shell script (_exit -1 is called) when the file does not exist or line was not found.
+@param[1] File path
+@param[2] Expected last line
+EOF
 
 Test__assertFileLastLine() {
     if [ ! -f "$1" ] ; then
@@ -7915,6 +8166,15 @@ Test__assertFileLastLine() {
     local fileTail="$(tail -n1 "$1")"
     [ "$fileTail" = "$2" ] && echo "OK '$1' last line is correct ('$2')" || (sleep 1 && _exit -1 "Error: '$1' has last line '$fileTail'")
 }
+
+:<<'EOF'
+Checks whether the line of the specified line number of the passed file corresponds exactly to the string passed
+as third argument. Thus, char case is relevant.
+Exits the current shell script (_exit -1 is called) when the file does not exist or line was not found.
+@param[1] File path
+@param[2] Line number (from 1)
+@param[3] Expected line of the specified line number
+EOF
 
 Test__assertFileLine() {
     if [ ! -f "$1" ] ; then
@@ -7928,6 +8188,14 @@ Test__assertFileLine() {
 }
 
 
+:<<'EOF'
+Checks whether the content of the passed file matches exactly the string passed
+as second argument. Thus, char case is relevant.
+Exits the current shell script (_exit -1 is called) when the file does not exist or the content does mismatch
+@param[1] File path
+@param[2] String giving the expected file content
+EOF
+
 Test__assertFileContent() {
     if [ ! -f "$1" ] ; then
         _exit -1 "Error: '$1' does not exist or not a valid file"
@@ -7937,6 +8205,14 @@ Test__assertFileContent() {
     [ "$content" = "$2" ] && echo "OK '$1' content is correct ('$2')" || (sleep 1 && _exit -1 "Error: '$1' has content '$content'")
 }
 
+:<<'EOF'
+Checks whether the content of the passed file matches the specified string pattern
+as second argument. Pattern is like those passed to the bash's [[ ]] test operator.
+Exits the current shell script (_exit -1 is called) when the file does not exist or the content does not match the pattern
+@param[1] File path
+@param[2] String giving the pattern of the  expected file content
+EOF
+
 Test__assertFileContentPattern() {
     if [ ! -f "$1" ] ; then
         _exit -1 "Error: '$1' does not exist or not a valid file"
@@ -7945,6 +8221,14 @@ Test__assertFileContentPattern() {
     local content="$(cat "$1")"
     [[ "$content" =~ $2 ]] && echo "OK '$1' content is correct ('$2')" || (sleep 1 && _exit -1 "Error: '$1' has content '$content'")
 }
+
+:<<'EOF'
+Checks whether the passed file contains a line corresponding exactly to the string passed
+as second argument, thus char case is relevant.
+Exits the current shell script (_exit -1 is called) when the file does not exist or line was not found.
+@param[1] File path
+@param[2] Line to search for
+EOF
 
 Test__assertFileContainsLine() {
     if [ ! -f "$1" ] ; then
@@ -7966,6 +8250,14 @@ Test__assertFileContainsLine() {
 }
 
 
+:<<'EOF'
+Test whether 2 files have exactly the same content. 'diff' tool is used for the test.
+On failure, exits the current shell script (_exit -1 is called)
+@param[1] a message to display after base message '<1st file basename> is the same '...
+@param[2] 1st file path
+@param[3] 2nd file path
+EOF
+
 Test__assertSameFiles()
 {
     if ! Args__checkCount ${FUNCNAME[0]} 3 "$#" "Usage: <extra message> <path1> <path2>"; then return 1; fi
@@ -7976,10 +8268,22 @@ Test__assertSameFiles()
     diff "$2" "$3" && echo "${sameFileBasename} is the same ${extraMessage}" || _exit -1 "File '$2' et '$3' differ"
 }
 
+:<<'EOF'
+Changes the current working directory to the passed one.
+On failure, exits the current shell script (_exit -1 is called)
+@param[1] new current working directory path
+EOF
 Test__assertChangeDir()
 {
     cd "$1" &>/dev/null || _exit -1 "failed to cd to '$1'"
 }
+
+:<<'EOF'
+Same as Test__assertChangeDir, except that it creates the directory when 
+it does not exist. On failure to cd or create the folder, 
+exits the current shell script (_exit -1 is called)
+@param[1] new current working directory path, created if necessary
+EOF
 
 Test__assertChangeToNewDir()
 {
@@ -7994,14 +8298,20 @@ Test__assertChangeToNewDir()
     fi
 }
 
+:<<'EOF'
+Removes the passed directory and all its content recursively.
+Exits the current shell script (_exit -1 is called) if the folder does not exist or the removal failed.
+@param[1] Path of working directory to remove
+EOF
+
 Test__assertCleanupDir()
 {
     [ ! -z "$1" ] && [ -d "$1" ] && rm -r "$1" ||  _exit -1 "failed to remove '$1'"
 }
 
 :<<'EOF'
-This checks the exit code of the passed command execution against
-the passed reference value
+This checks the exit code of the passed command execution against the passed reference value
+Exits the current shell script (_exit -1 is called) upon mismatch
 @param[1] expected exit code
 @param[2] command to execute
 EOF
@@ -8017,6 +8327,7 @@ Test__assertCmdExit()
 
 :<<'EOF'
 This checks the exit code of the passed command execution is different of the passed reference value
+Exits the current shell script (_exit -1 is called) when the exit code does match
 @param[1] expected exit code
 @param[2] command to execute
 EOF
@@ -8032,7 +8343,8 @@ Test__assertCmdNotExit()
 
 
 :<<'EOF'
-This checks the first output line resulting from passed command execution
+This checks the first output line resulting from passed command execution.
+Exits the current shell script (_exit -1 is called) when there's a mismatch.
 @param[1] command to execute
 @param[2] expected output string
 EOF
@@ -8050,7 +8362,9 @@ Test__assertCmd()
 
 :<<'EOF'
 This checks that the output of command matches that of a reference file content.
-3rd parameters tells whether to ignore whitespaces at the beginning and end of each content lines to compare
+3rd parameter tells whether to ignore whitespaces at the beginning and end of each content lines to compare
+Optionally, start and end line numbers can be specified. 
+Optionally, an additional space-separated line numbers to be ignored can be specified.
 @param[1] reference file which content gives the expected output
 @param[2] command to execute
 @param[3] in bool tells whether to ignore whitespaces at the beginning and end of each content lines
@@ -8109,6 +8423,13 @@ Test__assertCmdOutput_handleLineDiffs()
     _log "$diffLineNo: EXPECTED '$diffLines1Item', GOT '$diffLines2Item'"
 }
 
+:<<'EOF'
+Tests whether a symbolic link points to the specified absolute path
+On failure, exits the current shell script (_exit -1 is called)
+@param[1] symbolic link path
+@param[2] absolute path (not another link)
+EOF
+
 Test__assertSymlinkPath()
 {
     if [ ! -L "$1" ] ; then
@@ -8126,7 +8447,8 @@ Test__assertSymlinkPath()
 }
 
 :<<'EOF'
-    This checks the output of one command is the same of another command
+This checks the output of one command is the same of another command
+Exits the current shell script (_exit -1 is called) when there's a mismatch.
 EOF
 Test__assertTwoCommandsSameOutput()
 {

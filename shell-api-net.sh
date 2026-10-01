@@ -33,20 +33,64 @@ Net__ftpServersPackages="vsftpd"
 Net__servicePortMap["nfs"]=2049
 Net__servicePortMap["ssh"]=22
 Net__servicePortMap["ftp"]=21
+Net__servicePortMap["http"]=80
+Net__servicePortMap["https"]=80
+
+:<<'EOF'
+Tests whether an HTTP page is reachable on the specified port using the specified URL
+@param[1] URL
+@param[2] optional port, defaults to 80
+@return 0 if HTTP page could be reached using curl, otherwise curl's exit code
+EOF
+Net__isHTTPPageReachable()
+{
+    local __inURL="$1"
+    local __inPort=80
+    if [ $# -gt 1 ] ; then
+        __inPort=$2
+        if ! Int__isInt "${__inPort}" ; then
+            _log_warn "${FUNCNAME[0]}: invalid port number '$__inPort'"
+            return 1
+        fi
+    fi
+
+    #if ! Net__isHTTP "${__inURL}" ; then
+    #    _log_warn "${FUNCNAME[0]}: invalid HTTP URL '$__inURL'"
+    #    return 1
+    #fi
+    local cmd="curl -k ${__inURL}:${__inPort}"
+    #_log_vars cmd
+    eval "$cmd" >/dev/null
+}
 
 :<<'EOF'
 Tests whether a given port is open on a given host on the network using nmap
-@param[1] service name, the relevant port number will be resolved from the name. 
-Recognized values:
-- nfs, ssh, ftp    
-@param[2] service host
+@param[1] Either a port number or a service name. In this latter case, the relevant port number will be resolved from the name. 
+Recognized values:  nfs, ssh, ftp    
+@param[2] service host. 'localhost' is assumed when not specified
 EOF
 Net__checkOpenPort()
 {
     local __in_service_name="$1"
-    local __in_service_host="$2"
+    local __in_service_host="localhost"
     local cmd
-    cmd="${__SUDO__}nmap -p${Net__servicePortMap["${__in_service_name}"]} ${__in_service_host} | awk '/^${Net__servicePortMap["${__in_service_name}"]}/{FS=\" \";print \$2}'"
+    local portNum=0
+
+    if [ $# -ge 2 ] ; then
+        __in_service_host="$2"
+    fi
+
+    if Int__isInt "${__in_service_name}" ; then
+        portNum=${__in_service_name}
+    else
+        portNum=${Net__servicePortMap["${__in_service_name}"]}
+        if Str__isEmpty "$portNum" ; then
+            _log_err "Unrecognized service '${__in_service_name}'. To extend supported service names, add entries to the 'Net__servicePortMap' map in shell-api-net.sh"
+            return 1
+        fi
+    fi
+    cmd="${__SUDO__}nmap -p${portNum} ${__in_service_host} | awk '/^${portNum}/{FS=\" \";print \$2}'"
+    
     _logf "COMMAND: $cmd"
     local pStatus="$(eval "$cmd")"
     Str__toLower pStatus
