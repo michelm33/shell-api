@@ -2,8 +2,9 @@
     Release coming along latest bookmake 27/09/26
 
     New features:
-    - New module 'dock' implementing wrapper functions for docker commands; 
-    - New module 'mongodb' implementing wrapper functions for mongodb; 
+    - New module 'dock' implementing wrapper functions for docker commands
+    - New module 'mongodb' implementing wrapper functions for mongodb 
+    - New module 'git' implementing wrapper functions for git commands
     - net API: enhanced Net__checkOpenPort see API doc
     - core API: new functions  _run_exit, _monitor , Map__toRecord , File__isAbsPath, Str__same, Int__inc
     - log_status now with a blinking running status and can be used to update end

@@ -7033,7 +7033,7 @@ File__list()
     local filename=""
 
     if ! File__dirExists "${__inDir}" ; then
-        _log_error "${FUNCNAME[0]}: ${__inDir} is not a valid directory"
+        _log_err "${FUNCNAME[0]}: ${__inDir} is not a valid directory"
         return 1
     fi
 
