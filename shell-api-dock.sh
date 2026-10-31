@@ -21,6 +21,70 @@ if _loaded "${BASH_SOURCE[0]}"  ; then
 	return 0
 fi
 
+
+:<<'EOF'
+Tells whether the passed argument looks like a docker URL, i.e.
+of the basic form dock://<host>/<image name>
+
+example: dock://192.168.0.12/wwwserver
+
+@param[1] URL
+@return 0 when valid URL, false (1) when not, <0 on arg error
+EOF
+dock__isURL() {
+	local addr="$1"
+    Str__toLower addr
+
+	[[ "$addr" =~ ^dock:\/\/([^\/]+)(\/[^\/]+)$ ]]
+}
+
+:<<'EOF'
+Decodes a docker URL as accepted by dock__isURL
+example: dock://192.168.0.12/publiwwwserver
+
+@param[1] URL
+@param[2] out image
+@param[3] out host
+@return 0 when valid URL, false (1) when not, <0 on arg error
+EOF
+dock__decodeURL() {
+	local addr="$1"
+	local -n __outImage=$2
+	local -n __outHost=$3
+    Str__toLower addr
+
+	if [[ "$addr" =~ ^dock:\/\/([^\/]+)(\/[^\/]+)$ ]] ; then
+		__outImage="${BASH_REMATCH[2]:1}"
+		__outHost="${BASH_REMATCH[1]}"
+	else
+		return 1
+	fi
+}
+
+:<<'EOF' 
+Retrieves the SHA256 id of the last committed image from a passed image.
+
+If the argument may be a docker URL, the image name will be extracted from it.
+However, the host part is ignored at the moment and the image is assumed to be local.
+@param[1] name of docker image
+@param[2] 
+EOF
+dock__lastImageId() {
+	local __inImageName="$1"
+	local -n __outImageId=$2
+	 
+	if dock__isURL "${__inImageName}" ; then
+		local dockHost=""
+		dock__decodeURL "${__inImageName}"  __inImageName dockHost
+	fi
+
+	local cmd="docker history -q '${__inImageName}' | head -n1"
+
+	_logf "DOCKER COMMAND: ${cmd}" 
+	read __outImageId < <(eval "$cmd")
+
+}
+
 :<<'EOF' 
 Fills the passed array with the names of actual running containers.
 EOF
@@ -131,26 +195,73 @@ dock__exec() {
 	shift 2
 	cmd+=" $@"
 	_logf "DOCKER COMMAND: ${cmd}" 
-  	eval "$cmd"
+  	eval "$cmd" 2>> "${__LOG_ERR_FILE__}" 
 }
 
 :<<'EOF' 
-Copy a file into the docker container
-@param[1] container name
+Copy a file or folder from a source located in a container or not, to a destination located in a container or not. 
+
+If all container names are empty, an error is returned.
+
+If src and dst container names are set, the file/older is copied from one container to the other using a temporary files
+
+@param[1] source container name 
 @param[2] source file path
+@param[1] destination container name 
 @param[3] destination file path
 EOF
 dock__copy() {
-	local containerName="$1"
+	local srcContainer="$1"
 	local src="$2"
-	local dst="$3"
+	local dstContainer="$3"
+	local dst="$4"
 	local cmd=""
-  	cmd="${__SUDO__}docker"
-	cmd+=" cp"
-	cmd+=" '${src}'"
-	cmd+=" '${containerName}:${dst}'"
-	_log_vars cmd >&2 
-  	eval "$cmd"
+
+	if Str__isEmpty "$srcContainer" && Str__isEmpty "$dstContainer" ; then
+
+		_log_err "${FUNCNAME[0]} is used without any container name"
+		return 1
+	fi
+
+	if ! Str__isEmpty "$srcContainer" && ! Str__isEmpty "$dstContainer" ; then
+		# A temporary dir is used as buffer to store locally the source
+		local tmpFileOrFolder=""
+		File__createTempDir tmpFileOrFolder "$HOME" # Docker cannot copy to /tmp
+
+		# First copy from src to tmp
+		cmd="${__SUDO__}docker"
+		cmd+=" cp"
+		cmd+=" '${srcContainer}:${src}'"
+		cmd+=" '${tmpFileOrFolder}/'"
+		_logf cmd
+		if eval "$cmd" >> "${__LOG_FILE__}" 2>> "${__LOG_ERR_FILE__}" ; then
+			local srcBasename
+			File__basename "$src" srcBasename
+			cmd="${__SUDO__}docker"
+			cmd+=" cp"
+			cmd+=" '${tmpFileOrFolder}/${srcBasename}'"
+			cmd+=" '${dstContainer}:${dst}'"
+			_logf cmd
+			eval "$cmd" >> "${__LOG_FILE__}" 2>> "${__LOG_ERR_FILE__}" 
+		else
+			_log_err "${FUNCNAME[0]}: failed to copy '$src' from '$srcContainer' to local filesystem"
+			return 1		
+		fi
+	elif ! Str__isEmpty "$srcContainer" ; then
+		cmd="${__SUDO__}docker"
+		cmd+=" cp"
+		cmd+=" '${srcContainer}:${src}'"
+		cmd+=" '${dst}'"
+		_logf cmd
+		eval "$cmd" >> "${__LOG_FILE__}" 2>> "${__LOG_ERR_FILE__}" 
+	else # if ! Str__isEmpty "$dstContainer" ; then
+		cmd="${__SUDO__}docker"
+		cmd+=" cp"
+		cmd+=" '${src}'"
+		cmd+=" '${dstContainer}:${dst}'"
+		_logf cmd
+		eval "$cmd" >> "${__LOG_FILE__}" 2>> "${__LOG_ERR_FILE__}" 
+	fi
 }
 
 :<<'EOF' 

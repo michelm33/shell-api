@@ -1,10 +1,10 @@
 Generate a test app
 
   # An app named 'TestApp' is generated, inside folder 'testapp', main script will be 'testapp'. The home page URL for the app will be https://github/michelm33/testapp
-   genapp TestApp -y --author="George W" --email="george.w@wh.org" --desc="A test application" --github-id="michelm33" --root-release-dir="../release"
+   genapp TestApp -y --author="George W" --email="george.w@wh.org" --desc="A test app" --github-id="michelm33" --root-release-dir="../release"
 
   # Same as previous example, but the home page URL for the app is explicitly defined as 'https://slashetc/testapp'
-   genapp TestApp -y --author="George W" --email="george.w@wh.org" --desc="A test application" --http="https://slashetc/testapp" --root-release-dir="../release"
+   genapp TestApp -y --author="George W" --email="george.w@wh.org" --desc="A test app" --http="https://slashetc/testapp" --root-release-dir="../release"
 
 Execute the generated app
 

@@ -131,7 +131,7 @@ build_release: required_tools CHANGELOG.txt COPYRIGHT.txt VERSION.txt
 	@echo "----- CREATING THE DEBIAN CONTROL FILE"
 	@cp pack/debian/control $(VERS_REL_DIR)/debian/
 	@#
-	@echo ""----- CREATING THE DEBIAN LINK FILE"
+	@echo "----- CREATING THE DEBIAN LINK FILE"
 	@cd $(VERS_REL_DIR) && echo "usr/bin/shell-api-$(VERSION_DEB_SHELLAPI) usr/bin/$(PRODUCT)/shell-api" > debian/links
 	@#
 	@echo "----- CREATING THE DEBIAN INSTALL FILES"

@@ -159,16 +159,51 @@ EOF
 }
 
 :<<EOF
-Tells whether the passed value is not a 'void' YAML value, ie. it is neither 'null' nor ''.
-@param value to test
+Gets a batch of YAML field values from the global YAML_DATA map holding all data.
+The fields to read are provided by the keys of any input map. The map is filled 
+with the read values.
+
+@param [1] map of input fields to read
+@param [2] a boolean telling whether to return a failure 
+           in case any value is either null or empty.
+EOF
+
+YAML__getBatch()
+{
+    local -n fieldBatch=$1
+    local checkNonVoid=$2
+    local f
+    local res=0
+    for f in "${!fieldBatch[@]}" ; do
+        YAML__get "$f" fieldBatch["$f"]
+        ${checkNonVoid} && YAML__isVoid "${fieldBatch["$f"]}" && res=1
+    done
+    return $res
+}
+
+:<<EOF
+Reverse of YAML__isVoid
+@param[1] the value to test
 EOF
 YAML__isntVoid()
 {
+    YAML__isVoid
     local -n __in_val=$1
     if [ "${__in_val}" = null ] ; then return 1; fi
     if [ -z "${__in_val}" ] ; then return 1; fi
     return 0;
 }
+
+:<<EOF
+Tells whether the passed value is a 'void' YAML value, ie. it is either 'null' or ''.
+@param[1] the value to test
+EOF
+
+YAML__isVoid()
+{
+    [ "$1" = null ] || [ -z "$1" ] 
+}
+
 
 YAML__unescape()
 {
@@ -376,7 +411,29 @@ YAML__read_int() {
 }
 
 :<<EOF 
-Writes in-place an YAML field
+Writes in-place an YAML field in the specified file
+@param1 in file path
+@param2 in data path
+@param3 in value to assign
+@returns the return value of the yq command , i.e. 0 only on success.
+EOF
+
+YAML__writeFile() {
+    if ! File__fileExists "$1" ; then
+        _log_err "${FUNCNAME[0]}: file '$1' does not exist"
+        return 1
+    fi
+
+    local ret=1
+    YAML__setFile "$1"    
+    YAML__write "$2" "$3"
+    ret=$?
+    YAML__closeFile
+    return $ret
+}
+
+:<<EOF 
+Writes in-place an YAML field in the file stored in internal variable YAML__FILE
 @param1 in data path
 @param2 in value to assign
 @returns the return value of the yq command , i.e. 0 only on success.
@@ -464,10 +521,11 @@ YAML__keys() {
         dataPath=".${dataPath}"
     fi
     #if YAML__exists "$1" ; then
+    #echo "RETRIEVING KEYS ${dataPath}" >&2
     if [ $YAML__YQ_NO_JQ_WRAP -ne 0 ] ; then
-        #echo "RETRIEVING KEYS ${dataPath}" >&2
         yq -r "${dataPath} | keys" "${YAML__FILE}" | jq -r ".[]"
     else
+    #echo "yq -o t -r "${dataPath} \| keys" "${YAML__FILE}" " >&2
         yq -o t -r "${dataPath} | keys" "${YAML__FILE}"
     fi
     #else

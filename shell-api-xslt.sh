@@ -20,6 +20,16 @@ if _loaded "${BASH_SOURCE[0]}"  ; then
 fi
 
 :<<EOF
+Transforms an input XML using the passed XSL code and an input parameter set, outputting the result on the standard output.
+
+To achieve the transformation, this function  does the following, thereby sparing the developer of doing it by its own:
+
+- create a temporary XSLT file containing the XSL code wrapped with the necessary XSL header incl. the elements <xsl:stylesheet> and <xsl:output> (method="xml"),  the XML parameter definitions, the identity copy
+- calling 'xsltproc' with the suitable option definitions according to the defined parameters and their values.
+
+@param[1] source XML
+@param[2] source XSL
+@param[3] a list space separated parameter definition. One parameter is defined as 'name:value'
 EOF
 
 XSLT__modifyXML() {
@@ -86,6 +96,20 @@ EOF
 
 # NOT TESTED
 #
+:<<EOF
+Transforms an input XML to a text file using the passed XSL code and an input parameter set, outputting the result on the standard output.
+
+To achieve the transformation, this function does the following, thereby sparing the developer of doing it by its own:
+
+- create a temporary XSLT file containing the XSL code wrapped with the necessary XSL header incl. the elements <xsl:stylesheet> and <xsl:output> (method="text"),  the XML parameter definitions, the identity copy
+- calling 'xsltproc' with the suitable option definitions according to the defined parameters and their values.
+
+NOTE: this function was not tested.
+@param[1] source XML
+@param[2] source XSL
+@param[3] a list space separated parameter definition. One parameter is defined as 'name:value'
+EOF
+
 XSLT__transformToText() {
     local sourceXML="$1"
     local transformCode="$2"

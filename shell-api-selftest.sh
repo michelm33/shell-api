@@ -499,16 +499,16 @@ testDistroEnv() {
     echo "source: $Env__LSB_RELEASE"
     exit 0
 
-    Test__ProgressBar
+    TestProgressBar_all
     exit 0
 }
 
 testInputDirPath() {
-    Test__Input__dirpath
-    Test__Input__dirpath_forcedinput
+    TestInput__dirpath
+    TestInput__dirpath_forcedinput
     Test__Str
-    Test_URL
-    Test_File
+    TestNet__URL
+    TestFile_all
     #exit 0
 }
 
@@ -611,9 +611,9 @@ Test__printResult()
 # --------------------------------------------------------------------------------------
 
 
-Test_File()
+TestFile_all()
 {
-    Test__File_in_out File__ext "\
+    TestFile__inout File__ext "\
 file.txt txt
 composite.file.name.with.dots.zip zip
 noext \"\"
@@ -621,7 +621,7 @@ f.longextension longextension
 .so so
 \"\" \"\""
 
-   Test__File_in_out File__corename "\
+   TestFile__inout File__corename "\
 file.txt file
 composite.file.name.with.dots.zip composite.file.name.with.dots
 noext noext
@@ -630,7 +630,7 @@ f.longextension f
 \"\" \"\""
 }
 
-Test__File_in_out()
+TestFile__inout()
 {
     local test_input=()
     test_input+=($2)
@@ -657,7 +657,7 @@ Test__File_in_out()
 # --------------------------------------------------------------------------------------
 # Net API
 # --------------------------------------------------------------------------------------
-Test_URL()
+TestNet__URL()
 {
     local test_urls=()
     test_urls+=(
@@ -701,7 +701,7 @@ Test_URL()
 # Progress bar test
 # --------------------------------------------------------------------------------------
 
-Test__ProgressBar()
+TestProgressBar_all()
 {
     local maxsteps=50
     local i=0
@@ -723,7 +723,7 @@ Test__ProgressBar()
 # String tests
 # --------------------------------------------------------------------------------------
 
-Test__Str_squeeze_testOneString()
+TestStr__squeeze_testOneString()
 {
     local res
     local ret
@@ -733,7 +733,7 @@ Test__Str_squeeze_testOneString()
     Test__printResult $? "GOT: '$res', EXPECTED: "$3"" "$ret"
 }
 
-Test__Str_escape_testOneString()
+TestStr__escape_testOneString()
 {
     local res
     local ret
@@ -743,7 +743,7 @@ Test__Str_escape_testOneString()
     Test__printResult $? "$res" "$ret"
 }
 
-Test__Str_trim_testOneString()
+TestStr__trim_testOneString()
 {
     local res
     local retCode
@@ -757,7 +757,7 @@ Test__Str_trim_testOneString()
 
 # MUST BE FORMALIZED
 # MANUALL TESTED ONCE: OK
-Test__Str_eraseCommonTail()
+TestStr__eraseCommonTail()
 {
     s1="/home/michel/riffian/Data/Data/admin/linux/testapp"
     s2="/home/michel/Data/Data/admin/linux/testapp"
@@ -776,45 +776,45 @@ Test__Str_eraseCommonTail()
     Str__eraseCommonTail s1 s2 &&  _log_vars s1 s2
 }
 
-Test__Str()
+TestStr()
 {
-    Test__Str_trim_testOneString Str__trim "   A sentence with some  spaces every   where  " "A sentence with some  spaces every   where" 5
-    Test__Str_trim_testOneString Str__trim "nochange" "nochange" 0
-    Test__Str_trim_testOneString Str__trim " 1 leading only" "1 leading only" 1
-    Test__Str_trim_testOneString Str__trim "1 trailing only " "1 trailing only" 1
-    Test__Str_trim_testOneString Str__trim "" "" 0  # empty string
-    Test__Str_trim_testOneString Str__trim " " "" 1 # single space
+    TestStr__trim_testOneString Str__trim "   A sentence with some  spaces every   where  " "A sentence with some  spaces every   where" 5
+    TestStr__trim_testOneString Str__trim "nochange" "nochange" 0
+    TestStr__trim_testOneString Str__trim " 1 leading only" "1 leading only" 1
+    TestStr__trim_testOneString Str__trim "1 trailing only " "1 trailing only" 1
+    TestStr__trim_testOneString Str__trim "" "" 0  # empty string
+    TestStr__trim_testOneString Str__trim " " "" 1 # single space
 
-    Test__Str_trim_testOneString Str__trimStart "   A sentence with some  spaces every   where  " "A sentence with some  spaces every   where  " 3
-    Test__Str_trim_testOneString Str__trimStart "nochange" "nochange" 0
-    Test__Str_trim_testOneString Str__trimStart " 1 leading only" "1 leading only" 1
-    Test__Str_trim_testOneString Str__trimStart "1 trailing only " "1 trailing only " 0
-    Test__Str_trim_testOneString Str__trimStart "" "" 0  # empty string
-    Test__Str_trim_testOneString Str__trimStart " " "" 1 # single space
+    TestStr__trim_testOneString Str__trimStart "   A sentence with some  spaces every   where  " "A sentence with some  spaces every   where  " 3
+    TestStr__trim_testOneString Str__trimStart "nochange" "nochange" 0
+    TestStr__trim_testOneString Str__trimStart " 1 leading only" "1 leading only" 1
+    TestStr__trim_testOneString Str__trimStart "1 trailing only " "1 trailing only " 0
+    TestStr__trim_testOneString Str__trimStart "" "" 0  # empty string
+    TestStr__trim_testOneString Str__trimStart " " "" 1 # single space
 
-    Test__Str_trim_testOneString Str__trimEnd "   A sentence with some  spaces every   where  " "   A sentence with some  spaces every   where" 2
-    Test__Str_trim_testOneString Str__trimEnd "nochange" "nochange" 0
-    Test__Str_trim_testOneString Str__trimEnd " 1 leading only" " 1 leading only" 0
-    Test__Str_trim_testOneString Str__trimEnd "1 trailing only " "1 trailing only" 1
-    Test__Str_trim_testOneString Str__trimEnd "" "" 0  # empty string
-    Test__Str_trim_testOneString Str__trimEnd " " "" 1 # single space
+    TestStr__trim_testOneString Str__trimEnd "   A sentence with some  spaces every   where  " "   A sentence with some  spaces every   where" 2
+    TestStr__trim_testOneString Str__trimEnd "nochange" "nochange" 0
+    TestStr__trim_testOneString Str__trimEnd " 1 leading only" " 1 leading only" 0
+    TestStr__trim_testOneString Str__trimEnd "1 trailing only " "1 trailing only" 1
+    TestStr__trim_testOneString Str__trimEnd "" "" 0  # empty string
+    TestStr__trim_testOneString Str__trimEnd " " "" 1 # single space
 
-    Test__Str_escape_testOneString Str__escape " " § "   A sentence with some  spaces every   where  " "A§sentence§with§some§§spaces§every§§§where" 0
-    Test__Str_escape_testOneString Str__escape " " § "nochange" "nochange" 0
-    Test__Str_escape_testOneString Str__escape " " § " 1 leading only" "1§leading§only" 0
-    Test__Str_escape_testOneString Str__escape " " § "1 trailing only " "1§trailing§only" 0
-    Test__Str_escape_testOneString Str__escape " " § "" "" 0
-    Test__Str_escape_testOneString Str__escape " " § " " "" 0        
+    TestStr__escape_testOneString Str__escape " " § "   A sentence with some  spaces every   where  " "A§sentence§with§some§§spaces§every§§§where" 0
+    TestStr__escape_testOneString Str__escape " " § "nochange" "nochange" 0
+    TestStr__escape_testOneString Str__escape " " § " 1 leading only" "1§leading§only" 0
+    TestStr__escape_testOneString Str__escape " " § "1 trailing only " "1§trailing§only" 0
+    TestStr__escape_testOneString Str__escape " " § "" "" 0
+    TestStr__escape_testOneString Str__escape " " § " " "" 0        
 
-    Test__Str_squeeze_testOneString Str__squeeze "   A sentence with some  spaces every   where  " " A sentence with some spaces every where " 0
-    Test__Str_squeeze_testOneString Str__squeeze "nochange" "nochange" 0
-    Test__Str_squeeze_testOneString Str__squeeze " 1 leading only" " 1 leading only" 0
-    Test__Str_squeeze_testOneString Str__squeeze "             a lot leading" " a lot leading" 0
-    Test__Str_squeeze_testOneString Str__squeeze "1 trailing only " "1 trailing only " 0
-    Test__Str_squeeze_testOneString Str__squeeze "a lot trailing                       " "a lot trailing " 0
-    Test__Str_squeeze_testOneString Str__squeeze "" "" 0
-    Test__Str_squeeze_testOneString Str__squeeze " " " " 0        
-    Test__Str_squeeze_testOneString Str__squeeze "           e         " " e " 0        
+    TestStr__squeeze_testOneString Str__squeeze "   A sentence with some  spaces every   where  " " A sentence with some spaces every where " 0
+    TestStr__squeeze_testOneString Str__squeeze "nochange" "nochange" 0
+    TestStr__squeeze_testOneString Str__squeeze " 1 leading only" " 1 leading only" 0
+    TestStr__squeeze_testOneString Str__squeeze "             a lot leading" " a lot leading" 0
+    TestStr__squeeze_testOneString Str__squeeze "1 trailing only " "1 trailing only " 0
+    TestStr__squeeze_testOneString Str__squeeze "a lot trailing                       " "a lot trailing " 0
+    TestStr__squeeze_testOneString Str__squeeze "" "" 0
+    TestStr__squeeze_testOneString Str__squeeze " " " " 0        
+    TestStr__squeeze_testOneString Str__squeeze "           e         " " e " 0        
 
     local test_string="/home/mike/windows/Users/vault/passwords.vera"
     local expected="/home/mike/wi...passwords.vera"
@@ -838,7 +838,7 @@ Test__Str()
 
 # @param [1] command result 0
 # @param [2] returned folder
-Test__Input__dirpath_checkOutput()
+TestInput__dirpath_checkOutput()
 {
     local ret=1
     if [ $1 -eq 0 ] ; then 
@@ -858,17 +858,17 @@ Test__Input__dirpath_checkOutput()
     return $ret
 }
 
-Test__Input__dirpath() 
+TestInput__dirpath() 
 {
     local dest=""
     Input__dirpath "Enter mount point" "dir" 0 dest
-    Test__Input__dirpath_checkOutput $? "$dest"
+    TestInput__dirpath_checkOutput $? "$dest"
 
 }
-Test__Input__dirpath_forcedinput() 
+TestInput__dirpath_forcedinput() 
 {
     local dest=""
     Input__pushForcedInput "yes"
     Input__dirpath "Enter mount point" "dir" 0 dest
-    Test__Input__dirpath_checkOutput $? "$dest"
+    TestInput__dirpath_checkOutput $? "$dest"
 }

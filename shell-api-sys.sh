@@ -385,10 +385,21 @@ Sys__sweep()
     fi
 }
 
-gnome__setScreenKeyboardVisibile()
+:<<'EOF'
+Shows the screen keyboard. 
+@param [1] a boolean 'true' or 'false'
+EOF
+
+gnome__setScreenKeyboardVisible()
 {
     gsettings set org.gnome.desktop.a11y.applications screen-keyboard-enabled $1
 }
+
+:<<'EOF'
+Gets the screen resolution. 
+@param [1] out ref to var for storing the width
+@param [2] out ref to var for storing the height
+EOF
 
 Screen__getResolution()
 {
@@ -397,6 +408,12 @@ Screen__getResolution()
 
     read __out_x __out_y < <(xrandr --current | grep -oP '\d+x\d+' | tr x ' ')
 }
+
+:<<'EOF'
+Gets the desktop resolution. Note it is not the screen resolution.
+@param [1] out ref to var for storing the width
+@param [2] out ref to var for storing the height
+EOF
 
 Desktop__getResolution()
 {
@@ -407,11 +424,20 @@ Desktop__getResolution()
 }
     # Note wmctrl -d returns the dimension of the whole desktop
 
+:<<'EOF'
+Tells whether a desktop is available
+@return 0 when so, any other value otherwise
+EOF
 Desktop__isAvailable()
 {
     _loadDep "net-tools"
     ${__SUDO__}netstat -lp | grep -i Xorg &>/dev/null    
 }
+
+:<<'EOF'
+Gets the CPU model using lscpu
+@param [1] out ref to var for storing the result
+EOF
 
 CPU__model()
 {

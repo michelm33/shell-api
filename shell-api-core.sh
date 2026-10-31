@@ -271,17 +271,20 @@ The background color name of the palette shall be specified without the "bg_" pr
 EOF
 _colorText() {
     local __outText=""
-    if [ $# -ge 2 ] ; then
+    local allColors=""
+    if [ $# -ge 2 ] && ! Str__isEmpty "$2" ; then
         __outText="${_pal["$2"]}${__outText}"
+        allColors+="$2"
     fi
-    if [ $# -ge 3 ] ; then
+    if [ $# -ge 3 ] && ! Str__isEmpty "$3" ; then
         __outText="${__outText}${_pal["bg_$3"]}"
+        allColors+="$3"
     fi
 
     if [ $# -ge 1 ] ; then
         __outText="${__outText}$1"
     fi
-    if [ $# -ge 2 ] ; then
+    if ! Str__isEmpty "$allColors" ; then
         __outText="${__outText}${Term__reset_color}"
     fi
     echo -n -e "${__outText}"
@@ -298,15 +301,19 @@ EOF
 _setColored() {
     local -n __inoutText=$1
     local __inText="${__inoutText}"
+    local allColors=""
+
     __inoutText=""
-    if [ $# -ge 2 ] ; then
+    if [ $# -ge 2 ] && ! Str__isEmpty "$2" ; then
         __inoutText="${_pal["$2"]}${__inoutText}"
+        allColors+="$2"
     fi
-    if [ $# -ge 3 ] ; then
-        __inoutText="${_pal["bg_$3"]}${__inoutText}"
+    if [ $# -ge 3 ] && ! Str__isEmpty "$3" ; then
+        __inoutText="${__inoutText}${_pal["bg_$3"]}"
+        allColors+="$3"
     fi
     __inoutText="${__inoutText}${__inText}"
-    if [ $# -ge 2 ] ; then
+    if ! Str__isEmpty "$allColors" ; then
         __inoutText="${__inoutText}${Term__reset_color}"
     fi
 }
@@ -1284,6 +1291,8 @@ _exit() {
 
 :<<'EOF'
 Same as built-in 'eval', except that process will exit after with the evaluation return code. 
+@param[1] command
+@param[n] arguments
 EOF
 _run_exit() {
     local __inCommand="$1"
@@ -1298,6 +1307,30 @@ _run_exit() {
     resEval=$?
     [ $resEval -eq 0 ] && _quit "" || _exit $resEval ""
 }
+
+:<<'EOF'
+Same as built-in 'eval', except that the return code is tested against the second argument.
+Any 
+@param[1] expected exit code
+@param[2] command
+@param[n] arguments
+@return 0 if expected exit code was returned by the command, any other value otherwise
+EOF
+_run_check() {
+    local __inExpectedCode=$1
+    shift
+    local __inCommand="$1"
+    shift
+    local cmdArgs=()
+    while [ $# -gt 0 ] ; do
+        cmdArgs+=("\"$1\"")
+        shift
+    done
+    local resEval=1
+    eval "${__inCommand}" "${cmdArgs[@]}"
+    Int__eq $? "${__inExpectedCode}"
+}
+
 
 :<<'EOF'
 Standard/generic end-user wrapper for invoking main script function
@@ -1381,6 +1414,13 @@ _initShellApi() {
     return 0
 }
 
+:<<'EOF'
+Tells whether the passed value is any of the following: "", 0 or false
+EOF
+_undefined() {
+    [ "$1" = "" ] || [ "$1" = "0" ] || [ "$1" = "false" ]
+}
+
 _setJobId()
 {
     __SHELL_CURRENT_APP_JOB_ID__="$1"
@@ -1410,17 +1450,42 @@ _initLogVars() {
 
 :<<EOF
 Initializes the log file: message, warning, errors.
+
+Logs are circular, max 15000 lines, with last 2000 taken over when log wraps around.
 EOF
 
 _initLogs() {
-    __SHELL_API_LOGS_INITIALIZED__=0
     # Initialize the warning and error logs
     local __regularLog
     _getLogPath __regularLog "--- Start loggging ---"
+
+    # At the moment, a single log file is used
+    # Do not display additional start information message as 2nd argument
     local __warnLog
-    _getLogWarnPath __warnLog "--- Start warning logging ---"
+    _getLogWarnPath __warnLog # "--- Start warning logging ---"
     local __errLog
-    _getLogErrPath __errLog "--- Start error loggging ---"
+    _getLogErrPath __errLog #"--- Start error loggging ---"
+
+    # Log is circular 
+    local nbLines="$(cat "${__regularLog}"|wc -l)"
+    local MAX_LINES=15000
+    local MAX_LAST_LINES_PRESERVED=2000
+    #_log_vars nbLines MAX_LINES MAX_LAST_LINES_PRESERVED
+    if Int__gt $nbLines "${MAX_LINES}" ; then
+        local lastLines="$(cat "${__regularLog}"|tail -n${MAX_LAST_LINES_PRESERVED})"
+        #_log "LOG SIZE EXCEEDED!"
+        #_log_vars lastLines
+cat <<EOF >  "${__regularLog}"
+
+--- Logging RESET : repeating last ${MAX_LAST_LINES_PRESERVED} lines ---
+
+$lastLines
+
+
+EOF
+    fi
+
+    __SHELL_API_LOGS_INITIALIZED__=0
 }
 
 :<<EOF
@@ -1956,7 +2021,16 @@ ${__fnOrCode}
 }
 
 :<<'EOF'
-Iterates through an array and executes the action passed as second argument
+Iterates through an array and executes the action passed as second argument.
+
+The name of the variable holding the current iteration value is named <array>Item
+where <array> is the name of the array variable passed as first argument. The current
+item index is given by variable '__i' Thereby, this spares the user to manage its own item variable and index.
+
+This implementation is possible, because in bash, the scope of variables is dynamic, that 
+means a local function variable is also visible to all called functions and only hidden to 
+the parent function.
+
 @param[1] ref to var containing the array
 @param[2] either a function or a code block. In case a 
 @param[n] argument passed on to the called function
@@ -2537,12 +2611,22 @@ _monitor() {
     return $cmdEvalRes
 }
 
+:<<'EOF'
+Same as _log_vars and exits the current shell with 'exit 0' command
+EOF
 _log_vars_exit()
 {
     _log_vars "$@"
     exit 0
 }
 
+:<<'EOF'
+For each passed variable name, prints that name and the variable's value in the following format:
+
+<name>: '<value>'
+
+@param[n] variable names (not their values)
+EOF
 _log_vars()
 {
     local varlist=($@)
@@ -2588,8 +2672,11 @@ EOF
 }
 
 :<<'EOF'
-Creates each component of the specified dir path (mkdir -p) if the 
-dir path does not exit. Redirects errors in the error log files.
+Fail-safe creates each component of the specified dir path (mkdir -p) if the 
+dir path does not exit and does not raise an error if the folder already exists
+Redirects errors in the error log files.
+@param|1] relative or absolute folder path
+@return return value of mkdir when the directory had to be created
 EOF
 
 _makeDir()
@@ -2599,6 +2686,46 @@ _makeDir()
     [ -d "$dir" ] || mkdir -p "$dir" 2>>"${__LOG_ERR_FILE__}" 
 }
 
+:<<'EOF'
+Same as _makeDir and additional performs a 'cd' into the created folder
+@param|1] relative or absolute folder path
+@return return value of mkdir when the directory had to be created
+EOF
+
+_makeCd()
+{
+    local makeDirRet=1
+    _makeDir "$1"
+    makeDirRet=$?
+    if [ $makeDirRet -eq 0 ] ; then
+        cd "$1"
+    else
+        return $makeDirRet
+    fi
+}
+
+:<<'EOF'
+Performs a 'pushd' redirecting all std output to /dev/null
+and the error output to the log file. 'nav' stands for navigate.
+This function is useful for cases it's sure the folder exists and is accessible
+without being bothered by the push's output
+@param|1] dir path
+EOF
+
+_navCd()
+{
+    pushd "$1" >/dev/null 2>> "${__LOG_ERR_FILE__}"
+}
+
+:<<'EOF'
+Performs a fail-safe 'popd', redirecting all std output to /dev/null and the error output to the log file. 'nav' stands for navigate.
+EOF
+
+_backCd()
+{
+    popd >/dev/null 2>> "${__LOG_ERR_FILE__}"
+    return 0 
+}
 
 :<<'EOF'
 Exits if the passed folder does not exist 
@@ -2637,6 +2764,8 @@ Tells whether the function exists and is defined.
 EOF
 
 Env__fn_exists() {
+  if Str__startsWith "$1" "-" ; then return 1; fi # special case to avoid option error of type command!
+
   # appended double quote is an ugly trick to make sure we do get a string -- if $1 is not a known command, type does not output anything
   [ `type -t "$1"`"" == 'function' ]
 }
@@ -2711,7 +2840,22 @@ Env__arch() {
 # --------------------------------------------------------------------------------------
 # String API
 # --------------------------------------------------------------------------------------
+:<<'EOF'
+See also man page of BASH regarding some useful string expansion (line >1000)
+    ${parameter:-word}
+            Use Default Values.  If parameter is unset or null, the expansion of word is substituted.  Otherwise, the value of parameter is substituted.
+    ${parameter:=word}
+            Assign  Default  Values.  If parameter is unset or null, the expansion of word is assigned to parameter.  The value of parameter is then substituted.  Positional
+            parameters and special parameters may not be assigned to in this way.
+    ${parameter:?word}
+            Display Error if Null or Unset.  If parameter is null or unset, the expansion of word (or a message to that effect if word is not  present)  is  written  to  the
+            standard error and the shell, if it is not interactive, exits.  Otherwise, the value of parameter is substituted.
+    ${parameter:+word}
+            Use Alternate Value.  If parameter is null or unset, nothing is substituted, otherwise the expansion of word is substituted.
+    ${parameter:offset}
+    ${parameter:offset:length}
 
+EOF
 #https://unix.stackexchange.com/questions/230673/how-to-generate-a-random-string
 #
 # generate random key : 
@@ -2780,6 +2924,36 @@ Str__swap()
         local expcmd="export $1=$2"
         eval $expcmd
     fi
+}
+
+:<<'EOF'
+Constructs a horizontal progress bar according to the passed parameter
+@param[1] out ref to var used to store the result
+@param[2] progresslogical value
+@param[3] maximum logical value
+@param[4] optional total bar size in number of chars, defaults to 20
+@param[5] optional color of the progress value, defaults to purpose
+EOF
+Str__progressBar() {
+    local nbBarChars=20
+    local color="purple"
+    local -n outBar=$1
+    local progressValue="$2"
+    local maxValue="$3"
+    if [ $# -ge 4 ] ; then nbBarChars="$4" ; fi
+    if [ $# -ge 5 ] ; then color="$5" ; fi
+    local nbProgressChars
+    Int__calc_r "(${progressValue} / $maxValue) * $nbBarChars" nbProgressChars
+    #_log_vars progressValue maxValue nbBarChars nbProgressChars
+    local filledBarPart="$(Str__spaces $nbProgressChars)"
+    #filledBarPart="${filledBarPart// /A}"
+    _setColored filledBarPart normal "$color"
+    local emptyBarPart="$(Str__spaces $(($nbBarChars - $nbProgressChars)) )"
+    #Str__replace emptyBarPart " " "\\U02593"
+    #_setColored emptyBarPart normal "red"
+
+    # \\U02595
+    outBar="$(echo -e " ${filledBarPart}${emptyBarPart} \\U02502")"
 }
 
 Str__randomWord()
@@ -2958,6 +3132,123 @@ Str__indent()
     #local -n __in_out_for_indent=$2
     Str__prefix "$extraIndent" ${!__out_str} $3
 }
+
+:<<'EOF'
+Constructs a new string of the specified size in which the passed text is centered. If the specified size is smaller than the text, the text is returned
+@param[1] input text to get centered in the new string
+@param[2] the new string length
+@param[3] out the centered text in the the new string
+EOF
+Str__center()
+{
+    local __inText="$1"
+    local __inLen=$2
+    local -n __outCentered=$3
+    local textLen=${#__inText}
+    
+    if [ ${textLen} -ge ${__inLen} ]  ; then
+        __outCentered="${__inText}"
+        return 0
+    fi
+
+    # Compute left and right padding
+    local nbSpaceAvail=$(( ${__inLen} - ${textLen} ))
+    local nbLeft=$(( ${nbSpaceAvail} / 2 ))
+    local nbRight=$nbLeft
+    local corr=$(( ${__inLen} - ($textLen + $nbLeft + $nbRight)  ))
+   
+    Int__inc nbRight $corr
+
+    Str__indent $nbLeft __inText
+    __outCentered="$(Str__padded "${__inText}" ${__inLen} )"
+}
+
+:<<'EOF'
+Constructs a new string of the specified size in which the passed text is stretched to the specified size, extending the separating space string till to reach the specified size.
+@param[1] input text to get stretched in the new string
+@param[2] the new string length
+@param[3] out the centered text in the the new string
+EOF
+Str__stretch()
+{
+    local __inText="$1"
+    local __inLen=$2
+    local -n __outText=$3
+
+    local words=(${__inText})
+    local nbWords=${#words[@]}
+    
+    # Specific case where there's only one word, we center it
+    if [ $nbWords -le 1 ] ; then
+        Str__center "${!__inText}" ${__inLen} "${!__outText}"
+        return 0
+    fi
+
+    local wordsTotalSize=0
+    local word
+    for word in "${words[@]}" ; do
+        Int__inc wordsTotalSize ${#word}
+    done
+
+    local nbSpaceBuffer=$(($nbWords-1))    
+    local nbSpaceAvail=$(( ${__inLen} - ${wordsTotalSize} ))
+    local nbSpaceAvailPerBuffer=$(( $nbSpaceAvail / $nbSpaceBuffer))
+
+    local corr=$(( ${__inLen} - ($wordsTotalSize +${nbSpaceAvailPerBuffer}*${nbSpaceBuffer}) ))
+    local singleSpaceBuffer="$(Str__spaces $nbSpaceAvailPerBuffer)"
+
+    __outText=""
+    for word in "${words[@]}" ; do
+        __outText+="$word${singleSpaceBuffer}"
+        Int__not0 ${corr} && __outText+=" " && Int__dec corr
+    done
+    Str__trimEnd "$__outText" __outText
+}
+
+:<<'EOF'
+Constructs a new string of the specified size in which the passed text is aligned according to the specified keyword. If the specified size is smaller than the text, the text is returned
+@param[1] input text to get aligned in the new string
+@param[2] the new string length
+@param[4] alignment: left, right, center, stretch or "" (left)
+@param[3] out the centered text in the the new string
+EOF
+Str__align()
+{
+    local __inText="$1"
+    local __inLen=$2
+    local __inAlign=$3
+    local -n __outText=$4
+
+    if Str__isEmpty "${__inAlign}" ; then
+        __inAlign="left"
+    fi
+
+    Str__toLower __inAlign
+    case "${__inAlign}" in
+        stretch) 
+            Str__stretch "$__inText" $__inLen "${!__outText}"
+        ;;
+
+        center) 
+            Str__center "$__inText" $__inLen "${!__outText}"
+        ;;
+        left)
+            __outText="$(Str__padded "${__inText}" ${__inLen} )"
+        ;;
+        right)  
+            local nbIndent=$(( ${__inLen} - ${#__inText} ))
+            if [ $nbIndent -gt 0 ] ; then
+                Str__indent $nbIndent __inText
+            fi
+            __outText="${__inText}"
+        ;;
+        *)
+            _log_err "${FUNCNAME[1]} : invalid alignment '${__inAlign}' specified "
+            return 1
+        ;;
+    esac 
+}
+
 
 :<<'EOF'
 Prefixes each line of a paragraph with the passed prefix string
@@ -3394,7 +3685,6 @@ EOF
 
 Str__escapeChar() {
     local -n __inout_s=$1
-    local -n __in_char=$2
     __inout_s="${__inout_s//$2/\\$2}"
 }
 
@@ -3417,12 +3707,9 @@ Str__escapeXML() {
 Trims the passed string of the specified char on both of its ends
 
 IMPORTANT UPDATE:
- in#$c is not efficient for big string, because it scans from the end till the beginning till to find a starting 'c'
- till to find the 
-    in="${in#$c}"
-    in="${in%$c}"
- in%$c is either for the same reasons.
-
+ in#$c revealed not to be efficient for big string, because it scans from the end till the beginning till to find a starting 'c' in%$c is either for the same reasons.
+ 
+ Therefore regular express [[ "$in" =~ ^("$c"*) ]] and BASH_REMATCH are used.
 
 @param [1] string to be trimmed
 @param [2] output variable
@@ -3554,6 +3841,13 @@ Str__trimStart() {
 }
 
 
+:<<'EOF'
+This function is generalization of Str__skipWs for skipping any specific char, not only whitespaces. It is however less efficient for whitespace, as it uses the "${...#...} string expansion.
+@param[1] input string
+@param[2] out ref to var used to store result
+@param[3] out number of whitespaces skipped
+EOF
+
 Str__skip() {
     local __in_ws="$1"
     local __in_s="$2"
@@ -3568,8 +3862,14 @@ Str__skip() {
     done
 }
 
+:<<'EOF'
+This function likens Str__trim but is optimized to trim leading whitespaces using 'read' command
+@param[1] input string
+@param[2] out ref to var used to store result
+@param[3] out number of whitespaces skipped
+EOF
 Str__skipWs() {
-    local __in_s="${1}_"
+    local __in_s="${1}_"        # _ appended to avoid trimming end. it is removed at the end again
     local -n __out_s=$2
     local -n __out_nbSkipped=$3
     read -r __out_s <<< "${__in_s}"
@@ -3811,6 +4111,18 @@ Str__replaceOne() {
     fi
 }
 
+:<<'EOF'
+Appends a string to another
+@param [1] inout ref to the var which will be extended by the second argument
+@param [2] string to be appended to the first argument
+@print count
+@return 0
+EOF
+Str__append()
+{
+    local -n __inStr=$1
+    __inStr+="$2"
+}
 
 :<<'EOF'
 Counts the number of occurences of a certain substring 
@@ -4216,6 +4528,29 @@ Int__Int_r() {
     fi
 }
 
+
+:<<'EOF'
+Tells whether a number is near to the second argument with a specified error percentage. 
+@param[1] value to test
+@param[2] reference value
+@param[3] tolerance percentage regarding reference value  For instance, if input value is 100 with a tolerance percentage of 10, then any valid value is within [90-110]
+@return 0 if within range, any other value otherwise
+EOF
+Int__nears()
+{
+    local __inValue="$1"
+    local __inRefValue="$2"
+    local __inTolerancePerc="$3"
+    local lowerBound=0
+    local upperBound=0
+    local refToleranceRange=0
+    Float__calc " ${__inRefValue}*${__inTolerancePerc}/100" refToleranceRange
+    Float__calc "${__inRefValue} - ${refToleranceRange}" lowerBound
+    Float__calc "${__inRefValue} + ${refToleranceRange}" upperBound
+    #_log_vars refToleranceRange lowerBound upperBound # DEBUG
+    Float__withinRange "${__inValue}" "$lowerBound" "$upperBound"
+}
+
 :<<'EOF'
 Equivalent of [ .. -eq ... ]
 @param[1] int value 1
@@ -4227,14 +4562,62 @@ Int__eq()
 }
 
 :<<'EOF'
+'Greater than' test, equivalent of [ .. -gt ... ]
+@param[1] int value 1
+@param[2] int value 2
+EOF
+Int__gt()
+{
+    [ $1 -gt $2 ]
+}
+
+:<<'EOF'
+'Less than' test, equivalent of [ .. -lt ... ]
+@param[1] int value 1
+@param[2] int value 2
+EOF
+Int__lt()
+{
+    [ $1 -lt $2 ]
+}
+
+
+:<<'EOF'
+Equivalent of [ .. -eq ... ]
+@param[1] int value 1
+@param[2] int value 2
+EOF
+Int__not0()
+{
+    [ $1 -ne 0 ]
+}
+
+:<<'EOF'
 Increments the passed variable by reference
 @param[1] inout value to increment
+@param[2] option in the number of increment to apply
 EOF
 Int__inc()
 {
     local -n __inVar=$1
-    __inVar=$(( ${__inVar} + 1 ))
+    local __incValue=1
+    if [ $# -gt 1 ] ; then __incValue=$2 ; fi
+    __inVar=$(( ${__inVar} + ${__incValue} ))
 }
+
+:<<'EOF'
+Decrements the passed variable by reference
+@param[1] inout value to decrement
+@param[2] option in the number of decrement to apply
+EOF
+Int__dec()
+{
+    local -n __inVar=$1
+    local __decValue=1
+    if [ $# -gt 1 ] ; then __decValue=$2 ; fi
+    __inVar=$(( ${__inVar} - ${__decValue}  ))
+}
+
 
 :<<'EOF'
 Computes the percentage of a certain value passed as second argument. 
@@ -4293,6 +4676,10 @@ Int__calc_r() {
 
 :<<'EOF'
 Tells whether 2 integers are within a certain range (included boundary values)
+@param[1] value to check
+@param[2] lower bound
+@param[3] high bound
+@return 0 if within range, any other value otherwise
 EOF
 
 Int__withinRange() {
@@ -4309,6 +4696,11 @@ Int__withinRange() {
     [ $checkValue -ge $lowValue ] && [ $checkValue -le $highValue ]
 }
 
+:<<'EOF'
+Prints a series of incrementing integer startin from 1 and ending at the specified argument. 
+Example Int__series 5 gives "1 2 3 4 5"
+@param[1] the size of the series
+EOF
 Int__series() {
     local cmd="local _i=0; for _i in {1..$1} ; do printf \"\${_i} \" ; done"
     if [ $1 -eq 0 ] ; then
@@ -4317,6 +4709,23 @@ Int__series() {
         eval "$cmd"
     fi
 }
+
+:<<'EOF'
+Sums up a series of space-separated integers provided by the argument 
+@param[1] integer series
+@param[2] out result
+EOF
+Int__sumUpSeries() {
+    local rS
+    local -n __outResult=$2
+    local numbers=($1)
+
+    __outResult=0
+	for rS in "${numbers[@]}" ; do 
+        __outResult=$((${__outResult} + $rS))
+    done
+}
+
 
 :<<'EOF'
 Returns the minimum of the two passed integers
@@ -4410,6 +4819,11 @@ Int__getIntTrail()
 # --------------------------------------------------------------------------------------
 # Float API
 # --------------------------------------------------------------------------------------
+:<<'EOF'
+Evaluates a comparison expression using 'bc'
+@param[1] expression, e.g. '1 < 2' will return 0,  '1 > 2' returns 1
+@return 0 if expression was true, 1 otherwise
+EOF
 Float__compare() {
     local expr="$1"
     local res
@@ -4421,6 +4835,12 @@ Float__compare() {
     fi
 }
 
+:<<'EOF'
+Performs a floating number computation based on an expression processed by 'bc'. Computing is originally done with a precision of 3
+The result is stored in the second variable passed as ref, as an floating number
+@param[1] math expression understood by 'bc' tool
+@param[2] out ref to var storing the computation result as a float
+EOF
 Float__calc() {
     local -n __out_flt_calc_result="$2"
     local precision=3
@@ -4432,24 +4852,61 @@ Float__calc() {
     read __out_flt_calc_result< <(bc<<<"scale=$precision; $1")
 }
 
+:<<'EOF'
+Tells whether 2 float numbers are within a certain range (included boundary values)
+@param[1] value to check
+@param[2] lower bound
+@param[3] high bound
+@return 0 if within range, any other value otherwise
+EOF
+
+Float__withinRange() {
+    local checkValue=$1
+    local lowValue=$2
+    local highValue=$3
+
+    if ! Args__checkCount ${FUNCNAME[0]} 3 "$#" "Usage: <value to check> <low range value> <high range value>"; then return 1; fi
+    
+    Float__compare "($checkValue >= $lowValue) && ($checkValue <= $highValue)"
+}
+
 # --------------------------------------------------------------------------------------
 # file size API
 # --------------------------------------------------------------------------------------
+:<<'EOF'
+From a number of bytes, produces a readable size in the range of the unit 
+the number belongs to according to the type of unit of base 1000 or 1025.
+For example, for 2048 is base 1024, the output is 2 K or 2 KiB depending on 
+whether the short or full unit name is selected in the arguments
+@param[1] Number of bytes 
+@param[2] type of unit: 
+    0 is base 1000 with long unit name, 
+    1 is base 1024 with long unit name, 
+    2 is base 1000 with short unit name, 
+    3 is base 1024 with short unit name 
+@param[3] out ref to var used to store the result
+EOF
 Math__byteSize2ReadableSize() {
-    if ! Args__checkCount ${FUNCNAME[0]} 3 "$#" "Usage: <size in bytes> <size type 0 or 1> <out variable>"; then return 1; fi
+    if ! Args__checkCount ${FUNCNAME[0]} 3 "$#" "Usage: <size in bytes> <size type 0| 1 | 2 | 3> <out variable>"; then return 1; fi
     local nbBytes=$1
     local sizeType="$2" # 0: multiple of 1000, 1 multiple of 1024
     local -n __out_hrSize="$3"
 
-    local units
-    local unitsValues
-    if [ $sizeType -eq 0 ] ; then
-        units=(Go Mo Ko o)
-        unitsValues=(1000000000 1000000 1000 1)
-    else
-        units=(GiB MiB KiB o)
-        unitsValues=(1073741824 1048576 1024 1)
-    fi
+    local unitsValues=()
+    case $sizeType in 
+    0|2) unitsValues=(1000000000 1000000 1000 1) ;;
+    1|3) unitsValues=(1073741824 1048576 1024 1) ;;
+    *)  _log_err "${FUNCNAME[0]}: Invalid size type '$sizeType'"; return 1;;
+    esac
+
+    local units=()
+    case $sizeType in 
+    0) units=(Go Mo Ko o) ;;
+    1) units=(GiB MiB KiB o) ;;
+    2|3) units=(G M K o) ;;
+    *) _log_err "${FUNCNAME[0]}: Invalid size type '$sizeType'"; return 1;;
+    esac
+
     local cnt=0
     while [ $cnt -lt ${#units[@]} ] ; do
         if [ $nbBytes -ge ${unitsValues[$cnt]} ] ; then
@@ -4464,21 +4921,42 @@ Math__byteSize2ReadableSize() {
     return 1
 }
 
+:<<'EOF'
+From a number of kilo bytes, produces a readable size in the range of the unit 
+the number belongs to according to the type of unit of base 1000 or 1025. 
+The input kilobytes is assumed to be of the same base of the one selected in second argument.
+For example, for 2048 is base 1024, the output is 2 K or 2 KiB depending on 
+whether the short or full unit name is selected in the arguments
+@param[1] Number of bytes 
+@param[2] type of unit: 
+    0 is base 1000 with long unit name, 
+    1 is base 1024 with long unit name, 
+    2 is base 1000 with short unit name, 
+    3 is base 1024 with short unit name 
+@param[3] out ref to var used to store the result
+EOF
+
 Math__kbyteSize2ReadableSize() {
-    if ! Args__checkCount ${FUNCNAME[0]} 3 "$#" "Usage: <size in bytes> <size type 0 or 1> <out variable>"; then return 1; fi
+    if ! Args__checkCount ${FUNCNAME[0]} 3 "$#" "Usage: <size in kbytes> <size type 0| 1 | 2 | 3> <out variable>"; then return 1; fi
     local nbKiloBytes=$1
     local sizeType="$2" # 0: multiple of 1000, 1 multiple of 1024
     local -n __out_hrSize="$3"
 
-    local units
-    local unitsValues
-    if [ $sizeType -eq 0 ] ; then
-        units=(To Go Mo Ko)
-        unitsValues=(1000000000 1000000 1000 1)
-    else
-        units=(TiB GiB MiB KiB)
-        unitsValues=(1073741824 1048576 1024 1)
-    fi
+    local unitsValues=()
+    case $sizeType in 
+    0|2) unitsValues=(1000000000 1000000 1000 1) ;;
+    1|3) unitsValues=(1073741824 1048576 1024 1) ;;
+    *)  _log_err "${FUNCNAME[0]}: Invalid size type '$sizeType'"; return 1;;
+    esac
+
+    local units=()
+    case $sizeType in 
+    0) units=(Go Mo Ko o) ;;
+    1) units=(GiB MiB KiB o) ;;
+    2|3) units=(G M K o) ;;
+    *) _log_err "${FUNCNAME[0]}: Invalid size type '$sizeType'"; return 1;;
+    esac
+
     local cnt=0
     while [ $cnt -lt ${#units[@]} ] ; do
         if [ $nbKiloBytes -ge ${unitsValues[$cnt]} ] ; then
@@ -4494,24 +4972,44 @@ Math__kbyteSize2ReadableSize() {
 }
 
 :<<'EOF'
-@param[2] scale: 0 size given is in byte, 1 size given is in kb, 2 size given is MB
+This is a generalization of Math__byteSize2ReadableSize and Math__kbyteSize2ReadableSize in order to supply an input size which is interpreted
+according to the specified scale. Example:
+ size value of 1 with scale 0 means 1 byte
+ size value of 1 with scale 1 means 1 kilo byte
+ size value of 2 with scale 1 means 1 mega byte
+@param[1] Number of bytes 
+@param[2] type of unit: 
+    0 is base 1000 with long unit name, 
+    1 is base 1024 with long unit name, 
+    2 is base 1000 with short unit name, 
+    3 is base 1024 with short unit name 
+@param[3] 
+    scale 0: size given is in byte, 
+    scale 1: size given is in kb, 
+    scale 2: size given is MB
+@param[4] out ref to var used to store the result
 EOF
 Math__size2ReadableSize() {
-    if ! Args__checkCount ${FUNCNAME[0]} 4 "$#" "Usage: <size> <size scale> <size type> <out variable>"; then return 1; fi
+    if ! Args__checkCount ${FUNCNAME[0]} 4 "$#" "Usage:  <size type 0| 1 | 2 | 3> <size scale> <size type> <out variable>"; then return 1; fi
     local nbBytes=$1
     local sizeScale=$2
     local sizeType="$3" # 0: multiple of 1000, 1 multiple of 1024
     local -n __out_hrSize="$4"
 
-    local units
-    local unitsValues
-    if [ $sizeType -eq 0 ] ; then
-        units=(Po To Go Mo Ko o)
-        unitsValues=(1000000000 1000000 1000 1)
-    else
-        units=(Pib TiB GiB MiB KiB o)
-        unitsValues=(1073741824 1048576 1024 1)
-    fi
+    local unitsValues=()
+    case $sizeType in 
+    0|2) unitsValues=(1000000000 1000000 1000 1) ;;
+    1|3) unitsValues=(1073741824 1048576 1024 1) ;;
+    *)  _log_err "${FUNCNAME[0]}: Invalid size type '$sizeType'"; return 1;;
+    esac
+
+    local units=()
+    case $sizeType in 
+    0) units=(Po To Go Mo Ko o) ;;
+    1) units=(Pib TiB GiB MiB KiB o) ;;
+    2|3) units=(P T G M K o) ;;
+    *) _log_err "${FUNCNAME[0]}: Invalid size type '$sizeType'"; return 1;;
+    esac
 
     case $sizeScale in
         0)
@@ -4540,8 +5038,12 @@ Math__size2ReadableSize() {
 }
 
 :<<'EOF'
+Computes the equivalent MiB (mebibytes)  size value for the size of the specified size scale.
+Eg. 1 G will return 1024
+The result may be a floating number with 3 digit precision. 
 @param[1] input size value
-@param[2] input size value
+@param[2] input size scale:  t|tib to|tb g|gib go|gb m|mib mo|mb k|kib ko|kb
+@param[3] out ref to var used to store the result
 EOF
 
 Math__convertSizeToMiB() {
@@ -4558,7 +5060,9 @@ Math__convertSizeToMiB() {
         ;;
         to|tb)
             local Mo_size=$(echo "1000000 * ${size}"|bc)            
-            Math__convertSizeToMiB ${Mo_size} "Mo" __out_size_converted
+            local convertedSize=""
+            Math__convertSizeToMiB ${Mo_size} "Mo" convertedSize
+            __out_size_converted="${convertedSize}"
         ;;
         g|gib)
             __out_size_converted=$(echo "1024 * ${size}"|bc)
@@ -4566,7 +5070,9 @@ Math__convertSizeToMiB() {
         go|gb)
             local Mo_size=$(echo "1000 * ${size}"|bc)         
             #echo "GO: ${Mo_size} "
-            Math__convertSizeToMiB ${Mo_size} "Mo" "${!__out_size_converted}"
+            local convertedSize=""
+            Math__convertSizeToMiB ${Mo_size} "Mo" convertedSize
+            __out_size_converted="${convertedSize}"
         ;;
         m|mib)
             # unchanged
@@ -4591,6 +5097,39 @@ Math__convertSizeToMiB() {
 
     __out_size="${__out_size_converted}"
     #_log_dbg "SIZE IN MiB: '${__out_size}'"
+
+}
+
+:<<'EOF'
+This basically performs the same job as Math__convertSizeToMiB, except 
+instead passing separately a numeric size and it scale, both values can
+be passed as a single human-readable string.
+@param[1] human readable size, e.g. 1G, 1GiB, 3 go etc
+@param[2] out ref to var used to store the result
+EOF
+
+Math__convertHumanReadableSizeToMiB() {
+    if ! Args__checkCount ${FUNCNAME[0]} 2 "$#" "Usage: <size>  <out variable>"; then return 1; fi
+    local __inHRSize="$1"
+    local -n __outMiBSize="$2"
+
+    local sizeCount
+    local sizeScale
+    
+    # This ensures to insert a space between the heading numeric size and
+    # the speci
+    numSize="$(echo "${__inHRSize}" | sed -E 's/([0-9.]+)/\1 /g')"
+    if [[ "${__inHRSize}" =~ ^([0-9]+)(\.[0-9]+)?[[:space:]]*([a-zA-Z]+)$ ]] ; then
+        sizeCount="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+        sizeScale="${BASH_REMATCH[3]}"
+    else
+        _log_err "${FUNCNAME[0]}: invald human readable size '${__inHRSize}'"
+        return 1
+    fi
+
+    #_log_vars sizeCount sizeScale
+	Math__convertSizeToMiB "$sizeCount" "$sizeScale" "${!__outMiBSize}"
+    #_log_vars sizeSystem sizeSystemScale 
 
 }
 
@@ -4654,17 +5193,100 @@ Args__checkMinCount() {
 # --------------------------------------------------------------------------------------
 
 :<<'EOF'
+Tests whether the size of a passed array matches the number passed as second argument
+@param[1] Array 
+@param[2] test size
+EOF
+Array__sizeMatch()
+{
+    local -n __inArray=$1
+    local __inTestSize=$2
+    [ ${#__inArray[@]} -eq ${__inTestSize} ]
+}
+
+:<<'EOF'
 Prints the values
 @param[1] Array to print
-@param[2] Array items separator
+@param[2] optional key separator (by default, a new line)
+@param[3] optional prefix (none by default)
+@param[4] optional suffix (none by default)
 EOF
 Array__print()
 {
     local -n __inArray=$1
-    local __inSep="$2"
+    local __inSep="
+"
+
+    if [ $# -ge 2 ] ; then
+        __inSep="$2"
+    fi
+
+    # Build an array copy with the needed prefix and suffix for each item
+    local tmpArray=()
+    Array__dup  "${!__inArray}" tmpArray
+    if [ $# -ge 3 ] ; then
+        Array__prependItems tmpArray "$3"
+    fi
+    if [ $# -ge 4 ] ; then
+        Array__appendItems tmpArray "$4"
+    fi
+
     local printArray=""
-    Array__toString "${!__inArray}" "${__inSep}" printArray
-    printf "%s"  "${printArray}"
+    Array__toString tmpArray "${__inSep}" printArray
+     
+    printf "%s" "${printArray}"
+}
+
+:<<'EOF'
+Prepends each array item with the specified prefix string
+@param[1] ref to array var
+@param[2] prefix 
+EOF
+Array__prependItems() {
+    local -n __inoutArray=$1
+    local __inPrefix="$2"
+
+    local i=0
+    local size=${#__inoutArray[@]}
+    while [ $i -lt $size ] ; do
+        __inoutArray[$i]="${__inPrefix}${__inoutArray[$i]}"
+        Int__inc i
+    done
+}
+
+:<<'EOF'
+Apppends the specified prefix string to each array item  
+@param[1] ref to array var
+@param[2] prefix 
+EOF
+Array__appendItems() {
+    local -n __inoutArray=$1
+    local __inSuffix="$2"
+
+    local i=0
+    local size=${#__inoutArray[@]}
+    while [ $i -lt $size ] ; do
+        __inoutArray[$i]="${__inoutArray[$i]}${__inSuffix}"
+        Int__inc i
+    done
+}
+
+:<<'EOF'
+Make a copy of an array into another array
+@param[1] ref to src array var
+@param[2] out ref to dst array var
+EOF
+
+Array__dup()
+{
+    local -n __inSrcArray=$1
+    local -n __outDstArray=$2
+
+    local val
+    __outDstArray=()
+    for val in "${__inSrcArray[@]}" ; do 
+        __outDstArray+=("$val")
+    done
 }
 
 :<<'EOF'
@@ -4704,6 +5326,24 @@ ${__sortTable}"
     done
     __outSortedArr=($(echo "$__sortTable"|sort))
     #_log_dbg "SORT TABLE: ${__outSortedArr[@]}"
+}
+
+
+:<<'EOF'
+Computes a SHA256( signature over all the data of the array in order.
+
+@param[1] ref to array var
+@param[2] out ref to variable that will be assigned the fingerprint value
+EOF
+Array__SHA256() { 
+    local -n __inArray=$1
+    local -n __outSha256=$2 
+    local allContent=""
+    Array__toString "${!__inArray}" " " allContent
+    #_log_vars allContent # DEBUG
+    read __outSha256< <(echo "${allContent}"|sha256sum)
+    __outSha256="${__outSha256%% *}"
+    #_log_vars __outSha256 # DEBUG
 }
 
 :<<'EOF'
@@ -4855,39 +5495,105 @@ Array__toString() {
 }
 
 :<<'EOF'
+See documentation in Array__toTextTableExt. This is a wrapper for implementing a basic text table where all text are left-aligned, no table title, no header line.
+@param[1] in input string
+@param[2] in separator 
+@param[3] in alternate table of records to use explicitly for the computing of the column width
+@param[4] in optional bool telling whether not to interpret \ as an escape char. This can be useful when values contains terminal color escale sequences
+EOF
+
+Array__toTextTable()
+{
+    local __inSep=";"
+    if [ $# -ge 2 ] ; then
+        __inSep="$2"
+    fi
+
+    local __inCSVLinesForColWidth="$1"
+    if [ $# -ge 3 ] ; then
+         __inCSVLinesForColWidth="$3"
+    fi
+
+    declare -A __myparams
+    if [ $# -ge 4 ] ; then    
+        if $4 ; then __myparams["noescape"]=$4 ; fi
+    fi
+
+    Array__toTextTableExt "$1" "${__inSep}" "${__inCSVLinesForColWidth}" __myparams
+}
+
+:<<'EOF'
 Converts a table of records to a terminal output sheet where the data of each line is displayed in a column on equal size, which is set to the data field of maximum size
 
 A record is a lines containing data fields which are separated by the specified separator as arg 2. When no separator is specified, ';' is assumed, i.e. CSV records format is assumed
 
 Option third parameter enables to pass an alternate table of records to use explicitly for the computing of the column width. A typical use is when the input string containing escape chars for terminal colors, whereby the length of the internal string won't match that on the display. Typically, the 3rd argument would be the copy of the 1st argument, but without the terminal escape chars.
 
+Finally, additional form parameters can be passed via the 4th parameter as a map, e.g colors, alignments.
+
 @param[1] in input string
 @param[2] in separator 
 @param[3] in alternate table of records to use explicitly for the computing of the column width
-@param[4] in optional bool telling whether not to interpret \ as an escape char. This can be useful when values contains terminal color escale sequences
+@param[4] in a map providing configuration parameter. Supported values:
 
+noescape: if not empty,  do not to interpret \ as an escape char  
+
+title-col-span      : Title spans over max title-col-span cols, except when not specified, in that case it the max row width
+
+title               : table title
+
+title-fg            : title foreground color
+
+title-bg            : title background color
+
+title-align         : title alignment
+
+header              : if not empty, then first line is considered as the table header line
+
+col<col no>>-align  : Alignment of text in the specified column
+
+cell<line no>-<col no>>-fgcolor  : foreground color for the specified cell
+
+cell<line no>-<col no>>-bgcolor  : background color for the specified cell
+
+line<line no>-fgcolor : foreground color for the specified line
+
+line<line no>-bgcolor : background color for the specified line
 EOF
-Array__toTextTable()
+Array__toTextTableExt()
 {
     local __inCSVLines="$1"
     local __inSep=";"
-    local __inCSVLinesForColWidth="$1"
     if [ $# -ge 2 ] ; then
         __inSep="$2"
     fi
 
+    local __inCSVLinesForColWidth="$1"
     if [ $# -ge 3 ] ; then
-         __inCSVLinesForColWidth="$3"
+        if ! Str__isEmpty "$3"; then
+            __inCSVLinesForColWidth="$3"
+        fi
+    fi
+
+    # Transfer passed dynamic parameters
+    declare -A __params
+    if [ $# -ge 4 ] ; then    
+        local -n __argparams=$4
+        local pk
+        for pk in "${!__argparams[@]}" ; do
+            __params["$pk"]="${__argparams["$pk"]}"
+        done
     fi
 
     local doNotInterpretEscapeBackslash=false
-    if [ $# -ge 4 ] ; then    
-        if $4 ; then doNotInterpretEscapeBackslash=$4 ; fi
+    if ! Str__isEmpty "${__params["noescape"]}" ; then
+        doNotInterpretEscapeBackslash=${__params["noescape"]}
     fi
 
     declare -A maxColWidth
     declare -A additionalSpaces
     local line=""
+    local nbFields=0
     while IFS='' read -r line ; do
         local csvFields=()
         Array__fromString "${line}" "${__inSep}" csvFields $doNotInterpretEscapeBackslash
@@ -4908,8 +5614,40 @@ Array__toTextTable()
             maxColWidth[$csvIndex]=$curMax            
             csvIndex=$(($csvIndex + 1))
         done
+
+        Int__max "$nbFields" "$csvIndex" nbFields
+        #nbFields=$csvIndex
     done <<< "${__inCSVLinesForColWidth}"
+
+    # 
+    # Display the table title
+    #
+    # Title spans over max title-col-span cols,
+    # except when not specified, in that case it the max row width
+    # must be computed
+    #
+    local rowWidth=0
+    if ! Str__isEmpty "${__params["title-col-span"]}" ; then
+        nbFields=${__params["title-col-span"]}
+    fi
+    local csvIndex=0
+    while [ $csvIndex -lt $nbFields ] ; do
+        Int__inc rowWidth ${maxColWidth[$csvIndex]}
+        Int__inc csvIndex
+    done
+    Int__inc rowWidth $((nbFields-1)) # Added the space separators
     
+    # Display the table title
+    if ! Str__isEmpty "${__params["title"]}" ; then
+        Str__align "${__params["title"]}" $rowWidth "${__params["title-align"]}" title
+        if ! Str__isEmpty "${__params["title-fg"]}" ; then
+            _colorText "${title}" "${__params["title-fg"]}" "${__params["title-bg"]}"
+            echo
+        else
+            printf "%s\n" "${title}" 
+        fi
+    fi
+
     local allLines=()
     local allLinesForColWidth=()
     readarray -t allLines <<< "${__inCSVLines}"
@@ -4917,7 +5655,7 @@ Array__toTextTable()
         readarray -t allLinesForColWidth <<< "${__inCSVLinesForColWidth}"
     fi
     local lineCnt=0
-    
+    # Display the rows
     while [ $lineCnt -lt ${#allLines[@]} ] ; do
         line="${allLines[$lineCnt]}"
         local lineForColWidths=""
@@ -4936,6 +5674,7 @@ Array__toTextTable()
             Array__fromString "${lineForColWidths}" "${__inSep}" csvFieldsForColWidths $doNotInterpretEscapeBackslash
         fi
 
+        local printLine=""
         while [ $csvIndex -lt ${#csvFields[@]} ]  ; do
             csvField="${csvFields[$csvIndex]}"
             if [ "${csvField:0:2}" = "**" ] ; then
@@ -4948,12 +5687,45 @@ Array__toTextTable()
                 csvFieldForColWidth="${csvField}"
             fi
             local curMax=${maxColWidth[$csvIndex]}
+
+            # Take into account the column alignment for header line
+            # and other lines
+            #
+            if Str__isEmpty "${__params["header"]}" || Int__not0 "${lineCnt}" ;  then
+                Str__align "${csvField}" $curMax "${__params["col${csvIndex}-align"]}" csvField
+            else
+                Str__align "${csvField}" $curMax "left" csvField
+            fi
+            
+            # Take into account the cell colors
+            #
+
+            local fgcol="${__params["cell${lineCnt}-${csvIndex}-fgcolor"]}"
+            local bgcol="${__params["cell${lineCnt}-${csvIndex}-bgcolor"]}"
+            if ! Str__isEmpty "${fgcol}${bgcol}" ; then
+                csvField="$(_colorText "${csvField}" "$fgcol" "$bgcol")"
+            fi
+
+            #printf "%s " "${csvField}" # Add the separator ' '
+            printLine+="${csvField} " #Str__append printLine "${csvField} "
+
+:<<'EOF'
             printf "%s" "${csvField}"
             Str__spaces $(( ${curMax} - ${#csvFieldForColWidth}))
             printf " "
+EOF
             csvIndex=$(($csvIndex + 1))
         done
-        printf "\n"
+
+        # Print the line, taking into account any line color scheme
+        #
+        local fgcol="${__params["line${lineCnt}-fgcolor"]}"
+        local bgcol="${__params["line${lineCnt}-bgcolor"]}"
+        if ! Str__isEmpty  "${fgcol}${bgcol}" ; then
+            _colorText "${printLine}\n" "$fgcol" "$bgcol"
+        else
+            printf "%s\n" "${printLine}"
+        fi
 
         lineCnt=$(( $lineCnt + 1))
     done
@@ -4988,7 +5760,7 @@ Converts a map into record data , that means for each pair (key,val) a string is
 
 @param[1] in ref to map var
 @param[2] in assign operator 
-@param[3] line separator (by defaul new line when not specified)
+@param[3] record separator (by default, a new line)
 
 EOF
 Map__toRecord()
@@ -5004,6 +5776,65 @@ Map__toRecord()
     for key in "${!__inValMap[@]}" ; do
         printf "%s%s%s%s" "$key" "${__inAssignChar}" "${__inValMap["$key"]}" "${__inRecordSep}"
     done
+}
+
+:<<'EOF'
+Prints the keys on standard output according to the formatting options given as arguments
+@param[1] in ref to map var
+@param[2] optional key separator (by default, a new line)
+@param[3] optional prefix (none by default)
+@param[4] optional suffix (none by default)
+EOF
+Map__printKeys()
+{
+    local -n __inValMap=$1
+    local __inSep="
+"
+    local __inSuffix=""
+    local __inPrefix=""
+
+    if [ $# -ge 2 ] ; then
+        __inSep="$2"
+    fi
+    if [ $# -ge 3 ] ; then
+        __inSuffix="$3"
+    fi
+    if [ $# -ge 4 ] ; then
+        __inPrefix="$4"
+    fi
+
+    local key
+    for key in "${!__inValMap[@]}" ; do
+        printf "%s%s%s%s" "${__inSuffix}" "${key}" "${__inPrefix}" "${__inSep}"
+    done
+}
+
+:<<'EOF'
+Merge the map with another map into a new map according to the passed condition filter.
+
+@param[1] in ref to var storing the input map
+@param[2] in ref to var storing the filter map
+@param[3] out ref to var storing the resuling map
+@param[4] in merging policy. Supported: 
+
+"none-right": copy items of the left map only if there's no value for that key in the right map
+
+EOF
+Map__merge()
+{
+    local -n __inMapItems=$1
+    local -n __inMapFilter=$2
+    local -n __outMapItems=$3
+    local k=0
+    if [ "$4" = "none-right" ] ;  then
+        for k in "${!__inMapItems[@]}" ; do
+            if [ -z "${__inMapFilter[$k]}" ] ; then
+                __outMapItems["$k"]="${__inMapItems["$k"]}"
+            fi  
+        done
+    else
+        return 1
+    fi
 }
 
 # --------------------------------------------------------------------------------------
@@ -5200,7 +6031,10 @@ Input__confirm() {
             y|yes) return 0;; 
             n|no) return 1;;
             a|abort) return 2;;
-            *) ;;
+            *) 
+                #Clarify why this is needed
+                #Term__moveCursorUp 1
+            ;;
         esac
     done
     return 0
@@ -6288,26 +7122,88 @@ File__realpath() {
     return 0
 }
 
-
+:<<'EOF'
+Gets the current working directory
+@param [1] out ref to var for storing the result
+EOF
 File__cwd() { 
     local -n __outCwd=$1
     __outCwd=${PWD} # More efficient than $(pwd)
 }
 
+:<<'EOF'
+Tells whether the folder exists using [ -d ... ] 
+@return 0 when so, any other value otherwise
+EOF
 File__dirExists() { 
     [ -d "$1" ] 
 }
 
+:<<'EOF'
+Tells whether the folder or file exists using [ -e ... ] 
+@return 0 when so, any other value otherwise
+EOF
 File__exists() { 
     [ -e "$1" ] 
 }
 
+:<<'EOF'
+Tells whether the file exists using [ -f ... ] 
+@return 0 when so, any other value otherwise
+EOF
 File__fileExists() { 
     [ -f "$1" ] 
 }
 
+:<<'EOF'
+Tells whether the symbolic link exists using [ -L ... ] 
+@return 0 when so, any other value otherwise
+EOF
+
 File__linkExists() { 
     [ -L "$1" ] 
+}
+
+:<<'EOF'
+Retrieves the full path of an executable file if reachable via PATH
+@param [1] executable file name
+@param [2] out ref to var for storing the result
+@return 0 if found, 1 otherwise
+EOF
+File__exePath() { 
+    local -n __outExePath=$2
+    read __outExePath< <(command -v "$1" 2>/dev/null)
+}
+
+:<<'EOF'
+Tells whether file is reachable via PATH and is actually executable
+@param [1] executable file name
+@return 0 if found and executable, 1 otherwise
+EOF
+File__isExe() { 
+    local exeFullPath=""
+    if ! Str__isEmpty "$1" && read exeFullPath< <(command -v "$1" 2>/dev/null) ; then
+        [ -x "${exeFullPath}" ]
+    else
+        return 1
+    fi
+}
+
+
+:<<'EOF'
+Returns the modification time in seconds since Epoch
+@param [1] path to the file or folder
+@param [2] out ref to var for storing time
+
+EOF
+File__modificationTimeEpoch()
+{
+    local -n __outModifEpoch=$2
+    if ! File__fileExists "$1" ; then
+        _log_err "${FUNCNAME[0]}: file '$1' is invalid"
+        return 1
+    fi
+    __outModifEpoch="$(stat -c "%Y" "$1")"
 }
 
 :<<'EOF'
@@ -6342,6 +7238,21 @@ File__getSize()
         _log_warn "${FUNCNAME[0]}: invalid file path $filePath."
     fi
     return $ret
+}
+
+:<<'EOF'
+Computes a signature over a file
+@param[1] in file for which to compute the SHA256 fingerprint
+@param[2] out ref to variable that will be assigned the fingerprint value
+EOF
+File__SHA256() { 
+    local __inFilePath=$1
+    local -n __outSha256=$2 
+    if ! File__fileExists "${__inFilePath}" ; then
+        return 1
+    fi
+    read __outSha256< <(cat "${__inFilePath}"|sha256sum)
+    __outSha256="${__outSha256%% *}"    
 }
 
 :<<'EOF'
@@ -6557,13 +7468,23 @@ declare -A File__temporaryDirMap
 Creates a temporary folder in default system /tmp folder
 and inserts it in the global map for subsequent cleanup
 @param [1] out the name of the created temporary dir
+@param [2] optional the root folder for the temporary dir, alternatively to /tmp
 EOF
 File__createTempDir() 
 {
     local -n __outTempDir=$1
+    local rootTempDir="/tmp"
     local appName="${__SHELL_CURRENT_APPNAME__}"
 
-    __outTempDir="$(mktemp --tmpdir=/tmp -d "${appName}.tmp.XXXXXXXXXX")"
+    if [ $# -ge 2 ] ; then
+        if ! File__dirExists "$2" ; then
+            _log_err "${FUNCNAME[0]}: '$2' is an invalid root temporary folder"
+            return 1
+        fi
+        rootTempDir="$2"
+    fi
+
+    __outTempDir="$(mktemp --tmpdir="${rootTempDir}" -d "${appName}.tmp.XXXXXXXXXX")"
     File__temporaryDirMap["${__outTempDir}"]="${__outTempDir}"
     #echo "File__createTempDir $$: '${__outTempDir}'" >&2 # DEBUG
 }
@@ -6585,10 +7506,11 @@ File__deleteTempDir()
         return 1
     fi
 
-    if [ "${_tempParent}" != "/tmp" ] ; then
-        _log_warn "${FUNCNAME[0]} called with argument '$1' which is not an accepted temporary folder path for this function."
-        return 1
-    fi
+    # No: obsolete, too constraining
+    #if [ "${_tempParent}" != "/tmp" ] ; then
+    #    _log_warn "${FUNCNAME[0]} called with argument '$1' which is not an accepted temporary folder path for this function."
+    #    return 1
+    #fi
 
     if [ -d "${_tempdir}" ] ; then 
         #_log_dbg "File__deleteTempDir : removing temp dir '${_tempdir}'"
@@ -6620,18 +7542,29 @@ declare -A File__temporaryFileMap
 Creates a temporary file in default system /tmp folder
 and inserts it in the global map for subsequent cleanup
 @param [1] out the name of the created temporary file
-@param [2] in optional the extension of the temp file
+@param [2] optional the extension of the temp file
+@param [3] optional the root folder for the temporary file, alternatively to /tmp
 EOF
 File__createTempFile() 
 {
     local appName="${__SHELL_CURRENT_APPNAME__}"
     local -n __outTempFile=$1
     local tempFileTemplate="${appName}.tmp.XXXXXXXXXX"
+    local rootTempDir="/tmp"
+
     if [ $# -eq 2 ] ; then
         tempFileTemplate="${tempFileTemplate}.$2"
     fi
 
-    __outTempFile="$(mktemp --tmpdir=/tmp "${tempFileTemplate}")"
+    if [ $# -ge 3 ] ; then
+        if ! File__dirExists "$3" ; then
+            _log_err "${FUNCNAME[0]}: '$3' is an invalid root temporary folder"
+            return 1
+        fi
+        rootTempDir="$3"
+    fi
+
+    __outTempFile="$(mktemp --tmpdir="${rootTempDir}" "${tempFileTemplate}")"
     File__temporaryFileMap["${__outTempFile}"]="${__outTempFile}"
     #echo "File__createTempFile $$: '${__outTempFile}'" >&2 # DEBUG
 }
@@ -6653,10 +7586,11 @@ File__deleteTempFile()
         return 1
     fi
 
-    if [ "${_tempParent}" != "/tmp" ] ; then
-        _log_warn "${FUNCNAME[0]} called with argument '$1' which is not an accepted temporary file path for this function."
-        return 1
-    fi
+    # No: obsolete, too constraining
+    #if [ "${_tempParent}" != "/tmp" ] ; then
+    #    _log_warn "${FUNCNAME[0]} called with argument '$1' which is not an accepted temporary file path for this function."
+    #    return 1
+    #fi
 
     if [ -f "${_tempfile}" ] ; then 
         #_log "File__deleteTempFile : removing temp dir '${_tempfile}'"
@@ -6812,6 +7746,40 @@ File__mirrorCopy() {
 	ret=$?
 	echo # print empty line
 	return $ret
+}
+
+:<<'EOF'
+Writes the lines given as an array to the passed file. File is overwritten
+@param [1] path to the file to write
+@param [2] out ref to array var for storing the lines
+EOF
+File__writeLines() {
+    local -n __inFileLines=$2
+    local file="$1"
+
+    # If no lines, do nothing
+    if  ! Int__not0 ${#__inFileLines[@]} ; then
+        return 0
+    fi
+
+    Array__print "${!__inFileLines}" "
+" > "$file"
+}
+
+:<<'EOF'
+Reads the lines from the passed file and stores them as an array
+@param [1] path to the file to read lines of
+@param [2] out ref to array var for storing the lines
+@return 1 if the file does not exist, 0 if lines were read
+EOF
+File__readLines() {
+    local -n __outFileLines=$2
+    if ! File__fileExists "$1" ; then
+        #_log_err "${FUNCNAME[0]}: file '$1' is invalid"
+        return 1
+    fi
+     
+    readarray -t __outFileLines< <(cat "$1")
 }
 
 :<<EOF
@@ -7173,6 +8141,10 @@ Date__isLessOrEqualThan()
     fi
 }
 
+:<<'EOF'
+Returns the number of seconds elapsed since Epoch 
+@param[1] out ref to var used to store the result
+EOF
 Date__timestamp()
 {
     local -n __out_timestamp=$1
@@ -7181,8 +8153,56 @@ Date__timestamp()
     __out_timestamp=${__in_utcSecs}
 }
 
+:<<'EOF'
+Returns the current year or the year of the passed UTC time
+@param[1] out ref to var used to store the result
+@param[2] optional time in number of seconds since Epoch
+EOF
+Date__year()
+{    
+    local timeValue=0
+    local -n __out_year=$1
+    if [ $# -ge 2 ] ; then 
+        timeValue="$2"
+    else
+        Date__timestamp timeValue
+    fi
+    Date__date "${!__out_year}" "${timeValue}" "%Y" 
+}
+
+:<<'EOF'
+Converts an UTC time (seconds since 1970) to a readable time of the form
+    Y-m-d  H:M:S
+E.g.:
+    2026-10-04 12:12:11
+
+When the time is not supplied as second argument, the result of the current date and time
+
+@param[1] out ref to var used to store the result
+@param[2] optional time in number of seconds since Epoch
+@param[3] optional Format as accepted by 'date' command. Default is %F %T
+EOF
+
+Date__date()
+{
+    local -n __outFormatedDate=$1
+    local __inTimeSinceEpoch=""
+    local __inFormat="%F %T"
+    if [ $# -ge 2 ] ; then __inTimeSinceEpoch="$2" ; fi
+    if [ $# -ge 3 ] ; then __inFormat="$3" ; fi
+
+    __outFormatedDate="$(date -d "@${__inTimeSinceEpoch}" +"${__inFormat}")"
+}
+
 declare -A Date__TIMER_TABLE
 Date__TIMER_TABLE_INDEX=0
+:<<'EOF'
+Creates a timestamp associated with the returned timer id.
+The time elapsed since this timestamp can then be polled using 
+Date__elapsedSecondsTimer() using the timer id
+@param[1] out ref to var used to store the timer id
+EOF
+
 Date__startTimer()
 {
     local -n __out_timer_id=$1
@@ -7194,6 +8214,13 @@ Date__startTimer()
     Date__TIMER_TABLE[${Date__TIMER_TABLE_INDEX}]=${__utcSecs}
     __out_timer_id=${Date__TIMER_TABLE_INDEX}
 }
+
+:<<'EOF'
+Enables to get the elpased time in seconds since the creation
+of the timer of the specified id
+@param[1] timer id as returned by Date__startTimer
+@param[2] out ref to var used to store the result
+EOF
 
 Date__elapsedSecondsTimer()
 {
@@ -7213,6 +8240,12 @@ Date__elapsedSecondsTimer()
         return 1
     fi
 }
+
+:<<'EOF'
+Same as Date__elapsedSecondsTimer, except the result is a number of minutes
+@param[1] timer id as returned by Date__startTimer
+@param[2] ref to var used to store the result
+EOF
 
 Date__elapsedMinutesTimer()
 {
@@ -7265,6 +8298,14 @@ User__getFullUserName()
         __outUserFn="<unknown full user name>"
     fi
 }
+
+User__getLogin()
+{
+    local -n __outUser=$1
+    local cmd="id -u -n"
+    read "${!__outUser}" < <(eval "$cmd" 2>> "${__LOG_ERR_FILE__}") 
+}
+
 
 # --------------------------------------------------------------------------------------
 # Terminal API
@@ -7323,6 +8364,10 @@ Term__resize()
     resize -s $nbRequestedRows $nbRequestedCols &> /dev/null
 }
 
+:<<'EOF'
+Gets the number of rows of the terminal
+@param [1] out ref to var for storing the result
+EOF
 Term__rows()
 {
     local -n nbRows=$1
@@ -7331,6 +8376,10 @@ Term__rows()
     nbRows=${currentSize[0]}
 }
 
+:<<'EOF'
+Gets the number of columns of the terminal
+@param [1] out ref to var for storing the result
+EOF
 Term__cols()
 {
     local -n nbCols=$1
@@ -7523,12 +8572,21 @@ Term__cursorMoveLeft() {
     fi
 }
 
+:<<'EOF'
+Moves the cursor of the terminal at the specified row and column
+@param [1] row no (line)
+@param [2] column no
+EOF
 Term__moveTo() {
     local __inRow=$1
     local __inCol=$2
     printf "\33[%d;%dH" ${__inRow} ${__inCol}
 }
 
+:<<'EOF'
+Moves the cursor up of the specified number of lines
+@param [1] number of lines
+EOF
 Term__moveCursorUp() {
     if ! Args__checkCount ${FUNCNAME[0]} 1 "$#" "Usage: <number of lines to move up>"; then return 1; fi
     local nbLines=$1
@@ -7545,7 +8603,10 @@ Term__moveCursorUp() {
     return 0
 }
 
-
+:<<'EOF'
+Moves the cursor down of the specified number of lines
+@param [1] number of lines
+EOF
 Term__moveCursorDown() {
     if ! Args__checkCount ${FUNCNAME[0]} 1 "$#" "Usage: <number of lines to move down>"; then return 1; fi
     local nbLines=$1
@@ -7562,6 +8623,10 @@ Term__moveCursorDown() {
     return 0
 }
 
+:<<'EOF'
+Erase the specified number of lines above the current cursor position. The cursor position it self is not altered.
+@param [1] number of lines
+EOF
 Term__eraseLinesUp() {
     if ! Args__checkCount ${FUNCNAME[0]} 2 "$#" "Usage: <number of lines to erase> <0:preserve cursor pos|1:move cursor while erasing>"; then return 1; fi
     local nbLines=$1
@@ -7963,6 +9028,28 @@ Term__printTableRow()
     fi
 }
 
+:<<'EOF'
+EOF
+
+Term__title() {
+    local appName="${__SHELL_CURRENT_APPNAME__}"
+  
+    local __inTitle="$1"
+    local __inAlign="$2"
+    local __inFgColor=""
+    local __inBgColor=""
+    local width=0
+    Term__cols width
+
+    if [ $# -ge 3 ] ; then __inFgColor="$3" ; fi
+    if [ $# -ge 4 ] ; then __inBgColor="$4" ; fi
+
+    local __formattedTitle=""
+    Str__align "${__inTitle}" $width "${__inAlign}" __formattedTitle
+    local cmd="_colorText '${__formattedTitle}' ${__inFgColor} ${__inBgColor}" 
+    eval "$cmd"
+}
+
 # --------------------------------------------------------------------------------------
 # Test framework API
 # --------------------------------------------------------------------------------------
@@ -8092,16 +9179,18 @@ _testAll()
 }
 
 :<<'EOF'
+Evaluates a command or function call as many times as specified by the first argument and displays the consumed times using the 'time' system command.
+
 Examples of usage:
 
-    test__perf 5000  'var=$(dirname ${BASH_SOURCE[0]})'
-    #test__perf 5000  'var=${BASH_SOURCE[0]%/*}'
+    Benchmark__repeat 5000 'var=$(dirname ${BASH_SOURCE[0]})'
+    Benchmark__repeat 5000 'var=${BASH_SOURCE[0]%/*}'
 
-    #test__perf 5000  'GENAPP__VARS["MYDIR"]="$(readlink -f "${Genapp__sourcedirname}")"'
-    test__perf 5000  'read Genapp__sourcedirname< <(readlink -f "${Genapp__sourcedirname}")'
+    Benchmark__repeat 5000 'GENAPP__VARS["MYDIR"]="$(readlink -f "${Genapp__sourcedirname}")"'
+    Benchmark__repeat 5000 'read Genapp__sourcedirname< <(readlink -f "${Genapp__sourcedirname}")'
 
 EOF
-test__perf()
+Benchmark__repeat()
 {
     local __nbIter=$1
     local iterSeq=$(seq 0 $__nbIter)
@@ -8109,7 +9198,6 @@ test__perf()
 
     time for __iterStep in $iterSeq; do eval "$@" ; done
 }
-
 
 :<<'EOF'
 Checks that the list of passed regular file paths are not valid (do NOT exist).
@@ -8148,6 +9236,38 @@ Test__assertDirsShouldExist() {
     for file in "$@" ; do
         [ -d "$file" ] && echo "OK: '$file': present" || _exit -1 "Error: '$file' does not exist but should"
     done
+}
+
+:<<'EOF'
+Checks that the list of passed directory paths are not valid (do NOT exist).
+Otherwise, exits the current shell script (_exit -1 is called) when at least one folder does exist.
+@param[1] list of directory paths
+EOF
+
+Test__assertDirsShouldNotExist() {
+    local file
+    for file in "$@" ; do
+        [ -d "$file" ] && _exit -1 "Error: '$file' exists but should not" || echo "OK: '$file': not there"
+    done
+}
+
+:<<'EOF'
+Checks whether the passed file has a length greather than the passed value
+as second argument. 
+Exits the current shell script (_exit -1 is called) when condition is not fulfilled
+@param[1] File path
+@param[2] Expected last line
+EOF
+Test__assertFileSizeGreaterThan() {
+    if [ ! -f "$1" ] ; then
+        _exit -1 "Error: '$1' does not exist or not a valid file"
+    fi
+    local fsize=0
+    if File__getSize "$1" fsize ; then
+        [ "$fsize" -gt $2 ] && echo "OK '$1' size $fsize > $2" || (sleep 1 && _exit -1 "Error: '$1' size $fsize is <= $2!")
+    else
+        _exit -1 "Error: failed to get file size for '$1'"
+    fi
 }
 
 :<<'EOF'
@@ -8265,8 +9385,28 @@ Test__assertSameFiles()
     local extraMessage="$1"
     local sameFileBasename="$2"
     File__basename "${sameFileBasename}" sameFileBasename
-    diff "$2" "$3" && echo "${sameFileBasename} is the same ${extraMessage}" || _exit -1 "File '$2' et '$3' differ"
+    diff "$2" "$3" &>/dev/null && echo "OK: ${sameFileBasename} is the same ${extraMessage}" || _exit -1 "File '$2' et '$3' differ"
 }
+
+
+:<<'EOF'
+Test whether 2 files have different content. 'diff' tool is used for the test.
+On failure, exits the current shell script (_exit -1 is called)
+@param[1] a message to display after base message '<1st file basename> is not the same '...
+@param[2] 1st file path
+@param[3] 2nd file path
+EOF
+
+Test__assertNotSameFiles()
+{
+    if ! Args__checkCount ${FUNCNAME[0]} 3 "$#" "Usage: <extra message> <path1> <path2>"; then return 1; fi
+
+    local extraMessage="$1"
+    local sameFileBasename="$2"
+    File__basename "${sameFileBasename}" sameFileBasename
+    diff "$2" "$3" &>/dev/null && _exit -1 "File '$2' et '$3' are the same but should not!" ||  echo "OK: ${sameFileBasename} is not the same ${extraMessage}"
+}
+
 
 :<<'EOF'
 Changes the current working directory to the passed one.

@@ -504,16 +504,27 @@ Dev__getBlockDeviceParent() {
 }
 
 :<<'EOF'
-Retrieves and prints on stdout the block device size
+Same as Dev__getBlockDeviceSize, but prints the result on stdout
 @param [1] device path
 @return 0 
 EOF
 
 Dev__blockDeviceSize() {
-	local res
-	Str__trim "$(lsblk -n -o SIZE "$1"|head -n1)" res 
-	echo "$res"
-	return 0
+	local blkDevSize=0
+	Dev__getBlockDeviceSize "$1" blkDevSize
+	echo "$blkDevSize"
+}
+
+:<<'EOF'
+Retrieves the block device size
+@param [1] device path
+@param [2] ref to var used to store result
+@return 0 
+EOF
+
+Dev__getBlockDeviceSize() {
+	local -n __outSize=$2
+	Str__trim "$(lsblk -n -o SIZE "$1"|head -n1)" "${!__outSize}" 
 }
 
 :<<'EOF'
@@ -658,6 +669,33 @@ Dev__getDeviceInfo() {
 	out_deviceinfo="-"
 	return 1
 }
+
+
+Dev__getAvailableSpace()
+{
+	local system_device="$1"
+	local -n __outAvail=$2
+    local cmd=""
+	cmd="df -h '${system_device}' --output=source,avail | tail -n1 2>/dev/null"
+	local cmdRes
+	read cmdRes < <(eval "$cmd")
+	Str__squeeze "$cmdRes" cmdRes
+	if [ $? -eq 0 ] && ! Str__isEmpty "$cmdRes" ; then
+		local cmdResArr=()
+		Array__fromString "$cmdRes" " " cmdResArr
+		if Array__sizeMatch cmdResArr 2 ; then
+			local device="${cmdResArr[0]}"
+			if ! Str__same "$device"  "udev" ; then
+				local availSize="${cmdResArr[1]}"
+				__outAvail="$availSize"
+				return 0
+			fi
+		fi
+	fi
+	return 1
+}
+
+
 
 :<<EOF
 Tells whether the device bound with the passed block device path is 
@@ -1168,9 +1206,10 @@ Vera_getEscapedList()
    }" 
 }
 
-
-
-
+:<<'EOF'
+Retrieves the version of the connected Android device
+@param [1] out ref to var for storing the result
+EOF
 Adb__getVersion()
 {
 	local -n __out_androidVersion=$1
@@ -1178,6 +1217,10 @@ Adb__getVersion()
 }
 
 
+:<<'EOF'
+Retrieves the SDK version of the connected Android device
+@param [1] out ref to var for storing the result
+EOF
 Adb__getSDKVersion()
 {
 	local -n __out_androidSDKVersion=$1

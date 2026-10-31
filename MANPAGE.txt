@@ -158,15 +158,15 @@ EXAMPLES
               will be https://github/michelm33/testapp
 
               genapp TestApp -y --author="George W"  --email="george.w@wh.org"
-              --desc="A  test  application" --github-id="michelm33" --root-re‐
+              --desc="A    test    app"   --github-id="michelm33"   --root-re‐
               lease-dir="../release"
 
               # Same as previous example, but the home page URL for the app is
               explicitly defined as 'https://slashetc/testapp'
 
               genapp  TestApp -y --author="George W" --email="george.w@wh.org"
-              --desc="A  test  application"  --http="https://slashetc/testapp"
-              --root-release-dir="../release"
+              --desc="A test app" --http="https://slashetc/testapp" --root-re‐
+              lease-dir="../release"
 
        Execute the generated app
 
@@ -220,4 +220,4 @@ COPYRIGHT
        License terms written down in file LICENSE.txt Les termes de la licence
        sont détaillés dans le fichier LICENSE.txt
 
-Genapp 1.1.4                     October 2026                        GENAPP(1)
+Genapp 1.2.0                     October 2026                        GENAPP(1)

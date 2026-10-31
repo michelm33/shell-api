@@ -240,10 +240,18 @@ DPKG__isInstalled() {
 
     local variant
     for variant in "${variants[@]}" ; do
-        if  ! dpkg-query -l "${variant}" &>/dev/null || [ $(dpkg-query -W -f='${db:Status-Abbrev}' "${variant}") != "ii" ]  ; then
-            res=1
-        else
-            res=0
+        if dpkg-query -l "${variant}" &>/dev/null ; then
+            ret=0
+        else 
+            local status=""
+            status="$(dpkg-query -W -f='${db:Status-Abbrev}' "${variant}" 2>/dev/null)"
+            Str__trim "$status" status
+
+            if Str__same "$status" "ii"  ; then
+                res=0
+            else
+                res=1
+            fi
         fi
 
         if [ $res -eq 0 ] ; then
@@ -252,6 +260,31 @@ DPKG__isInstalled() {
     done
 
     return $res
+}
+
+:<<'EOF'
+Checks whether a debian package corresponding to the passed package file is installed.
+It extracts the package name and version from the file name and calls DPKG__isInstalled
+@param [1] debian package file name
+EOF
+
+DPKG__isPackageFileInstalled() { 
+    local fileBasename
+    File__basename "$1" fileBasename
+    # _log_vars fileBasename >&2
+    if [[ "$fileBasename" =~ ^(.+)_([0-9]+\.[0-9]+-[0-9]+)_.+.deb$ ]] ; then
+        local pkgName="${BASH_REMATCH[1]}"
+        if DPKG__isInstalled "$pkgName" ; then
+            local pkgVer="${BASH_REMATCH[2]}"
+            local installedPkgVer="$(dpkg-query -W -f='${Version}' "${pkgName}" 2>/dev/null)"
+
+            [ "$pkgVer" = "$installedPkgVer" ]
+        else
+            return 1
+        fi
+    else
+        return 1
+    fi
 }
 
 

@@ -1,0 +1,19 @@
+#!/bin/bash
+###############################################################################
+#
+# testapi
+#
+# Copyright (c) 2026 Michel MEHL. All rights reserved.
+#
+# ------------------------------------------------------------------------------
+#
+# testapi runs 'runapi' and additional prints OK if execution returned 0 (success) 
+# and !=0 on error
+#
+# ------------------------------------------------------------------------------
+#
+# Report bugs to michel.mehl@slashetc.fr
+#
+###############################################################################
+
+. runapi "$@" && echo "OK" || echo "NOK"

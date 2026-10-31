@@ -1,0 +1,72 @@
+#!/bin/bash
+###############################################################################
+#
+# runapi
+#
+# Copyright (c) 2026 Michel MEHL. All rights reserved.
+#
+# ------------------------------------------------------------------------------
+#
+# The 'runapi' tool enables to execute directly any function defined in any shell api
+# module file
+#
+# ------------------------------------------------------------------------------
+#
+# Report bugs to michel.mehl@slashetc.fr
+#
+###############################################################################
+
+declare -A RUNAPI__VARS
+RUNAPI__SOURCEDIRNAME="${BASH_SOURCE[0]%/*}"
+RUNAPI__VARS["MYDIR"]="$(readlink -f "${RUNAPI__SOURCEDIRNAME}")"
+
+source "${RUNAPI__VARS["MYDIR"]}/shell-api-core.sh" "runapi"
+
+
+Runapi__usage() {
+
+cat <<EOF >&2
+
+Usage: $0 <API function name> { <Arguments> }
+
+If a variable needs to be passed as reference, use '.': '. $0 <function> <arguments>'
+
+Example:
+
+ . runapi CPU__model mycpu
+ echo $mycpu # works
+EOF
+    if [ $# -gt 0 ] ; then
+        echo
+        echo "Error: $1" >&2
+    fi
+    exit -1
+}
+
+
+if [ $# -eq 0 ] ; then
+    Runapi__usage "Missing function name"
+fi
+
+# NOTE: it is not optimized at the moment: all modules are loaded
+# A map should be generated giving the module file for the passed function
+# 
+eval $_loadm<<<'shell-api-sys'          # process control functions
+eval $_loadm<<<'shell-api-dev'          # device access functions
+eval $_loadm<<<'shell-api-net'          # network related functions
+eval $_loadm<<<'shell-api-packing'      # package management functions (loading)
+eval $_loadm<<<'shell-api-yaml'         # YAML read/write functions, mandatory core has a dependency on it
+eval $_loadm<<<'shell-api-dock'     
+eval $_loadm<<<'shell-api-mongodb'  
+eval $_loadm<<<'shell-api-git'  
+eval $_loadm<<<'shell-api-multimedia'  
+eval $_loadm<<<'shell-api-xslt'  
+
+INVOKED_FUNCTION="$1"
+shift
+
+if ! Env__fn_exists "${INVOKED_FUNCTION}" ; then
+    Runapi__usage "'${INVOKED_FUNCTION}' function is not defined."
+fi
+
+"${INVOKED_FUNCTION}" "$@"

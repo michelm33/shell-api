@@ -37,6 +37,32 @@ Net__servicePortMap["http"]=80
 Net__servicePortMap["https"]=80
 
 :<<'EOF'
+Tells whether the passed SSL certificate is expired.
+Example of usage using runapi:
+
+runapi Net__isSSLExpired /etc/letsencrypt/live/photo.slashetc.eu/cert.pem 9 && echo EXPIRED || echo OK
+
+@param[1] PEM certificate file path
+@param[2] Number of days ahead within which the certificate is considered expirted by this function. 7 days by default
+@return 0 if the certificate expires within the specified number of days, 1 otherwise
+EOF
+Net__isSSLExpired()
+{
+    _loadDep "openssl"
+    local __inPEMfile=$1
+    local __inDaysTimeFrame=7
+    
+    if [ $# -ge 2 ] ; then
+        __inDaysTimeFrame=$2
+    fi
+
+    local secsTimeFrame=$(( ${__inDaysTimeFrame} * 24 * 3600 ))
+    local cmd="openssl x509 -enddate -noout -in '${__inPEMfile}'  -checkend '${secsTimeFrame}' | grep -i -q 'Certificate will expire'"
+    _logf "OPENSSL COMMAND: $cmd"
+    eval "$cmd"
+} 
+
+:<<'EOF'
 Tests whether an HTTP page is reachable on the specified port using the specified URL
 @param[1] URL
 @param[2] optional port, defaults to 80
@@ -105,6 +131,9 @@ of the basic form [http[s]://]xxx(.yyy)+
 
 Safe characters: Alphanumeric [0-9a-zA-Z], special characters $-_.+!*'(),	No
 Reserved characters	which are not allowed: / ? : @ = &	
+
+NOTE: This function needs correction. First it tests only 'https' addresses.
+Second, raw IP are not accepted as host.
 
 @param [1] URL
 @return 0 when valid URL, false (1) when not, <0 on arg error
@@ -533,18 +562,30 @@ Net__decodeSMBURL()
     return 0
 }
 
+:<<'EOF'
+This is a legacy function which is identical to Net__getLocalHostIP
+@param [1] out ref to var for storing the result
+EOF
 Net__getHostIP()
 {
     local -n out_hostIP=$1
     read out_hostIP< <(hostname -I | awk '{print $1}')
 }
 
+:<<'EOF'
+Gets the IP address of the local host
+@param [1] out ref to var for storing the result
+EOF
 Net__getLocalHostIP()
 {
     local -n out_hostIP=$1
     read out_hostIP< <(hostname -I | awk '{print $1}')
 }
 
+:<<'EOF'
+Gets the name of the local host
+@param [1] out ref to var for storing the result
+EOF
 Net__getLocalHostname()
 {
     local -n out_hostname=$1
@@ -608,6 +649,22 @@ Net__IP2Name()
     fi    
 }
 
+:<<'EOF'
+Retrieves the external IP if the network is behind a NAT router
+@param[1] out ref to var storing the external IP
+EOF
+Net__externalIP()
+{
+    local -n __outExtIP=$1
+    read __outExtIP< <(curl -4 ifconfig.me 2>> "${__LOG_ERR_FILE__}")
+}
+
+:<<'EOF'
+Resolves hostname and host IP from a supplied IP or hostname
+@param[1] input IP or hostname 
+@param[2] out ref to var storing the resolved host IP address
+@param[3] out ref to var storing the resolved host name
+EOF
 Net__resolve()
 {
     _loadDep "bind9-host"
@@ -652,7 +709,7 @@ Net__getDeviceName()
 }
 
 :<<'EOF'
-Retrieves the MAC address bound with the network device passwed as argument
+Retrieves the MAC address bound with the network device passed as argument
 @param [1] in network device name
 @param [2] out MAC addres
 EOF
@@ -682,7 +739,6 @@ Net__getMAC()
 }
 
 :<<'EOF'
-Net__getMAC()
 Same as Net__getMAC, except that it echoes the MAC instead of assigning a variable passed as argument
 EOF
 Net__MAC()
@@ -738,6 +794,13 @@ Net__isCloudDevice()
     return 1
 }
 
+:<<'EOF'
+Returns the URL that matches the passed name of the device's driver supporting that URL.
+At the moment, only 'google-drive-ocamlfuse' is supported.
+@param [1] device's driver name
+@return 1 when the driver name is not recognized, 0 otherwise.
+EOF
+
 Net__getCloudURLFromDevice()
 {
     local cloudService="$1"
@@ -753,6 +816,18 @@ Net__getCloudURLFromDevice()
     return 1
 }
 
+:<<'EOF'
+Tells whether the passed string of any of the following :
+- NFS URL
+- FTP URL
+- SSH URL
+- SMB URL
+- UNC address
+- SSH login-type address 
+
+@param[1] URL
+@return 0 when so, any other value otherwise
+EOF
 
 Net__isNetworkURL()
 {

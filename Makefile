@@ -124,14 +124,15 @@ build_release:  required_tools  CHANGELOG.txt COPYRIGHT.txt VERSION.txt
 	@echo "#################################"
 	@echo BUILD RELEASE $(PKG)
 	@rsync -a * $(VERS_REL_DIR)/ \
-			--filter="exclude *.templ"
+			--filter="exclude *.templ" \
+			--filter="exclude genapidoc/shell-api"
 	@# If arcv is used, generate the REVISION.txt file
 	@if which arcv >/dev/null 2>/dev/null; then arcv -n --silent check 2>/dev/null; if [ $$? -lt 200 ] ; then arcv rev > $(VERS_REL_DIR)/REVISION.txt ; arcv hash >> $(VERS_REL_DIR)/REVISION.txt ;  fi; fi
 	@cm-manage-copyright.sh $(VERS_REL_DIR) .
 	@cd $(VERS_REL_DIR)/
 	@echo 
 	@echo "#################################"
-	@echo "CREATING THE RELEASE ZIP FILES"
+	@echo "----- CREATING THE RELEASE ZIP FILES"
 	@#
 	@cd $(PROD_REL_DIR) && zip -q -r "$(PRODUCT)_$(VERSION_DEB_FOR_ZIP).zip" ./$(PKG)
 	@echo 
@@ -154,6 +155,9 @@ build_release:  required_tools  CHANGELOG.txt COPYRIGHT.txt VERSION.txt
 	@#
 	@echo "----- CREATING THE DEBIAN CONTROL FILE"
 	@cp pack/debian/control $(VERS_REL_DIR)/debian/
+	@#
+	@echo "CREATING THE DEBIAN LINK FILE for genapidoc"
+	@cd $(VERS_REL_DIR) && echo "usr/bin/shell-api-$(VERSION_DEB) usr/bin/shell-api-$(VERSION_DEB)/genapidoc/shell-api" > debian/links
 	@#
 	@echo "----- CREATING THE DEBIAN INSTALL FILES"
 	@cd $(VERS_REL_DIR) && ls -1|grep -v debian|awk -v pkg=$(PKG) '{ print $$1,"/usr/bin/" pkg }' > debian/install
@@ -186,6 +190,8 @@ build_package:
 	@echo 
 	@# -d is for ignoring  error: Unmet build dependencies: debhelper-compat (= 13)
 	@cd $(VERS_REL_DIR) && debuild -ui -us -uc -b -d | grep -E ^[A-Z]: && echo || echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
+	@# use this line to debug the output
+	@#cd $(VERS_REL_DIR) && debuild -ui -us -uc -b -d  || echo '!!!!!!!!!!!!!!!! FAIL !!!!!!!!!!!!!!!!'
 
 .PHONY: build_package_cleanup
 build_package_cleanup:
@@ -209,6 +215,8 @@ web: webapi #shell-api-core.sh shell-api-dev.sh shell-api-multimedia.sh shell-ap
 	@echo "UPDATING REVISION LOG WEB PAGES"
 	@echo 
 	rsync -av shellapi.css  "$(WEBSITE_DIR)/products/pages/"
+	rsync -a CHANGELOG.txt "$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi_changelog.adoc"
+
 	@echo 
 	@echo "Generating $(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-cm-full-log.adoc"
 	@echo 
@@ -229,7 +237,7 @@ webapi:
 	@echo 
 	@echo "Generating $(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions-doc.adoc"
 	@echo 
-	@genapidoc/genapidoc --api-index="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions.adoc" --api-doc="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions-doc.adoc"
+	genapidoc/genapidoc --api-index="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions.adoc" --api-doc="$(WEBSITE_DIR)/developertoolsforlinux/pages/_topics/shellapi/shellapi-functions-doc.adoc"
 
 .PHONY: ftp
 ftp:

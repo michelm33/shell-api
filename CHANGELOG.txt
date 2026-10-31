@@ -1,90 +1,153 @@
-* Release 1.1.4
-    Release coming along latest bookmake 27/09/26
+Release 1.2.0
+ 
+    * New features:
 
-    New features:
-    - New module 'dock' implementing wrapper functions for docker commands
-    - New module 'mongodb' implementing wrapper functions for mongodb 
-    - New module 'git' implementing wrapper functions for git commands
-    - net API: enhanced Net__checkOpenPort see API doc
-    - core API: new functions  _run_exit, _monitor , Map__toRecord , File__isAbsPath, Str__same, Int__inc
-    - log_status now with a blinking running status and can be used to update end
-    status, enabling to pass on a regular bash return code (0=success) as well
-    alternatively to an allowed predefined keyword (ok, nok...)
-    - Now commented Int functions
-    - completed generated app susage to display commands help    
+        - core API: _run_check, _makeCd, _navCd, _backCd, _undefined, Int__nears, Int__not0, Int__dec, Int__sumUpSeries, Int__gt,  Int__lt, Float__withinRange, Test__assertDirsShouldNotExist, Test__assertFileSizeGreaterThan, Test__assertNotSameFiles, Math__convertHumanReadableSizeToMiB, Array__prependItems, Array__appendItems, Array__dup, Array__sizeMatch, Map__printKeys, Map__merge, Term__title, User__getLogin, Date__year, Date__date, File__exePath, File__SHA256, File__isExe, File__modificationTimeEpoch, File__writeLines, File__readLines, Str__stretch , Str__align, Str__center, Array__SHA256
+        - net API: Net__externalIP, Net__isSSLExpirted
+        - dev API: Dev__getBlockDeviceSize, Dev__getAvailableSpace,  
+        - pack API : DPKG__isPackageFileInstalled to check if a package which name and version is given by the file name is actually installed.
+        - mongo API: mongodb__isURL, mongodb__decodeURL, mongodb__probeShell, mongodb__dump, mongodb__restore, mongodb__dumpVersion, 
+        - docker API: dock__isURL, dock__decodeURL, dock__lastImageId, dock__copy: made the copy bidirectional, from container to system , system to container, or container to another container
+        - YAML API: YAML__getBatch, YAML__isVoid, YAML__writeFile
+        - NEW 'runapi': tool to execute directly any function defined by the shell api
+        - NEW 'testapi' which runs 'runapi' and prints OK if execution returned 0 (success) 
+        - NEW circular logs: max 15000 lines, with last 2000 taken over in the log, 
+        - NEW Array__toTextTableExt as extension of Array__toTextTable to pass dynamic parameters like display of title, colors and alignments
 
-    Fixes:
-    - _coloredText not displaying a specified optional bg color (_colorText was correct)
-    - multimedia API: Fixed Image__watermark following last changes in sys API. 
+    * Fixes:
 
-191 2026-09-14 01:23:26 documentation of the assertion macros in the 'Test' namespace (Test__*
-    functions)
-190 2026-09-07 17:06:08 Changed: README.asciidoc
+        - fixed Math__convertSizeToMiB
+        - fixed _setColored
+        - fixed in Array__toTextTableExt
+        - fixed 2xdouble quote error in generated 'build_release' make target (genapp)
+        - fixed Str__escapeChar
+        - handling shell-api symlink for genapidoc at package installation
+        
+    * Improvs/extensions:
 
-* Release 1.1.3
+        - improved color related functions
+        - extended Array__toTextTableExt with line coloring
+        - extended Array__print with capability to add prefix and suffix to items        
+        - extended Int__dec with optional arg to decrement of the specified amount
+        - added Str__progressBar
+        - some Math__* functions for converting bytes to readable form
+        - extended Int__inc with optional number of increments (1 default)
+        - improved runapi and testapi to enable passing refs to variable 
+        - worked out CHANGELOG to adoc format to make it usable in online documentation
+        - Extended the temp file and dirs API to be able to specify an alternative root folder for temp item
+        - Numerous more functions now documented
+
+Release 1.1.4
+
+    * New features:
+
+        - New module 'dock' implementing wrapper functions for docker commands
+        - New module 'mongodb' implementing wrapper functions for mongodb 
+        - New module 'git' implementing wrapper functions for git commands
+        - net API: enhanced Net__checkOpenPort see API doc
+        - core API: new functions  _run_exit, _monitor , Map__toRecord , File__isAbsPath, Str__same, Int__inc
+        - log_status now with a blinking running status and can be used to update end status, enabling to pass on a regular bash return code (0=success) as well alternatively to an allowed predefined keyword (ok, nok...)
+        - Now documented Int functions
+        - completed generated app susage to display commands help    
+
+    * Fixes:
+
+        - _coloredText not displaying a specified optional bg color (_colorText was correct)
+        - multimedia API: Fixed Image__watermark following last changes in sys API. 
+
+    * Improvs:
+
+        - More documented functions
+
+Release 1.1.3
+
     - GenApidoc tool for generating AsciiDoctor files for the online doc
     - Makefile fixes
     - Minor change in API doc
     - Some very few more functions in core
     - Changed man section from 8 to 1
-* Release 1.1.2
+
+Release 1.1.2
+
     - Please check the full revision log till revision 108: 
         https://slashetc.fr/en/developertoolsforlinux/shellapi/shellapi_fullrevisionlog.html
-      Release history on this page:
-        https://slashetc.fr/en/developertoolsforlinux/shellapi/index.html#_configuration_management
-* Release 1.1.1
+        Release history on this page: https://slashetc.fr/en/developertoolsforlinux/shellapi/index.html#_configuration_management
+
+Release 1.1.1
+
     - Release coming with hot fix for arcv 1.0.1
     - added 'export' target in template genapp makefile for exporting a folder to GitHub
     - added File__deleteAllTempItems() for convenience
     - There could be words in local language appearing in the generated man page (month at end of page)
-* Release 1.1.0
-    - CORE API  
-        Options help now alphabetically ordered
-        added default supported options : --revison, --hash, --version-num
-        added implicit supported config parameter 'default app options', which enables to implicit activate options for each app call
-        various changes and addons log API
-        additional functions (string, array, input,test)
-        _cleanup fixes: now called also on normal app exit, correct caught signal value now forwarded to _cleanup
-    - NET API: added 
-        Net__getDeviceName, 
-        Net__getDeviceMAC, 
-        Net__getMAC. 
-        add dynamic dep loading
-    - YAML API: 
-        strings starting with '#' where removed when appearing as first line of a multiline string,
-        added YAML__isUndefined for convenience. 
-    - PACK API: 
-        DPKG__exists robustness fix, 
-        status display when downloading. CORE API: 
-    - SYS API:
-        Sys__terminate
-    OVERVIEW NEW FUNCTIONS: 
-        Input__confirm_high
-        Int__getIntTrail
-        Test__assertSymlinkPath
-        Str__eraseCommonTail
-        Str__toCharArray
-        _log_if, _log_ifnot
-        _optionsN() a better variant than _options() to display actual arg types
-        help function 'xxx__versionnum
-        added an API to auto manage and cleanup temporary dirs and files. 
-       ADDONS/IMPROVS: 
-        Enabling option combinations (eg -ym for -y -m)
-        Input__cursorSelect: predefined prompt can now be extended using '+' as 1st char, 
-        input__cursor : limiting displayed width of menu items to the terminal width and minor robustness fixes; 
-        added builtin cfg param 'default app options' which enables to inject default parameters at each app launch; 
-        in Input__confirm, added forced input 'no' along the 'yes
-        Input__memsize allowing function to abort on invalid input depending on passed bool (could result in endlessloop)
-       BUGFIXES:
-        fixes: Input__cursorSelect  added 9th param to return value of sections greater than 255; fixed the signal trapping and handling ; extended soptions() to work in manpage mode; 
-        fixed endless loop in Input__sentence when forced -y is specified, now returning directly default value,
-        fixed option help display in case of a dashless option (command) not requiring '='
-        improved _appendConfig by removing any prior existing config param for not creating duplicates if operation is performed multiple times
-    - GENAPP:
-       GENERATED FILES:
-        added default generated option --log; 
-        Makefile: cleanup after package creation, added --config param
-        update/extended template app for genapp, various addons
-        completed genapp with 'verbose' option
-* Release 1.0.0:
+
+Release 1.1.0
+
+    * CORE API:
+
+        - Options help now alphabetically ordered
+        - added default supported options : --revison, --hash, --version-num
+        - added implicit supported config parameter 'default app options', which enables to implicit activate options for each app call
+        - various changes and addons log API
+        - additional functions (string, array, input,test)
+        - _cleanup fixes: now called also on normal app exit, correct caught signal value now forwarded to _cleanup
+    
+    * NET API (added):
+
+        - Net__getDeviceName, 
+        - Net__getDeviceMAC, 
+        - Net__getMAC. 
+        - add dynamic dep loading
+    
+    * YAML API: 
+
+        - strings starting with '#' where removed when appearing as first line of a multiline string,
+        - added YAML__isUndefined for convenience. 
+
+    * PACK API: 
+
+        - DPKG__exists robustness fix, 
+        - status display when downloading. CORE API: 
+
+    * SYS API:
+
+        - OVERVIEW NEW FUNCTIONS: 
+
+            ** Sys__terminate
+            ** Input__confirm_high
+            ** Int__getIntTrail
+            ** Test__assertSymlinkPath
+            ** Str__eraseCommonTail
+            ** Str__toCharArray
+            ** _log_if, _log_ifnot
+            ** _optionsN() a better variant than _options() to display actual arg types
+            ** help function 'xxx__versionnum
+            ** added an API to auto manage and cleanup temporary dirs and files. 
+       
+       - ADDONS/IMPROVS: 
+
+            ** Enabling option combinations (eg -ym for -y -m)
+            ** Input__cursorSelect: predefined prompt can now be extended using '+' as 1st char, 
+            ** input__cursor : limiting displayed width of menu items to the terminal width and minor robustness fixes; 
+            ** added builtin cfg param 'default app options' which enables to inject default parameters at each app launch; 
+            ** in Input__confirm, added forced input 'no' along the 'yes
+            ** Input__memsize allowing function to abort on invalid input depending on passed bool (could result in endlessloop)
+
+       - BUGFIXES:
+
+            ** fixes: Input__cursorSelect  added 9th param to return value of sections greater than 255; fixed the signal trapping and handling ; extended soptions() to work in manpage mode; 
+            ** fixed endless loop in Input__sentence when forced -y is specified, now returning directly default value,
+            ** fixed option help display in case of a dashless option (command) not requiring '='
+            ** improved _appendConfig by removing any prior existing config param for not creating duplicates if operation is performed multiple times
+    
+    * GENAPP:
+
+       - GENERATED FILES:
+       
+            ** added default generated option --log; 
+            ** Makefile: cleanup after package creation, added --config param
+            ** update/extended template app for genapp, various addons
+            ** completed genapp with 'verbose' option
+
+Release 1.0.0
+
     - initial version separated from sumo

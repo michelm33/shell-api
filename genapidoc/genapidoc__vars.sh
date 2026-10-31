@@ -21,3 +21,4 @@ GENAPIDOC__VARS["silent"]=false
 
 GENAPIDOC__VARS["api-index"]=""
 GENAPIDOC__VARS["api-doc"]=""
+GENAPIDOC__VARS["api-index-nb-cols"]=4

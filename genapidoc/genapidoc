@@ -180,16 +180,14 @@ Genapidoc__generateApiDocLine_nbTableLines=0
 Genapidoc__generateApiDocLine_closeTable() {
     local adocOut="$1"   
     if [ ! -z "${Genapidoc__generateApiDocLine_prevScope}" ] ; then
-        local left=$((Genapidoc__generateApiDocLine_nbTableLines%4))
-        if [ $left -ne 0 ] ; then
-            local i=0
-            while [ $i -lt $left ] ; do
-                File__append "$adocOut" "            
+        local nbCols=${GENAPIDOC__VARS["api-index-nb-cols"]}
+        local left=$(( $nbCols - (Genapidoc__generateApiDocLine_nbTableLines%${nbCols}) ))
+        while Int__not0 $left; do
+            File__append "$adocOut" "            
 |
 "
-            i=$(( $i + 1))
-            done
-        fi   
+            Int__dec left
+        done
         File__append "$adocOut" "            
 |===
 "
@@ -225,10 +223,11 @@ Genapidoc__generateApiDocLine()
                 title="${title} - ${docSectionMap["${title}"]}"
             fi
 
+            local nbCols=${GENAPIDOC__VARS["api-index-nb-cols"]}
             File__append "$adocOut" "            
 === ${title}
 
-[cols=\"4*\",frame=none, grid=none,role=\"css-shellapi-api-index\"]
+[cols=\"${nbCols}*\",frame=none, grid=none,role=\"css-shellapi-api-index\"]
 |===            
 "
 
@@ -259,9 +258,11 @@ Genapidoc__handleSource()
     local adocOut="${GENAPIDOC__VARS["api-index"]}"
 
     if [[ "${_filePath}" =~ ^shell\-api\-([a-z]+)\.sh$ ]] ; then
-_log_vars __rank _filePath
+        local title="${BASH_REMATCH[1]}"
+        local moduleFilename="$title"
 
-        
+        _log_vars __rank _filePath
+
         ################################################################################
         #
         # This part extracts all function  signatures using a grep based command
@@ -281,15 +282,13 @@ _log_vars __rank _filePath
         # Extract all function signatures and put it in 'content',
         # which lines will be processed by Genapidoc__generateApiDocLine
         #
-        local title="${BASH_REMATCH[1]}"
-        local moduleFilename="$title"
         local content="$(cat "${_absPath}"|grep -E '^[^ =]+\(\)([ {]*)$' | sed -E 's/[[:space:]]*\([[:space:]]*\)[[:space:]]*\{?[[:space:]]*$//g' | sort )"
         
         local globalScopeContent="$(echo "$content"|grep -E ^_)"
         local scopedContent="$(echo "$content"|grep -v -E ^_)"
         content="$globalScopeContent
 $scopedContent"
-
+	#_log_vars title
         if [ ! -z "${adocOut}" ] ; then
         #_log_vars _filePath
         #return 0
@@ -747,9 +746,15 @@ Genapidoc__main() {
 
 	_initLogs
 
+    local adocIndexOut="${GENAPIDOC__VARS["api-index"]}"
+    local adocOut="${GENAPIDOC__VARS["api-doc"]}"
+    if Str__isEmpty "$adocIndexOut" || Str__isEmpty "$adocOut" ; then
+        _exit -1 "Please specify --api-index and --api-doc (mandatory)"
+    fi
+
     File__foreach "${GENAPIDOC__VARS["MYDIR"]}"/.. Genapidoc__handleSource
-    local adocOut="${GENAPIDOC__VARS["api-index"]}"
-    Genapidoc__generateApiDocLine_closeTable "$adocOut"
+    
+    Genapidoc__generateApiDocLine_closeTable "$adocIndexOut"
 }
 
 Genapidoc__test() {
